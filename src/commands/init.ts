@@ -4,7 +4,7 @@
  * Creates the project directory structure, initializes state,
  * and generates template files.
  */
-import { existsSync, mkdirSync, writeFileSync, copyFileSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync, copyFileSync, readdirSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { validateSlug, normalizePath } from '../utils/paths.js';
 import { ProjectStore } from '../state/store.js';
@@ -162,18 +162,22 @@ ${slug}/
 }
 
 function copyMaterialDirectory(sourceDir: string, destDir: string): void {
-  const files = readdirSync(sourceDir);
-  for (const file of files) {
-    const srcPath = join(sourceDir, file);
-    const destPath = join(destDir, file);
-    const stat = require('node:fs').statSync(srcPath);
+  copyDirRecursive(sourceDir, destDir);
+}
 
-    if (stat.isFile()) {
+function copyDirRecursive(src: string, dest: string): void {
+  mkdirSync(dest, { recursive: true });
+  const entries = readdirSync(src);
+
+  for (const entry of entries) {
+    const srcPath = join(src, entry);
+    const destPath = join(dest, entry);
+    const stat = statSync(srcPath);
+
+    if (stat.isDirectory()) {
+      copyDirRecursive(srcPath, destPath);
+    } else {
       copyFileSync(srcPath, destPath);
     }
   }
-}
-
-function readdirSync(path: string): string[] {
-  return require('node:fs').readdirSync(path);
 }

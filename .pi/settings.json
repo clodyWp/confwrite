@@ -1,6 +1,7 @@
 {
   "packages": [
     "npm:pi-subagents",
-    "npm:context-mode"
+    "npm:@dietrichgebert/ponytail",
+    "npm:@complexthings/pi-dynamic-context-pruning"
   ]
 }
