@@ -1,18 +1,18 @@
 /**
  * Scheduler Types
+ *
+ * Single source of truth for TaskType, TaskStatus, SchedulerConfig:
+ *   → state/schema.ts (TypeBox runtime validation)
+ *
+ * This file re-exports those and adds the Task interface
+ * (not in schema because it's a runtime working type).
  */
 
-export type TaskType = 'writer' | 'reviewer' | 'fixer' | 'diagram';
+// Re-export canonical types from schema
+export type { TaskType, TaskStatus, SchedulerConfig } from '../state/schema.js';
+export { DEFAULT_SCHEDULER_CONFIG } from '../state/schema.js';
 
-export type TaskStatus = 
-  | 'queued'
-  | 'running'
-  | 'completed'
-  | 'failed'
-  | 'retrying'
-  | 'interrupted'
-  | 'blocked'
-  | 'skipped';
+import type { TaskType, TaskStatus } from '../state/schema.js';
 
 export interface Task {
   id: string;
@@ -20,7 +20,7 @@ export interface Task {
   chapterId?: string;
   status: TaskStatus;
   priority: number;
-  sequence: number; // 插入顺序，用于保证 FIFO
+  sequence: number; // insertion order for FIFO
   attempt: number;
   prompt: string;
   dependencies: string[];
@@ -29,23 +29,3 @@ export interface Task {
   startedAt?: number;
   completedAt?: number;
 }
-
-export interface SchedulerConfig {
-  maxConcurrency: number;
-  tokenBucketSize: number;
-  tokenRefillRate: number;
-  retryBaseDelayMs: number;
-  retryBackoffMultiplier: number;
-  retryMaxDelayMs: number;
-  taskTimeoutMs: number;
-}
-
-export const DEFAULT_SCHEDULER_CONFIG: SchedulerConfig = {
-  maxConcurrency: 3,
-  tokenBucketSize: 10,
-  tokenRefillRate: 0.5,
-  retryBaseDelayMs: 5000,
-  retryBackoffMultiplier: 2,
-  retryMaxDelayMs: 60000,
-  taskTimeoutMs: 600000,
-};

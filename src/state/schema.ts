@@ -50,6 +50,7 @@ export const TaskStatusEnum = Type.Union([
   Type.Literal('retrying'),
   Type.Literal('interrupted'),
   Type.Literal('blocked'),
+  Type.Literal('skipped'),
 ]);
 export type TaskStatus = Static<typeof TaskStatusEnum>;
 
@@ -61,6 +62,7 @@ export const TaskType = Type.Union([
   Type.Literal('planner'),
   Type.Literal('diagram'),
 ]);
+// Note: TaskType already has all 6 types — no change needed
 export type TaskType = Static<typeof TaskType>;
 
 export const SubagentTask = Type.Object({
