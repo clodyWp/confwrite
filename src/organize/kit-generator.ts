@@ -57,29 +57,32 @@ export class KitGenerator {
       lines.push('');
     }
 
+    // 作用域 baseline：只包含与本章节相关的数据
+    const scoped = this.scopeBaseline(mapping, baseline);
+
     // 关键数据
-    if (Object.keys(baseline.metrics).length > 0) {
+    if (Object.keys(scoped.metrics).length > 0) {
       lines.push('## 关键数据');
-      lines.push('以下是从资料中提取的关键指标：\n');
-      for (const [key, value] of Object.entries(baseline.metrics)) {
+      lines.push('以下是与本章节相关的关键指标：\n');
+      for (const [key, value] of Object.entries(scoped.metrics)) {
         lines.push(`- **${key}**: ${value}`);
       }
       lines.push('');
     }
 
     // 技术术语
-    if (baseline.technicalTerms.length > 0) {
+    if (scoped.technicalTerms.length > 0) {
       lines.push('## 技术术语');
       lines.push('确保在写作中正确使用以下术语：\n');
-      lines.push(baseline.technicalTerms.join(', '));
+      lines.push(scoped.technicalTerms.join(', '));
       lines.push('');
     }
 
     // 需求
-    if (baseline.requirements.length > 0) {
+    if (scoped.requirements.length > 0) {
       lines.push('## 需求要点');
       lines.push('写作时需要覆盖以下需求：\n');
-      for (const req of baseline.requirements) {
+      for (const req of scoped.requirements) {
         lines.push(`- ${req}`);
       }
       lines.push('');
@@ -152,6 +155,40 @@ export class KitGenerator {
       success,
       failed,
       results,
+    };
+  }
+
+  /**
+   * 作用域 baseline：只保留与章节相关的指标/术语/需求
+   * 无相关文件时返回完整 baseline（fallback）
+   */
+  private scopeBaseline(mapping: ChapterMapping, baseline: DataBaseline): DataBaseline {
+    if (mapping.relatedFiles.length === 0) {
+      return baseline;
+    }
+
+    const keywords = mapping.relatedKeywords.map(k => k.toLowerCase());
+
+    const matchesKeywords = (text: string): boolean => {
+      const lower = text.toLowerCase();
+      return keywords.some(k => lower.includes(k) || k.includes(lower.slice(0, 2)));
+    };
+
+    const scopedMetrics: Record<string, string> = {};
+    for (const [key, value] of Object.entries(baseline.metrics)) {
+      if (matchesKeywords(key) || matchesKeywords(value)) {
+        scopedMetrics[key] = value;
+      }
+    }
+
+    const scopedTerms = baseline.technicalTerms.filter(t => matchesKeywords(t));
+    const scopedReqs = baseline.requirements.filter(r => matchesKeywords(r));
+
+    return {
+      ...baseline,
+      metrics: scopedMetrics,
+      technicalTerms: scopedTerms,
+      requirements: scopedReqs,
     };
   }
 }
