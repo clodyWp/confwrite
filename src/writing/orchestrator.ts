@@ -132,11 +132,11 @@ export class WritingOrchestrator {
         chapter.status = 'written';
         break;
 
-      case 'reviewer':
-        const decision = task.result ? JSON.parse(task.result) as ReviewDecision : null;
-        if (decision && decision.decision === 'accept') {
+      case 'reviewer': {
+        const decision = this.parseReviewResult(task.result);
+        if (decision.decision === 'accept') {
           chapter.status = 'completed';
-        } else if (decision && decision.decision === 'revise') {
+        } else if (decision.decision === 'revise') {
           chapter.status = 'reviewed'; // needs fix
         } else {
           // reject: 需要重写
@@ -144,12 +144,50 @@ export class WritingOrchestrator {
           chapter.round += 1;
         }
         break;
+      }
 
       case 'fixer':
         chapter.status = 'written';
         chapter.attempt = task.attempt;
         break;
     }
+  }
+
+  /**
+   * 安全解析 Reviewer 输出
+   * 优先尝试 JSON，失败后从自由文本提取决定
+   * 最终默认 revise（安全侧：不丢弃内容也不盲目接受）
+   */
+  private parseReviewResult(result: string | undefined): ReviewDecision {
+    if (!result) {
+      return { decision: 'revise', confidence: 0, reasons: ['empty review result'] };
+    }
+
+    // Try JSON first
+    try {
+      const parsed = JSON.parse(result) as ReviewDecision;
+      if (parsed && ['accept', 'reject', 'revise'].includes(parsed.decision)) {
+        return parsed;
+      }
+    } catch {
+      // Not JSON, fall through to text parsing
+    }
+
+    // Fallback: extract decision from free text
+    const decisionMatch = result.match(/\*\*决定\*\*:\s*(accept|reject|revise)/i)
+      || result.match(/decision:\s*(accept|reject|revise)/i)
+      || result.match(/\b(accept|reject|revise)\b/i);
+
+    if (decisionMatch) {
+      return {
+        decision: decisionMatch[1].toLowerCase() as 'accept' | 'reject' | 'revise',
+        confidence: 0.5,
+        reasons: ['parsed from free text'],
+      };
+    }
+
+    // Ultimate fallback
+    return { decision: 'revise', confidence: 0, reasons: ['could not parse review decision'] };
   }
 
   /**
