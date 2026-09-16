@@ -161,7 +161,9 @@ export class MaterialScanner {
   }
 
   /**
-   * 从内容提取关键词（简单实现）
+   * 从内容提取关键词
+   * 中文: bigram 分词（2字组合）
+   * 英文: 3+ 字母单词
    */
   private extractKeywords(content: string): string[] {
     // 移除 Markdown 标记
@@ -170,12 +172,46 @@ export class MaterialScanner {
       .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
       .replace(/[*_`]/g, '');
     
-    // 简单的关键词提取（中文分词 + 英文单词）
-    const words = text.match(/[\u4e00-\u9fa5]{2,}|[a-zA-Z]{3,}/g) || [];
+    const keywords: string[] = [];
+    
+    // 英文单词（3+ 字母）
+    const englishWords = text.match(/[a-zA-Z]{3,}/g) || [];
+    keywords.push(...englishWords);
+    
+    // 中文 trigram + bigram（trigram 优先，更有意义）
+    const chineseSegments = text.match(/[\u4e00-\u9fa5]+/g) || [];
+    for (const segment of chineseSegments) {
+      // 先提取 3字组合
+      for (let i = 0; i < segment.length - 2; i++) {
+        const trigram = segment.slice(i, i + 3);
+        if (!this.isChineseStopWord(trigram)) {
+          keywords.push(trigram);
+        }
+      }
+      // 再提取 2字组合
+      for (let i = 0; i < segment.length - 1; i++) {
+        const bigram = segment.slice(i, i + 2);
+        if (!this.isChineseStopWord(bigram)) {
+          keywords.push(bigram);
+        }
+      }
+    }
     
     // 去重并限制数量
-    const unique = Array.from(new Set(words));
-    return unique.slice(0, 10);
+    const unique = Array.from(new Set(keywords));
+    return unique.slice(0, 20);
+  }
+
+  /**
+   * 中文停用词
+   */
+  private isChineseStopWord(word: string): boolean {
+    const stopWords = new Set([
+      '这是', '一个', '关于', '描述', '整体', '方面', '多个', '包括',
+      '以及', '或者', '但是', '因为', '所以', '如果', '虽然', '然而',
+      '可以', '能够', '应该', '需要', '必须', '可能', '将会', '已经',
+    ]);
+    return stopWords.has(word);
   }
 
   /**
