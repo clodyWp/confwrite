@@ -24,6 +24,9 @@ npm-debug.log*
 # Test coverage
 coverage/
 
+# Test temp files
+tests/tmp/
+
 # Temporary files
 *.tmp
 *.bak
