@@ -66,6 +66,44 @@ export class SubagentScheduler {
   }
 
   /**
+   * Get a task by ID (alias for getStatus)
+   */
+  getTask(id: string): Task | undefined {
+    return this.tasks.get(id);
+  }
+
+  /**
+   * Mark a task as running
+   */
+  markRunning(id: string): void {
+    const task = this.tasks.get(id);
+    if (!task) return;
+    task.status = 'running';
+    task.startedAt = Date.now();
+  }
+
+  /**
+   * Mark a task as completed
+   */
+  markCompleted(id: string, result: string): void {
+    const task = this.tasks.get(id);
+    if (!task) return;
+    task.status = 'completed';
+    task.result = result;
+    task.completedAt = Date.now();
+  }
+
+  /**
+   * Mark a task as failed
+   */
+  markFailed(id: string, error: string): void {
+    const task = this.tasks.get(id);
+    if (!task) return;
+    task.status = 'failed';
+    task.error = error;
+  }
+
+  /**
    * 获取所有任务
    */
   list(): Task[] {
