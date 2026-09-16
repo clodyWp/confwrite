@@ -1,0 +1,1169 @@
+# ConfWrite 详细设计文档
+
+> **版本**: v0.1.0-draft  
+> **日期**: 2025-01-15  
+> **状态**: 待评审  
+> **作者**: ConfWrite Team
+
+---
+
+## 目录
+
+- [1. 概述](#1-概述)
+- [2. 设计目标与约束](#2-设计目标与约束)
+- [3. 系统架构](#3-系统架构)
+- [4. 模块详细设计](#4-模块详细设计)
+  - [4.1 状态管理 (state/)](#41-状态管理-state)
+  - [4.2 调度器系统 (scheduler/)](#42-调度器系统-scheduler)
+  - [4.3 素材组织系统 (organize/)](#43-素材组织系统-organize)
+  - [4.4 写作管线 (writing/)](#44-写作管线-writing)
+  - [4.5 组装与导出 (assemble/)](#45-组装与导出-assemble)
+  - [4.6 状态机 (orchestrator/)](#46-状态机-orchestrator)
+  - [4.7 命令层 (commands/)](#47-命令层-commands)
+  - [4.8 Extension 入口 (index.ts)](#48-extension-入口-indexts)
+- [5. 数据流设计](#5-数据流设计)
+- [6. 关键设计决策](#6-关键设计决策)
+- [7. 已识别的架构问题](#7-已识别的架构问题)
+- [8. 测试覆盖](#8-测试覆盖)
+- [9. 待实现清单](#9-待实现清单)
+- [10. 附录](#10-附录)
+
+---
+
+## 1. 概述
+
+### 1.1 项目定位
+
+ConfWrite 是一个 **pi 原生扩展包**（Extension + Skill），用于生成 10+ 章节、百万字级长文档。典型场景包括技术方案、白皮书、操作手册等。
+
+### 1.2 核心问题
+
+传统 LLM 写作面临三个核心挑战：
+
+| 挑战 | 描述 | ConfWrite 解法 |
+|------|------|---------------|
+| **上下文溢出** | 单次 LLM 调用无法处理整本书 | 章节素材包 (Chapter Kit) 模式，每个 subagent 只处理一章 |
+| **数据不一致** | 多章节间数字/术语矛盾 | 数据基线 (Data Baseline) 机制，Writer 引用 + Reviewer 核查 |
+| **流程不可控** | LLM 驱动的 flow control 不可靠 | 确定性 TypeScript 状态机，LLM 只负责内容生成 |
+
+### 1.3 设计哲学
+
+> **"LLM 是写手，不是项目经理。"**
+
+- 流程控制：100% TypeScript 确定性代码
+- 内容生成：100% LLM subagent
+- 状态持久化：原子化 JSON 文件
+- 失败隔离：单章节失败不阻塞整体
+
+---
+
+## 2. 设计目标与约束
+
+### 2.1 设计目标
+
+| 编号 | 目标 | 度量 |
+|------|------|------|
+| G1 | 支持 10~100 章长文档 | 章节数可配置 |
+| G2 | 数据跨章节一致 | 基线机制 + Reviewer 核查 |
+| G3 | 单任务失败不阻塞 | 失败隔离 + 自动重试 |
+| G4 | 可中断可恢复 | 状态持久化到 JSON |
+| G5 | 速率安全 | 令牌桶限流 |
+| G6 | 多格式导出 | MD / HTML / DOCX / PDF |
+
+### 2.2 约束
+
+| 约束 | 说明 |
+|------|------|
+| C1 | 不依赖外部 LLM 服务 API（使用 pi subagent 机制） |
+| C2 | 状态存储仅使用本地 JSON 文件（无数据库依赖） |
+| C3 | 不修改 pi 核心代码，仅使用 Extension API |
+| C4 | 所有代码 TypeScript，TDD 开发 |
+| C5 | 本地分发（npm pack → pi install），不发布公共 npm |
+
+---
+
+## 3. 系统架构
+
+### 3.1 整体架构图
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     pi Extension API                            │
+│  registerCommand('confwrite:init')                              │
+│  registerCommand('confwrite:organize')                          │
+│  registerCommand('confwrite:write')                             │
+│  registerCommand('confwrite:status')                            │
+│  registerCommand('confwrite:resume')                            │
+│  registerCommand('confwrite:export')                            │
+└───────────────────────┬─────────────────────────────────────────┘
+                        │
+                        ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    Command Layer (commands/)                     │
+│                                                                 │
+│  init.ts          organize.ts         export.ts                 │
+│  ┌──────────┐    ┌───────────────┐    ┌──────────────┐         │
+│  │ 创建目录  │    │ 扫描→索引→    │    │ 组装→格式    │         │
+│  │ 初始化状态│    │ 基线→映射→    │    │ 转换→输出    │         │
+│  │ 生成模板  │    │ 素材包        │    │              │         │
+│  └──────────┘    └───────────────┘    └──────────────┘         │
+└───────────────────────┬─────────────────────────────────────────┘
+                        │
+                        ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                  State Machine (orchestrator/)                   │
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │  phases.ts — 声明式阶段定义                              │    │
+│  │                                                         │    │
+│  │  0a → 0b → 1 → 2 → 3 → 4a → 4b → 4c → 4d → 5 → 6 → 7 → 8 → done │
+│  │                                                         │    │
+│  │  每个 Phase: validate() + execute() + exits[]           │    │
+│  └─────────────────────────────────────────────────────────┘    │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │  state-machine.ts — 确定性状态机                         │    │
+│  │                                                         │    │
+│  │  tick():                                                │    │
+│  │    1. 加载状态                                           │    │
+│  │    2. 验证前置条件                                       │    │
+│  │    3. 检查退出条件 → 自动推进                            │    │
+│  │    4. 执行当前阶段                                       │    │
+│  │    5. 返回 action                                       │    │
+│  └─────────────────────────────────────────────────────────┘    │
+└───────────────────────┬─────────────────────────────────────────┘
+                        │
+                        ▼
+┌─────────────────────────────────────────────────────────────────┐
+│               Writing Pipeline (writing/)                        │
+│                                                                 │
+│  ┌──────────────────┐    ┌──────────────────────┐               │
+│  │ orchestrator.ts   │    │ task-executor.ts      │               │
+│  │                  │    │                       │               │
+│  │ 生成写作任务      │───▶│ 组装 Writer prompt    │               │
+│  │ 生成审阅任务      │    │ 组装 Reviewer prompt  │               │
+│  │ 生成修复任务      │    │ 组装 Fixer prompt     │               │
+│  │ 更新章节状态      │    │ 解析审阅决定          │               │
+│  └──────────────────┘    └──────────────────────┘               │
+└───────────────────────┬─────────────────────────────────────────┘
+                        │
+                        ▼
+┌─────────────────────────────────────────────────────────────────┐
+│               Scheduler (scheduler/)                              │
+│                                                                 │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐      │
+│  │ token-bucket  │  │ priority-    │  │ retry.ts         │      │
+│  │              │  │ queue.ts     │  │                  │      │
+│  │ 速率限制      │  │ 最小堆排序   │  │ 指数退避+抖动    │      │
+│  │ 10 tokens    │  │ FIFO 保证    │  │ 5s → 10s → 20s  │      │
+│  │ 0.5/s 补充   │  │              │  │ max 60s         │      │
+│  └──────────────┘  └──────────────┘  └──────────────────┘      │
+│  ┌────────────────────────────────────────────────────────┐     │
+│  │ index.ts — SubagentScheduler                           │     │
+│  │                                                        │     │
+│  │ submit(task) → enqueue → getReadyTasks() → dispatch   │     │
+│  │                                                        │     │
+│  │ ⚠️ dispatch 逻辑未实现（见 §7 架构问题）               │     │
+│  └────────────────────────────────────────────────────────┘     │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 3.2 源文件清单
+
+```
+src/
+├── index.ts                          # Extension 入口，注册 6 个命令
+├── state/
+│   ├── schema.ts                     # TypeBox 类型定义 (ProjectState, ChapterState, etc.)
+│   └── store.ts                      # 原子化 JSON 持久化 (write-to-temp → rename)
+├── scheduler/
+│   ├── types.ts                      # Task, SchedulerConfig 类型
+│   ├── token-bucket.ts               # 令牌桶限流器
+│   ├── priority-queue.ts             # 最小堆优先级队列
+│   ├── retry.ts                      # 指数退避重试引擎
+│   └── index.ts                      # SubagentScheduler 主类
+├── organize/
+│   ├── scanner.ts                    # 资料文件扫描 + 自动分类
+│   ├── converter.ts                  # HTML/PDF/DOCX → Markdown 转换
+│   ├── indexer.ts                    # JSON 索引生成
+│   ├── baseline-extractor.ts         # 数据基线提取
+│   ├── outline-parser.ts             # 大纲解析 + ch 标记识别
+│   ├── chapter-mapper.ts             # 章节-资料映射
+│   └── kit-generator.ts              # 章节素材包生成
+├── writing/
+│   ├── task-executor.ts              # Prompt 构建 + 审阅结果解析
+│   └── orchestrator.ts               # 写作阶段编排器
+├── assemble/
+│   ├── assembler.ts                  # 章节组装器
+│   └── converter.ts                  # Markdown → HTML/DOCX/PDF 转换
+├── orchestrator/
+│   ├── phases.ts                     # 14 个阶段声明式定义
+│   └── state-machine.ts              # 确定性状态机
+├── commands/
+│   ├── init.ts                       # /confwrite:init
+│   ├── organize.ts                   # /confwrite:organize
+│   └── export.ts                     # /confwrite:export
+└── utils/
+    └── paths.ts                      # 路径安全工具 (防遍历)
+```
+
+---
+
+## 4. 模块详细设计
+
+### 4.1 状态管理 (state/)
+
+#### 4.1.1 Schema (schema.ts)
+
+使用 TypeBox 定义所有状态的 JSON Schema，保证类型安全和运行时验证。
+
+**核心类型**：
+
+```typescript
+// 项目状态（根对象）
+ProjectState {
+  version: number;              // Schema 版本号，用于迁移
+  project: string;              // 项目 slug
+  projectDir: string;           // 项目目录绝对路径
+  currentPhase: Phase;          // 当前阶段 (0a/0b/1/2/3/4a/4b/4c/4d/5/6/7/8/done)
+  status: ProjectStatus;        // 项目状态 (init/organizing/writing/reviewing/done/...)
+  chapters: Record<string, ChapterState>;  // 章节状态映射
+  round: number;                // 当前写作轮次
+  scheduler: SchedulerState;    // 调度器状态（令牌桶等）
+  tasks: SubagentTask[];        // 任务列表
+  executionLog: LogEntry[];     // 执行日志
+}
+
+// 章节状态
+ChapterState {
+  id: string;                   // ch001, ch002, ...
+  title: string;                // 章节标题
+  status: ChapterStatus;        // pending → writing → written → reviewing → reviewed → completed
+  round: number;                // 当前轮次
+  attempt: number;              // 尝试次数
+  outlineSection?: string;      // 大纲中的章节内容
+  parentChapter?: string;       // 父章节 ID
+  spawnLevel?: number;          // spawn 粒度层级
+}
+
+// 章节状态流转
+ChapterStatus:
+  pending → writing → written → reviewing → reviewed → fixing → fixed → written → ... → completed
+                                                                                      ↘ failed
+                                                                                      ↘ skipped
+```
+
+**设计决策**：
+- 使用 TypeBox 而非手写 interface → 运行时验证 + 自动生成 JSON Schema
+- 章节状态用 `Record<string, ChapterState>` 而非数组 → O(1) 查找
+- `executionLog` 追加写入 → 完整的审计追踪
+
+#### 4.1.2 Store (store.ts)
+
+```typescript
+class ProjectStore {
+  constructor(projectDir: string);
+  load(): ProjectState | null;    // 读取 project-state.json
+  save(state: ProjectState): void; // 原子化写入
+}
+```
+
+**原子化写入策略**：
+```
+1. JSON.stringify(state, null, 2)
+2. writeFileSync(tempPath, content)     // 写入临时文件
+3. renameSync(tempPath, targetPath)     // 原子重命名
+```
+
+这保证了即使进程崩溃，也不会出现半写状态。
+
+---
+
+### 4.2 调度器系统 (scheduler/)
+
+#### 4.2.1 令牌桶 (token-bucket.ts)
+
+```
+容量: 10 tokens
+补充速率: 0.5 tokens/秒 (每 2 秒补充 1 个)
+
+用途: 控制 LLM API 调用频率，避免触发限流
+
+API:
+  consume(): boolean          // 尝试消费 1 个 token
+  waitForToken(timeout): Promise<void>  // 等待直到有 token
+  serialize() / deserialize() // 持久化状态
+```
+
+#### 4.2.2 优先级队列 (priority-queue.ts)
+
+```
+数据结构: 最小堆 (Min-Heap)
+排序规则: priority ASC → sequence ASC (FIFO 保证)
+
+API:
+  enqueue(item): void
+  dequeue(): T | undefined
+  peek(): T | undefined
+  size: number
+  serialize() / deserialize()
+```
+
+#### 4.2.3 重试引擎 (retry.ts)
+
+```
+策略: 指数退避 + 随机抖动
+
+delay = min(baseDelay * multiplier^attempt, maxDelay) + jitter
+jitter = random(0, delay * 0.5)
+
+默认配置:
+  baseDelay: 5000ms
+  multiplier: 2
+  maxDelay: 60000ms
+  maxRetries: 3
+  jitter: true
+
+示例延迟序列:
+  第 1 次重试: ~5s (5000 ± 2500ms)
+  第 2 次重试: ~10s (10000 ± 5000ms)
+  第 3 次重试: ~20s (20000 ± 10000ms)
+```
+
+#### 4.2.4 调度器主类 (index.ts)
+
+```typescript
+class SubagentScheduler {
+  submit(task: Task): void;           // 提交任务
+  list(): Task[];                      // 列出所有任务
+  getReadyTasks(): Task[];             // 获取就绪任务（依赖已满足）
+  markRunning(id: string): void;       // 标记为运行中
+  markCompleted(id: string, result): void;  // 标记为完成
+  markFailed(id: string, error): void;      // 标记为失败
+  pause() / resume(): void;            // 暂停/恢复
+  serialize() / deserialize(): void;   // 持久化
+}
+```
+
+**当前实现状态**：
+- ✅ 任务提交、队列管理、优先级排序
+- ✅ 令牌桶、重试引擎
+- ✅ 依赖检查（`getReadyTasks` 检查 `dependencies` 是否全部 completed）
+- ✅ 暂停/恢复、序列化/反序列化
+- ❌ **dispatch 循环**（取出就绪任务 → 调用 subagent → 处理结果）
+- ❌ **与 pi subagent API 的集成**
+
+---
+
+### 4.3 素材组织系统 (organize/)
+
+#### 4.3.1 处理管线
+
+```
+reference_material/
+        │
+        ▼
+┌─────────────┐     ┌──────────────┐     ┌──────────────┐
+│  Scanner     │────▶│  Converter   │────▶│  Indexer     │
+│             │     │              │     │              │
+│ 递归扫描     │     │ PDF→MD       │     │ JSON 索引    │
+│ 自动分类     │     │ DOCX→MD      │     │ 按分类分组    │
+│ 提取元数据   │     │ HTML→MD      │     │ 关键词提取    │
+└─────────────┘     └──────────────┘     └──────┬───────┘
+                                                │
+                      ┌─────────────────────────┤
+                      ▼                         ▼
+              ┌──────────────┐         ┌──────────────┐
+              │ Baseline     │         │ Outline      │
+              │ Extractor    │         │ Parser       │
+              │              │         │              │
+              │ 提取指标      │         │ 解析 ch 标记  │
+              │ 提取术语      │         │ 构建章节树    │
+              │ 提取需求      │         │              │
+              └──────┬───────┘         └──────┬───────┘
+                     │                        │
+                     └────────┬───────────────┘
+                              ▼
+                     ┌──────────────┐
+                     │ Chapter      │
+                     │ Mapper       │
+                     │              │
+                     │ 章节→资料映射 │
+                     └──────┬───────┘
+                            ▼
+                     ┌──────────────┐
+                     │ Kit          │
+                     │ Generator    │
+                     │              │
+                     │ 生成素材包    │
+                     │ ch001.md     │
+                     │ ch002.md     │
+                     │ ...          │
+                     └──────────────┘
+```
+
+#### 4.3.2 各模块职责
+
+| 模块 | 输入 | 输出 | 关键逻辑 |
+|------|------|------|----------|
+| **Scanner** | `reference_material/` 目录 | `MaterialFile[]` | 递归扫描、按目录/文件名自动分类、提取标题/关键词/摘要 |
+| **Converter** | PDF/DOCX/HTML 文件 | Markdown 文件 | 格式转换（当前为桩实现，需集成实际转换库） |
+| **Indexer** | `MaterialFile[]` | `IndexData` (JSON) | 按分类分组、提取全局关键词、生成可搜索索引 |
+| **BaselineExtractor** | `MaterialFile[]` (读取完整文件) | `DataBaseline` (JSON) | 正则提取百分比/数字/日期/技术术语/需求 |
+| **OutlineParser** | `outline.md` 内容 | `OutlineNode` 树 | 解析 Markdown 标题层级、识别 `chXXX` 标记、构建章节树 |
+| **ChapterMapper** | `OutlineNode` + `IndexData` | `ChapterMapping[]` | 关键词匹配 + 分类匹配 + fallback 分配 |
+| **KitGenerator** | `ChapterMapping[]` + `DataBaseline` | `chXXX.md` 文件 | 生成包含章节信息/相关文件/关键数据/写作提示的素材包 |
+
+#### 4.3.3 素材包内容格式
+
+```markdown
+# ch001 素材包：系统概述
+
+## 章节信息
+- **章节 ID**: ch001
+- **标题**: 系统概述
+- **相关分类**: 技术, 业务
+
+## 相关文件
+共 3 个相关文件：
+- **api-spec.md** (技术)
+  - 摘要: API 规范文档...
+
+## 关键数据
+- **系统可用性**: 99.99%
+- **响应时间**: < 100ms
+
+## 技术术语
+Kubernetes, PostgreSQL, Redis, RabbitMQ
+
+## 需求要点
+- 必须支持多租户架构
+- 需要实现细粒度的权限控制
+
+## 写作提示
+1. 仔细阅读相关文件
+2. 确保使用正确的技术术语
+3. 引用关键数据时保持一致性
+```
+
+---
+
+### 4.4 写作管线 (writing/)
+
+#### 4.4.1 TaskExecutor (task-executor.ts)
+
+**职责**：为每种类型的 subagent 构建 prompt，并解析 subagent 的输出。
+
+**Writer Prompt 结构**：
+
+```
+# 写作任务
+
+你需要撰写章节 **ch001** 的内容。
+
+## 素材包
+{chapter-kit-content}          ← 来自 assets/chapter-kits/ch001.md
+
+## 写作要求
+1. 严格遵循素材包
+2. 数据一致性
+3. 术语准确
+4. 覆盖需求
+5. 结构清晰
+6. 引用来源
+
+## 输出格式
+将完成的章节内容写入文件：drafts/chapters/ch001.md
+
+## 注意事项
+- 不要编造数据
+- 信息不足时标注 [需要补充: xxx]
+```
+
+**Reviewer Prompt 结构**：
+
+```
+# 审阅任务
+
+你需要审阅章节 **ch001** 的内容。
+
+## 章节内容
+{chapter-draft-content}        ← 来自 drafts/chapters/ch001.md
+
+## 数据基线
+### 关键指标
+{metrics from data-baseline.json}
+### 技术术语
+{terms from data-baseline.json}
+### 需求要点
+{requirements from data-baseline.json}
+
+## 审阅标准
+1. 数据一致性
+2. 术语准确性
+3. 需求覆盖
+4. 内容准确性
+5. 结构清晰度
+6. 文字质量
+
+## 输出格式
+将审阅报告写入文件：review/ch001-review.md
+
+## 决定标准
+- accept: 质量达标
+- revise: 有小问题，需修改
+- reject: 质量问题严重，需重写
+```
+
+**审阅结果解析**：
+
+```typescript
+parseReviewDecision(reviewOutput: string): ReviewDecision {
+  // 从审阅报告中提取:
+  // 1. 决定 (accept/reject/revise) — 正则匹配 "**决定**: xxx"
+  // 2. 置信度 — 从评分计算 (平均分/10)
+  // 3. 原因列表 — 从"问题列表"段落提取
+}
+```
+
+#### 4.4.2 WritingOrchestrator (orchestrator.ts)
+
+**职责**：协调 write → review → fix 循环。
+
+```typescript
+class WritingOrchestrator {
+  generateWritingTasks(state): Task[]    // 为 pending 章节生成 writer 任务
+  generateReviewTasks(state): Task[]     // 为 written 章节生成 reviewer 任务
+  generateFixTasks(state): Task[]        // 为 reviewed 章节生成 fixer 任务
+  updateChapterStatus(state, task, outcome): void  // 更新章节状态
+  isWritingPhaseComplete(state): boolean // 所有章节 completed?
+  getNextAction(state): NextAction       // 下一步动作
+}
+```
+
+**Write-Review-Fix 状态流转**：
+
+```
+                    ┌──────────────────────────────────────┐
+                    │                                      │
+                    ▼                                      │
+pending ──▶ writing ──▶ written ──▶ reviewing ──▶ reviewed │
+                                            │              │
+                                    ┌───────┼───────┐      │
+                                    ▼       ▼       ▼      │
+                                 accept   revise   reject  │
+                                    │       │       │      │
+                                    ▼       ▼       ▼      │
+                                 completed  │    pending ───┘
+                                   ✅       │    (round+1)
+                                            ▼
+                                         fixing ──▶ fixed ──▶ written
+                                                                    │
+                                                                    ▼
+                                                              重新审阅
+```
+
+---
+
+### 4.5 组装与导出 (assemble/)
+
+#### 4.5.1 ChapterAssembler (assembler.ts)
+
+```typescript
+class ChapterAssembler {
+  assemble(projectDir, chapterOrder, options?): AssemblyResult
+  save(result, outputPath): void
+  listChapters(projectDir): string[]
+}
+```
+
+**功能**：
+- 按 `chapterOrder` 顺序读取 `drafts/chapters/chXXX.md`
+- 可选添加文档标题、目录 (TOC)、分页符
+- 计算统计信息（章节数、字数、字符数）
+- 处理缺失章节（生成警告但不中断）
+
+#### 4.5.2 FormatConverter (converter.ts)
+
+```typescript
+class FormatConverter {
+  convertToHtml(mdPath, options?): HtmlConversionResult
+  saveHtml(result, outputPath): void
+  generateConversionCommand(input, output, format, options?): string
+  checkDependencies(): Record<string, DependencyInfo>
+}
+```
+
+**内置转换**：Markdown → HTML（自带 CSS 样式）
+
+**外部转换**：Markdown → DOCX/PDF（生成 pandoc 命令）
+
+---
+
+### 4.6 状态机 (orchestrator/)
+
+#### 4.6.1 Phase 定义 (phases.ts)
+
+14 个阶段，每个阶段声明式定义：
+
+```typescript
+interface PhaseDefinition {
+  id: Phase;                           // '0a', '0b', '1', ...
+  name: string;                        // '项目初始化', '素材整理', ...
+  validate: (ctx) => ValidationResult; // 前置条件检查
+  execute: (ctx) => PhaseResult;       // 阶段逻辑，返回 action
+  exits: Transition[];                 // 退出条件 → 目标阶段
+}
+```
+
+**阶段流转图**：
+
+```
+0a ──▶ 0b ──▶ 1 ──▶ 2 ──▶ 3 ──▶ 4a ──┐
+(初始化) (整理) (需求) (大纲) (素材) (写作) │
+                                         │
+                              ┌──────────┘
+                              ▼
+                    ┌─── 4b ◀───────┐
+                    │   (审阅)       │
+                    │               │
+              ┌─────┼─────┐         │
+              ▼     ▼     ▼         │
+           accept revise reject     │
+              │     │     │         │
+              │     ▼     │         │
+              │   4d ─────┘         │
+              │  (修复)             │
+              │     │               │
+              │     └──▶ 回到 4b ───┘
+              ▼
+            4c
+          (决策)
+              │
+              ▼
+            5 ──▶ 6 ──▶ 7 ──▶ 8 ──▶ done
+          (图表) (组装) (定稿) (导出)
+```
+
+**各阶段退出条件**：
+
+| Phase | 退出条件 | 目标 |
+|-------|----------|------|
+| 0a | status === 'init' | → 0b |
+| 0b | 素材已整理 (baseline + index 存在) | → 2 |
+| 1 | requirements.md 存在 | → 2 |
+| 2 | outline.md 存在 + 素材已整理 | → 4a |
+| 2 | outline.md 存在 + 素材未整理 | → 3 |
+| 3 | 素材已整理 | → 4a |
+| 4a | 所有章节 status ∈ {written, completed, failed, skipped} | → 4b |
+| 4b | 所有章节 status ∉ {written, reviewing} | → 4c |
+| 4c | 决策完成 | → 4d 或 → 5 |
+| 4d | 无需修复的章节 | → 4b |
+| 5 | 图表完成 | → 6 |
+| 6 | 组装完成 | → 7 |
+| 7 | 定稿完成 | → 8 |
+| 8 | 导出完成 | → done |
+
+#### 4.6.2 StateMachine (state-machine.ts)
+
+```typescript
+class StateMachine {
+  constructor(projectDir: string);
+  async tick(): Promise<TickResult>;   // 推进一步
+  status(): StatusInfo | null;         // 当前状态
+  getStore(): ProjectStore;            // 获取 store 实例
+}
+```
+
+**tick() 核心逻辑**：
+
+```
+tick():
+  1. state = store.load()
+  2. definition = phases.get(state.currentPhase)
+  3. validation = definition.validate(ctx)
+     if (!validation.ok) → return BlockedResult
+  4. for exit of definition.exits:
+       if exit.condition(ctx):
+         advance(exit.target)
+         return StepResult { advanced: true }
+  5. result = definition.execute(ctx)
+  6. return StepResult { action: result.action, params: result.params }
+```
+
+---
+
+### 4.7 命令层 (commands/)
+
+| 命令 | 文件 | 功能 | 实现状态 |
+|------|------|------|----------|
+| `/confwrite:init` | init.ts | 创建项目结构 + 初始化状态 | ✅ 完整 |
+| `/confwrite:organize` | organize.ts | 扫描→索引→基线→映射→素材包 | ✅ 完整 |
+| `/confwrite:write` | (index.ts) | 调用状态机 tick() | ⚠️ 仅展示 action |
+| `/confwrite:status` | (index.ts) | 读取状态并展示 | ✅ 完整 |
+| `/confwrite:resume` | (index.ts) | 等同于 write | ⚠️ 同上 |
+| `/confwrite:export` | export.ts | 组装 + 格式转换 | ✅ 完整 |
+
+---
+
+### 4.8 Extension 入口 (index.ts)
+
+注册 6 个命令到 pi Extension API。
+
+**当前 `/confwrite:write` handler 逻辑**：
+
+```typescript
+handler: async (args, ctx) => {
+  const machine = new StateMachine(projectDir);
+  const result = await machine.tick();
+
+  // 如果阻塞，显示错误
+  if (result.blocked) {
+    ctx.ui.notify(`⛔ ${result.error}`, 'error');
+    return;
+  }
+
+  // 显示阶段信息
+  ctx.ui.notify(`📝 [${step.phase}] ${step.message}`, 'info');
+
+  // ⚠️ 对于非自动动作，仅打印 JSON 给用户看
+  if (step.action !== 'advance' && ...) {
+    const actionJson = JSON.stringify({ action: step.action, params: step.params });
+    ctx.ui.notify(`待执行:\n${actionJson}`, 'info');
+    // ❌ 没有代码实际执行这个 action
+  }
+}
+```
+
+---
+
+## 5. 数据流设计
+
+### 5.1 完整数据流
+
+```
+用户操作                    文件系统                      状态变更
+─────────────────────────────────────────────────────────────────────
+
+/confwrite:init             projects/slug/                currentPhase: '0a'
+                            ├── inputs/                   status: 'init'
+                            ├── reference_material/
+                            ├── assets/
+                            ├── outline.md (模板)
+                            └── project-state.json
+
+用户放入资料               reference_material/
+                            ├── api-spec.md
+                            ├── arch.pdf
+                            └── req.docx
+
+/confwrite:organize         assets/
+                            ├── indexes/index.json        status: 'organizing'
+                            ├── data-baseline.json
+                            ├── chapter-kits/ch001.md
+                            ├── chapter-kits/ch002.md
+                            └── references-index.md
+
+用户编写大纲               outline.md
+                            # 技术方案
+                            ch001 1.1 概述
+                            ch002 1.2 架构
+                            ...
+
+/confwrite:organize         assets/chapter-kits/          (重新生成素材包)
+                            ├── ch001.md (含映射)
+                            └── ch002.md (含映射)
+
+/confwrite:write            (状态机 tick)                 currentPhase: '4a'
+                            → action: spawn_writers       status: 'writing'
+                            → params: { chapters: [...] }
+                            ⚠️ 此处断开：没有实际 spawn
+
+(理想流程)
+                            drafts/chapters/ch001.md      chapters.ch001.status: 'written'
+                            drafts/chapters/ch002.md      chapters.ch002.status: 'written'
+
+(理想流程)
+                            review/ch001-review.md        chapters.ch001.status: 'completed'
+                            review/ch002-review.md        chapters.ch002.status: 'needs-fix'
+
+/confwrite:export           output/document.md            currentPhase: 'done'
+                            output/document.html
+                            output/document.docx
+```
+
+### 5.2 素材包数据流
+
+```
+reference_material/*.md ──┐
+                          ├──▶ Scanner.scan()
+reference_material/*.pdf ─┘         │
+                                    ▼
+                            MaterialFile[]
+                            (filename, category, keywords, summary)
+                                    │
+                          ┌─────────┤
+                          ▼         ▼
+                    Indexer     BaselineExtractor
+                          │         │
+                          ▼         ▼
+                    IndexData   DataBaseline
+                    (分类索引)   (指标/术语/需求)
+                          │         │
+                          ▼         │
+                    OutlineParser   │
+                    (outline.md)    │
+                          │         │
+                          ▼         │
+                    ChapterMapper ◀─┘
+                    (章节→资料映射)
+                          │
+                          ▼
+                    KitGenerator
+                          │
+                          ▼
+                    assets/chapter-kits/chXXX.md
+```
+
+---
+
+## 6. 关键设计决策
+
+### 6.1 确定性状态机 vs LLM 驱动
+
+**决策**：流程控制 100% TypeScript，LLM 仅生成内容。
+
+**理由**：
+- LLM 驱动的 flow control 不可靠（可能跳步、遗忘、幻觉）
+- 状态机可测试、可预测、可恢复
+- 用户随时可以检查 `project-state.json` 了解进度
+
+**代价**：
+- 需要为每个 Phase 手写 validate/execute/exits 逻辑
+- 灵活性降低（新增阶段需要修改代码）
+
+### 6.2 章节素材包 vs 全局上下文
+
+**决策**：每个章节有独立的素材包文件，而非所有资料放在一个全局索引中。
+
+**理由**：
+- 防止上下文溢出（每个 Writer 只看到自己需要的资料）
+- 数据一致性（素材包引用基线中的数字）
+- 可审计（素材包是 Markdown 文件，人类可读）
+
+**代价**：
+- 需要额外的映射步骤（ChapterMapper）
+- 素材包可能遗漏相关资料（映射不完美）
+
+### 6.3 JSON 文件存储 vs 数据库
+
+**决策**：使用 JSON 文件存储所有状态。
+
+**理由**：
+- 零依赖（不需要 SQLite/Redis）
+- 人类可读可编辑（用户可以直接修改 project-state.json）
+- Git 友好（可以 diff/merge 状态变更）
+- 原子化写入（write-temp → rename）足够安全
+
+**代价**：
+- 不适合高并发写入（但本项目不需要）
+- 大项目时 JSON 文件可能较大（但通常 < 1MB）
+
+### 6.4 令牌桶 vs 简单限流
+
+**决策**：使用令牌桶算法控制 subagent 调用频率。
+
+**理由**：
+- 允许突发（桶满时可以连续调用）
+- 平滑限流（不会突然阻塞）
+- 可持久化（进程重启后恢复令牌状态）
+
+### 6.5 失败隔离 vs 全局中止
+
+**决策**：单章节失败不阻塞其他章节。
+
+**理由**：
+- 长文档写作中，单章问题不应影响全局
+- 失败章节可以单独重试
+- 用户可以手动干预后继续
+
+---
+
+## 7. 已识别的架构问题
+
+### 7.1 🔴 关键：Dispatcher 层缺失
+
+**问题描述**：
+
+状态机返回 `action: 'spawn_writers'` 后，没有代码实际执行这个 action。当前的 `/confwrite:write` handler 只是将 action 打印给用户看。
+
+**影响范围**：
+
+整个写作管线无法自动运行。以下链路断裂：
+
+```
+StateMachine.tick()
+    → { action: 'spawn_writers', params: { chapters: [...] } }
+        → ❌ 没有代码读取素材包
+        → ❌ 没有代码调用 TaskExecutor.generateWriterPrompt()
+        → ❌ 没有代码调用 SubagentScheduler.submit()
+        → ❌ 没有代码调用 pi subagent spawn
+        → ❌ 没有代码处理 subagent 完成后的状态更新
+```
+
+**需要实现的组件**：`src/dispatcher/index.ts`
+
+```typescript
+class Dispatcher {
+  constructor(
+    private projectDir: string,
+    private store: ProjectStore,
+    private scheduler: SubagentScheduler,
+    private taskExecutor: TaskExecutor,
+    private writingOrchestrator: WritingOrchestrator,
+  ) {}
+
+  async dispatch(action: string, params: Record<string, unknown>): Promise<void> {
+    switch (action) {
+      case 'spawn_writers':
+        await this.dispatchWriters(params);
+        break;
+      case 'spawn_reviewers':
+        await this.dispatchReviewers(params);
+        break;
+      case 'spawn_fixers':
+        await this.dispatchFixers(params);
+        break;
+      // ...
+    }
+  }
+
+  private async dispatchWriters(params): Promise<void> {
+    // 1. 读取每个章节的素材包
+    // 2. 调用 taskExecutor.generateWriterPrompt()
+    // 3. 创建 Task 对象
+    // 4. 提交到 scheduler
+    // 5. 从 scheduler 取就绪任务
+    // 6. 调用 pi subagent spawn
+    // 7. 更新章节状态
+  }
+}
+```
+
+**工作量估算**：~200 行代码 + ~50 行测试
+
+### 7.2 🟡 中等：Converter 桩实现
+
+**问题描述**：
+
+`organize/converter.ts` 中的 PDF/DOCX → Markdown 转换当前为桩实现（仅处理 HTML）。
+
+**影响**：
+- PDF 和 DOCX 资料无法被正确处理
+- 用户需要手动转换为 Markdown
+
+**解决方案选项**：
+1. 集成 `mammoth` (DOCX→MD) + `pdf-parse` (PDF→text→MD)
+2. 调用外部工具 `pandoc` 进行转换
+3. 保持桩实现，文档中说明限制
+
+### 7.3 🟡 中等：章节定义未自动同步
+
+**问题描述**：
+
+`outline.md` 中的 `ch` 标记需要手动同步到 `project-state.json` 的 `chapters` 字段。当前没有自动同步机制。
+
+**影响**：
+- 用户修改大纲后，需要手动更新状态
+- Phase 4a 的 validate 检查 `chapters` 是否为空，可能误判
+
+**建议**：在 `/confwrite:organize` 或 `/confwrite:write` 时自动从 `outline.md` 解析并同步章节定义到状态。
+
+### 7.4 🟢 低：HTML 转换器功能有限
+
+**问题描述**：
+
+内置的 Markdown → HTML 转换器是简单正则实现，不支持所有 Markdown 语法（如嵌套列表、脚注、数学公式等）。
+
+**影响**：
+- 导出的 HTML 可能格式不完美
+- 对于大多数技术文档场景足够
+
+**建议**：后续可集成 `marked` 或 `markdown-it` 库。
+
+---
+
+## 8. 测试覆盖
+
+### 8.1 测试统计
+
+```
+Test Files:  22 passed (22)
+Tests:       247 passed (247)
+Duration:    ~3.2s
+TypeScript:  ✅ 编译通过 (npx tsc --noEmit)
+```
+
+### 8.2 按模块分布
+
+| 模块 | 测试文件 | 测试数 | 覆盖范围 |
+|------|----------|--------|----------|
+| state/ | store.test.ts | 13 | 加载/保存/原子化/并发 |
+| scheduler/ | token-bucket.test.ts | 15 | 消费/等待/超时/序列化 |
+| scheduler/ | priority-queue.test.ts | 11 | 入队/出队/优先级/FIFO/序列化 |
+| scheduler/ | retry.test.ts | 11 | 重试判断/退避/上限/抖动/等待 |
+| scheduler/ | index.test.ts | 13 | 提交/就绪/依赖/暂停/序列化 |
+| organize/ | outline-parser.test.ts | 10 | 解析/ch标记/层级/查找 |
+| organize/ | scanner.test.ts | 13 | 扫描/分类/元数据/递归 |
+| organize/ | converter.test.ts | 7 | HTML转换/错误处理 |
+| organize/ | indexer.test.ts | 10 | 索引/分类/关键词/搜索 |
+| organize/ | baseline-extractor.test.ts | 10 | 提取指标/术语/需求/验证 |
+| organize/ | chapter-mapper.test.ts | 9 | 映射/关键词/分类/摘要 |
+| organize/ | kit-generator.test.ts | 10 | 生成/保存/批量/统计 |
+| writing/ | task-executor.test.ts | 12 | Writer/Reviewer/Fixer prompt + 解析 |
+| writing/ | orchestrator.test.ts | 21 | 任务生成/状态更新/完成判断/动作决策 |
+| assemble/ | assembler.test.ts | 12 | 组装/分页/TOC/统计/缺失处理 |
+| assemble/ | converter.test.ts | 12 | HTML转换/样式/表格/代码块/pandoc命令 |
+| commands/ | init.test.ts | 8 | 创建/初始化/重复/非法slug |
+| commands/ | organize.test.ts | 9 | 全流程/空目录/无大纲 |
+| commands/ | export.test.ts | 10 | MD/HTML/DOCX/PDF/TOC/统计 |
+| e2e/ | organize-pipeline.test.ts | 4 | 端到端流水线 |
+| utils/ | paths.test.ts | 16 | slug验证/章节ID/路径安全 |
+| orchestrator/ | state-machine.test.ts | 11 | tick/推进/阻塞/验证 |
+
+### 8.3 未覆盖区域
+
+| 区域 | 原因 |
+|------|------|
+| Dispatcher | 尚未实现 |
+| pi subagent 集成 | 需要 pi 运行时环境 |
+| 完整写作循环 (write→review→fix→accept) | 需要 Dispatcher |
+| PDF/DOCX 转换 | 当前为桩实现 |
+
+---
+
+## 9. 待实现清单
+
+### 9.1 Phase F: Dispatcher（关键路径）
+
+| 编号 | 任务 | 优先级 | 估算 |
+|------|------|--------|------|
+| F1 | 实现 `src/dispatcher/index.ts` — 核心调度逻辑 | P0 | 200 行 |
+| F2 | 实现素材包读取 + prompt 组装 | P0 | 50 行 |
+| F3 | 实现 pi subagent spawn 调用 | P0 | 80 行 |
+| F4 | 实现 subagent 完成回调 + 状态更新 | P0 | 100 行 |
+| F5 | 编写 Dispatcher 测试 | P0 | 150 行 |
+| F6 | 更新 `/confwrite:write` handler 集成 Dispatcher | P0 | 30 行 |
+
+### 9.2 Phase G: 完善与增强
+
+| 编号 | 任务 | 优先级 | 估算 |
+|------|------|--------|------|
+| G1 | 大纲→状态自动同步 | P1 | 80 行 |
+| G2 | 集成 mammoth/pdf-parse 实现真实转换 | P1 | 100 行 |
+| G3 | 实现 Phase 4c (决策) 的完整逻辑 | P1 | 60 行 |
+| G4 | 实现 Phase 5 (图表) 的基本逻辑 | P2 | 100 行 |
+| G5 | 实现 Phase 7 (定稿) 的完整逻辑 | P2 | 60 行 |
+| G6 | 端到端集成测试 (含 Dispatcher) | P1 | 200 行 |
+
+### 9.3 Phase H: 打包与发布
+
+| 编号 | 任务 | 优先级 | 估算 |
+|------|------|--------|------|
+| H1 | 完善 README.md | P2 | - |
+| H2 | 添加 CHANGELOG.md | P2 | - |
+| H3 | 配置 npm pack 排除测试文件 | P2 | - |
+| H4 | 编写安装脚本 | P2 | 50 行 |
+| H5 | 实际项目试用 + 修复问题 | P1 | - |
+
+---
+
+## 10. 附录
+
+### 10.1 项目目录结构
+
+```
+confidenceWriter/
+├── src/                          # 源代码 (22 个 TypeScript 文件)
+├── tests/                        # 测试代码 (22 个测试文件, 247 个测试用例)
+├── confwrite/                    # 旧版 v1 脚本 (已废弃, 测试中排除)
+├── package.json                  # 包配置
+├── tsconfig.json                 # TypeScript 配置
+├── vitest.config.ts              # Vitest 测试配置
+├── README.md                     # 项目说明
+├── ARCHITECTURE.md               # 架构文档
+├── SKILL.md                      # pi Skill 定义
+├── USAGE.md                      # 使用说明
+└── DESIGN.md                     # 本文档
+```
+
+### 10.2 依赖清单
+
+| 依赖 | 版本 | 用途 |
+|------|------|------|
+| `@sinclair/typebox` | ^0.32.0 | JSON Schema 类型定义 |
+
+| 开发依赖 | 版本 | 用途 |
+|------|------|------|
+| `typescript` | ^5.3.0 | 编译器 |
+| `vitest` | ^1.0.0 | 测试框架 |
+| `@types/node` | ^20.0.0 | Node.js 类型 |
+
+### 10.3 命令速查
+
+```
+/confwrite:init <slug> [material-dir]    初始化项目
+/confwrite:organize [project-dir]        整理素材
+/confwrite:write [project-dir]           推进写作（状态机一步）
+/confwrite:status [project-dir]          查看进度
+/confwrite:resume [project-dir]          恢复中断项目
+/confwrite:export <format> [output-path] 导出文档
+```
+
+### 10.4 状态文件示例
+
+```json
+{
+  "version": 1,
+  "project": "my-proposal",
+  "projectDir": "/path/to/projects/my-proposal",
+  "createdAt": "2025-01-15T10:00:00.000Z",
+  "lastUpdated": "2025-01-15T14:30:00.000Z",
+  "currentPhase": "4a",
+  "status": "writing",
+  "chapters": {
+    "ch001": {
+      "id": "ch001",
+      "title": "系统概述",
+      "status": "completed",
+      "round": 1,
+      "attempt": 0
+    },
+    "ch002": {
+      "id": "ch002",
+      "title": "架构设计",
+      "status": "written",
+      "round": 1,
+      "attempt": 0
+    }
+  },
+  "round": 1,
+  "scheduler": {
+    "tokens": 8,
+    "paused": false
+  },
+  "tasks": [],
+  "executionLog": [
+    { "time": "2025-01-15T10:00:00.000Z", "phase": "0a", "action": "Phase 0a → 0b" },
+    { "time": "2025-01-15T10:05:00.000Z", "phase": "0b", "action": "Phase 0b → 2" },
+    { "time": "2025-01-15T14:00:00.000Z", "phase": "4a", "action": "Phase 3 → 4a" }
+  ]
+}
+```
+
+---
+
+> **评审要点**：
+> 1. §7.1 Dispatcher 缺失是阻塞性问题，需确认实现方案
+> 2. §7.2 Converter 桩实现是否可接受（MVP 阶段）
+> 3. §7.3 章节同步机制的设计选择
+> 4. Phase F/G/H 的优先级排序是否合理

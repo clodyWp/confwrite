@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+*.tgz
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+npm-debug.log*
+
+# Test coverage
+coverage/
+
+# Temporary files
+*.tmp
+*.bak
+*.cache
+
+# ConfWrite project state (generated at runtime)
+# Uncomment if you want to ignore generated project data
+# projects/
+# reference_material/
+
+# Legacy v1 code (deprecated)
+confwrite/
