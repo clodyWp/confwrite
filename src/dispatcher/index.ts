@@ -165,6 +165,28 @@ export class Dispatcher {
     };
   }
 
+  /**
+   * 处理任务结果：更新调度器状态 + 回写章节状态
+   */
+  async processTask(taskId: string, outcome: 'success' | 'failed', result: string): Promise<void> {
+    const task = this.scheduler.getTask(taskId);
+    if (!task) return;
+
+    // Update scheduler state
+    if (outcome === 'success') {
+      this.scheduler.markCompleted(taskId, result);
+    } else {
+      this.scheduler.markFailed(taskId, result);
+    }
+
+    // Update chapter status in project state
+    const state = this.store.load();
+    if (!state) return;
+
+    this.writingOrchestrator.updateChapterStatus(state, task, outcome);
+    this.store.save(state);
+  }
+
   private readChapterKit(chapterId: string): string {
     const kitPath = join(this.projectDir, 'assets', 'chapter-kits', `${chapterId}-kit.md`);
     if (!existsSync(kitPath)) {
