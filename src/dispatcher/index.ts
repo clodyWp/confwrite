@@ -72,15 +72,14 @@ export class Dispatcher {
         type: 'writer',
         chapterId,
         priority: sequence,
-        sequence: sequence++,
+        sequence,
         status: 'queued',
         attempt: 0,
-        prompt: this.taskExecutor.generateWriterPrompt(
-          { id: `write-${chapterId}`, type: 'writer', chapterId, status: 'queued', prompt: '', dependencies: [] },
-          kitContent,
-        ),
+        prompt: '',
         dependencies: [],
       };
+      task.prompt = this.taskExecutor.generateWriterPrompt(task, kitContent);
+      sequence++;
       tasks.push(task);
       this.scheduler.submit(task);
     }
@@ -107,16 +106,14 @@ export class Dispatcher {
         type: 'reviewer',
         chapterId,
         priority: sequence,
-        sequence: sequence++,
+        sequence,
         status: 'queued',
         attempt: 0,
-        prompt: this.taskExecutor.generateReviewerPrompt(
-          { id: `review-${chapterId}-r${round}`, type: 'reviewer', chapterId, status: 'queued', prompt: '', dependencies: [] },
-          draftContent,
-          baseline,
-        ),
+        prompt: '',
         dependencies: [],
       };
+      task.prompt = this.taskExecutor.generateReviewerPrompt(task, draftContent, baseline);
+      sequence++;
       tasks.push(task);
       this.scheduler.submit(task);
     }
@@ -143,16 +140,14 @@ export class Dispatcher {
         type: 'fixer',
         chapterId,
         priority: sequence,
-        sequence: sequence++,
+        sequence,
         status: 'queued',
         attempt: 0,
-        prompt: this.taskExecutor.generateFixPrompt(
-          { id: `fix-${chapterId}-r${round}`, type: 'fixer', chapterId, status: 'queued', prompt: '', dependencies: [] },
-          draftContent,
-          reviewContent,
-        ),
+        prompt: '',
         dependencies: [],
       };
+      task.prompt = this.taskExecutor.generateFixPrompt(task, draftContent, reviewContent);
+      sequence++;
       tasks.push(task);
       this.scheduler.submit(task);
     }

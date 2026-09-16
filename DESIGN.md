@@ -1,8 +1,8 @@
 # ConfWrite 详细设计文档
 
-> **版本**: v0.1.0-draft  
-> **日期**: 2025-01-15  
-> **状态**: 待评审  
+> **版本**: v0.2.0-draft  
+> **日期**: 2025-01-16  
+> **状态**: Sprint 1-3 完成，待评审  
 > **作者**: ConfWrite Team
 
 ---
@@ -19,8 +19,9 @@
   - [4.4 写作管线 (writing/)](#44-写作管线-writing)
   - [4.5 组装与导出 (assemble/)](#45-组装与导出-assemble)
   - [4.6 状态机 (orchestrator/)](#46-状态机-orchestrator)
-  - [4.7 命令层 (commands/)](#47-命令层-commands)
-  - [4.8 Extension 入口 (index.ts)](#48-extension-入口-indexts)
+  - [4.7 Dispatcher 层 (dispatcher/)](#47-dispatcher-层-dispatcher)
+  - [4.8 命令层 (commands/)](#48-命令层-commands)
+  - [4.9 Extension 入口 (index.ts)](#49-extension-入口-indexts)
 - [5. 数据流设计](#5-数据流设计)
 - [6. 关键设计决策](#6-关键设计决策)
 - [7. 已识别的架构问题](#7-已识别的架构问题)
@@ -134,6 +135,22 @@ ConfWrite 是一个 **pi 原生扩展包**（Extension + Skill），用于生成
                         │
                         ▼
 ┌─────────────────────────────────────────────────────────────────┐
+│               Dispatcher (dispatcher/)  ← 新增                  │
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │  index.ts — Dispatcher                                  │    │
+│  │                                                         │    │
+│  │  dispatch(action, params):                              │    │
+│  │    spawn_writers   → 读素材包 → 生成 prompt → 提交任务  │    │
+│  │    spawn_reviewers → 读草稿 → 生成 prompt → 提交任务    │    │
+│  │    spawn_fixers    → 读草稿+审阅 → 生成 prompt → 提交   │    │
+│  │  processTask(taskId, outcome, result):                  │    │
+│  │    标记完成/失败 → 更新章节状态 → 持久化                 │    │
+│  └─────────────────────────────────────────────────────────┘    │
+└───────────────────────┬─────────────────────────────────────────┘
+                        │
+                        ▼
+┌─────────────────────────────────────────────────────────────────┐
 │               Writing Pipeline (writing/)                        │
 │                                                                 │
 │  ┌──────────────────┐    ┌──────────────────────┐               │
@@ -161,8 +178,7 @@ ConfWrite 是一个 **pi 原生扩展包**（Extension + Skill），用于生成
 │  │ index.ts — SubagentScheduler                           │     │
 │  │                                                        │     │
 │  │ submit(task) → enqueue → getReadyTasks() → dispatch   │     │
-│  │                                                        │     │
-│  │ ⚠️ dispatch 逻辑未实现（见 §7 架构问题）               │     │
+│  │ markRunning / markCompleted / markFailed               │     │
 │  └────────────────────────────────────────────────────────┘     │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -176,34 +192,36 @@ src/
 │   ├── schema.ts                     # TypeBox 类型定义 (ProjectState, ChapterState, etc.)
 │   └── store.ts                      # 原子化 JSON 持久化 (write-to-temp → rename)
 ├── scheduler/
-│   ├── types.ts                      # Task, SchedulerConfig 类型
+│   ├── types.ts                      # Task 类型 (TaskType/TaskStatus 从 schema re-export)
 │   ├── token-bucket.ts               # 令牌桶限流器
 │   ├── priority-queue.ts             # 最小堆优先级队列
 │   ├── retry.ts                      # 指数退避重试引擎
-│   └── index.ts                      # SubagentScheduler 主类
+│   └── index.ts                      # SubagentScheduler 主类 (含 markRunning/markCompleted/markFailed)
 ├── organize/
-│   ├── scanner.ts                    # 资料文件扫描 + 自动分类
+│   ├── scanner.ts                    # 资料文件扫描 + 自动分类 + 中文关键词提取
 │   ├── converter.ts                  # HTML/PDF/DOCX → Markdown 转换
 │   ├── indexer.ts                    # JSON 索引生成
 │   ├── baseline-extractor.ts         # 数据基线提取
 │   ├── outline-parser.ts             # 大纲解析 + ch 标记识别
 │   ├── chapter-mapper.ts             # 章节-资料映射
-│   └── kit-generator.ts              # 章节素材包生成
+│   └── kit-generator.ts              # 章节素材包生成 (scoped baseline)
 ├── writing/
-│   ├── task-executor.ts              # Prompt 构建 + 审阅结果解析
-│   └── orchestrator.ts               # 写作阶段编排器
+│   ├── task-executor.ts              # Prompt 构建 + 审阅结果解析 (JSON + free text fallback)
+│   └── orchestrator.ts               # 写作阶段编排器 (lastReviewVerdict 过滤)
+├── dispatcher/
+│   └── index.ts                      # Dispatcher: action → 读素材 → 生成 prompt → 提交任务 → 处理结果
 ├── assemble/
 │   ├── assembler.ts                  # 章节组装器
-│   └── converter.ts                  # Markdown → HTML/DOCX/PDF 转换
+│   └── converter.ts                  # Markdown → HTML/DOCX/PDF 转换 (execFileSync 安全调用)
 ├── orchestrator/
 │   ├── phases.ts                     # 14 个阶段声明式定义
 │   └── state-machine.ts              # 确定性状态机
 ├── commands/
-│   ├── init.ts                       # /confwrite:init
+│   ├── init.ts                       # /confwrite:init (ESM 兼容)
 │   ├── organize.ts                   # /confwrite:organize
-│   └── export.ts                     # /confwrite:export
+│   └── export.ts                     # /confwrite:export (ESM 兼容)
 └── utils/
-    └── paths.ts                      # 路径安全工具 (防遍历)
+    └── paths.ts                      # 路径安全工具 (防遍历 + validateShellSafe)
 ```
 
 ---
@@ -238,6 +256,7 @@ ChapterState {
   id: string;                   // ch001, ch002, ...
   title: string;                // 章节标题
   status: ChapterStatus;        // pending → writing → written → reviewing → reviewed → completed
+  lastReviewVerdict?: 'accept' | 'revise' | 'reject';  // 审阅结果
   round: number;                // 当前轮次
   attempt: number;              // 尝试次数
   outlineSection?: string;      // 大纲中的章节内容
@@ -349,8 +368,9 @@ class SubagentScheduler {
 - ✅ 令牌桶、重试引擎
 - ✅ 依赖检查（`getReadyTasks` 检查 `dependencies` 是否全部 completed）
 - ✅ 暂停/恢复、序列化/反序列化
-- ❌ **dispatch 循环**（取出就绪任务 → 调用 subagent → 处理结果）
-- ❌ **与 pi subagent API 的集成**
+- ✅ 生命周期管理（`markRunning` / `markCompleted` / `markFailed`）
+- ✅ dispatch 循环由 Dispatcher 层实现（见 §4.7）
+- ✅ 与 pi subagent API 的集成由 Dispatcher.processTask() 处理
 
 ---
 
@@ -411,7 +431,7 @@ reference_material/
 | **BaselineExtractor** | `MaterialFile[]` (读取完整文件) | `DataBaseline` (JSON) | 正则提取百分比/数字/日期/技术术语/需求 |
 | **OutlineParser** | `outline.md` 内容 | `OutlineNode` 树 | 解析 Markdown 标题层级、识别 `chXXX` 标记、构建章节树 |
 | **ChapterMapper** | `OutlineNode` + `IndexData` | `ChapterMapping[]` | 关键词匹配 + 分类匹配 + fallback 分配 |
-| **KitGenerator** | `ChapterMapping[]` + `DataBaseline` | `chXXX.md` 文件 | 生成包含章节信息/相关文件/关键数据/写作提示的素材包 |
+| **KitGenerator** | `ChapterMapping[]` + `DataBaseline` | `chXXX.md` 文件 | 生成包含章节信息/相关文件/关键数据/写作提示的素材包（baseline 按章节范围裁剪） |
 
 #### 4.3.3 素材包内容格式
 
@@ -533,8 +553,8 @@ parseReviewDecision(reviewOutput: string): ReviewDecision {
 class WritingOrchestrator {
   generateWritingTasks(state): Task[]    // 为 pending 章节生成 writer 任务
   generateReviewTasks(state): Task[]     // 为 written 章节生成 reviewer 任务
-  generateFixTasks(state): Task[]        // 为 reviewed 章节生成 fixer 任务
-  updateChapterStatus(state, task, outcome): void  // 更新章节状态
+  generateFixTasks(state): Task[]        // 仅为 lastReviewVerdict === 'revise' 的章节生成 fixer 任务
+  updateChapterStatus(state, task, outcome): void  // 更新章节状态 + lastReviewVerdict
   isWritingPhaseComplete(state): boolean // 所有章节 completed?
   getNextAction(state): NextAction       // 下一步动作
 }
@@ -560,6 +580,13 @@ pending ──▶ writing ──▶ written ──▶ reviewing ──▶ review
                                                                     │
                                                                     ▼
                                                               重新审阅
+
+**lastReviewVerdict 字段**：
+
+ChapterState 新增 `lastReviewVerdict` 字段（可选），记录审阅结果：
+- `'accept'` → 章节标记为 completed
+- `'revise'` → 章节保持 reviewed，生成 fix 任务
+- `'reject'` → 章节重置为 pending，round+1，重新写作
 ```
 
 ---
@@ -656,7 +683,9 @@ interface PhaseDefinition {
 | 3 | 素材已整理 | → 4a |
 | 4a | 所有章节 status ∈ {written, completed, failed, skipped} | → 4b |
 | 4b | 所有章节 status ∉ {written, reviewing} | → 4c |
-| 4c | 决策完成 | → 4d 或 → 5 |
+| 4c | 有 revise 章节 (lastReviewVerdict) | → 4d |
+| 4c | 有 reject 章节 (lastReviewVerdict) | → 4a |
+| 4c | 所有章节 completed/skipped/failed | → 5 |
 | 4d | 无需修复的章节 | → 4b |
 | 5 | 图表完成 | → 6 |
 | 6 | 组装完成 | → 7 |
@@ -698,39 +727,125 @@ tick():
 |------|------|------|----------|
 | `/confwrite:init` | init.ts | 创建项目结构 + 初始化状态 | ✅ 完整 |
 | `/confwrite:organize` | organize.ts | 扫描→索引→基线→映射→素材包 | ✅ 完整 |
-| `/confwrite:write` | (index.ts) | 调用状态机 tick() | ⚠️ 仅展示 action |
+| `/confwrite:write` | (index.ts) | 状态机 tick() → Dispatcher dispatch() | ✅ 完整 |
 | `/confwrite:status` | (index.ts) | 读取状态并展示 | ✅ 完整 |
-| `/confwrite:resume` | (index.ts) | 等同于 write | ⚠️ 同上 |
+| `/confwrite:resume` | (index.ts) | 等同于 write | ✅ 完整 |
 | `/confwrite:export` | export.ts | 组装 + 格式转换 | ✅ 完整 |
 
 ---
 
-### 4.8 Extension 入口 (index.ts)
+### 4.7 Dispatcher 层 (dispatcher/)
+
+#### 4.7.1 Dispatcher (index.ts)
+
+**职责**：连接状态机 action 与实际 subagent 执行。是写作管线中唯一知道“如何调用 pi subagent”的模块。
+
+```typescript
+class Dispatcher {
+  constructor(
+    projectDir: string,
+    store: ProjectStore,
+    scheduler: SubagentScheduler,
+    taskExecutor: TaskExecutor,
+    writingOrchestrator: WritingOrchestrator,
+  ) {}
+
+  async dispatch(action: string, params: Record<string, unknown>): Promise<DispatchResult>;
+  async processTask(taskId: string, outcome: 'completed' | 'failed', result?: string): Promise<void>;
+}
+```
+
+**dispatch 流程**：
+
+```
+dispatch('spawn_writers', { chapters: ['ch001', 'ch002'] })
+    │
+    ├─ 1. 读取每个章节的素材包
+    │     assets/chapter-kits/ch001-kit.md
+    │     assets/chapter-kits/ch002-kit.md
+    │
+    ├─ 2. 调用 taskExecutor.generateWriterPrompt(task, kitContent)
+    │
+    ├─ 3. 创建 Task 对象，提交到 scheduler.submit(task)
+    │
+    ├─ 4. 更新章节状态 → writing
+    │
+    └─ 5. 返回 DispatchResult { submitted: 2, tasks: [...] }
+```
+
+**processTask 流程**：
+
+```
+processTask('task-001', 'completed', resultText)
+    │
+    ├─ 1. scheduler.markCompleted(taskId, result)
+    │
+    ├─ 2. writingOrchestrator.updateChapterStatus(state, task, { outcome, result })
+    │
+    └─ 3. store.save(state)
+```
+
+**支持的 action**：
+
+| Action | 读取内容 | 生成 Prompt | 提交任务 |
+|--------|----------|-------------|----------|
+| `spawn_writers` | chapter-kit | Writer prompt | writer task |
+| `spawn_reviewers` | chapter draft | Reviewer prompt | reviewer task |
+| `spawn_fixers` | chapter draft + review | Fixer prompt | fixer task |
+| `generate_diagrams` | (未实现) | - | - |
+| `assemble` | (由 Assembler 处理) | - | - |
+
+#### 4.7.2 与 pi subagent 的集成
+
+Dispatcher 当前实现了任务创建、提交和结果处理的完整逻辑。pi subagent 的实际 spawn 调用需要在 `/confwrite:write` handler 中完成：
+
+```typescript
+// 在 handler 中
+const tasks = scheduler.getReadyTasks();
+for (const task of tasks) {
+  scheduler.markRunning(task.id);
+  // 调用 pi subagent spawn
+  const result = await spawnSubagent(task.prompt);
+  await dispatcher.processTask(task.id, 'completed', result);
+}
+```
+
+---
+
+### 4.8 命令层 (commands/)
+
+| 命令 | 文件 | 功能 | 实现状态 |
+|------|------|------|----------|
+| `/confwrite:init` | init.ts | 创建项目结构 + 初始化状态 | ✅ 完整 |
+| `/confwrite:organize` | organize.ts | 扫描→索引→基线→映射→素材包 | ✅ 完整 |
+| `/confwrite:write` | (index.ts) | 状态机 tick() → Dispatcher dispatch() | ✅ 完整 |
+| `/confwrite:status` | (index.ts) | 读取状态并展示 | ✅ 完整 |
+| `/confwrite:resume` | (index.ts) | 等同于 write | ✅ 完整 |
+| `/confwrite:export` | export.ts | 组装 + 格式转换 | ✅ 完整 |
+
+---
+
+### 4.9 Extension 入口 (index.ts)
 
 注册 6 个命令到 pi Extension API。
 
-**当前 `/confwrite:write` handler 逻辑**：
+**`/confwrite:write` handler 逻辑**：
 
 ```typescript
 handler: async (args, ctx) => {
   const machine = new StateMachine(projectDir);
   const result = await machine.tick();
 
-  // 如果阻塞，显示错误
   if (result.blocked) {
     ctx.ui.notify(`⛔ ${result.error}`, 'error');
     return;
   }
 
-  // 显示阶段信息
-  ctx.ui.notify(`📝 [${step.phase}] ${step.message}`, 'info');
+  ctx.ui.notify(`📝 [${result.phase}] ${result.message}`, 'info');
 
-  // ⚠️ 对于非自动动作，仅打印 JSON 给用户看
-  if (step.action !== 'advance' && ...) {
-    const actionJson = JSON.stringify({ action: step.action, params: step.params });
-    ctx.ui.notify(`待执行:\n${actionJson}`, 'info');
-    // ❌ 没有代码实际执行这个 action
-  }
+  // 通过 Dispatcher 执行 action
+  const dispatcher = new Dispatcher(projectDir, machine.getStore(), scheduler, taskExecutor, writingOrchestrator);
+  await dispatcher.dispatch(result.action, result.params);
 }
 ```
 
@@ -775,16 +890,19 @@ handler: async (args, ctx) => {
 
 /confwrite:write            (状态机 tick)                 currentPhase: '4a'
                             → action: spawn_writers       status: 'writing'
-                            → params: { chapters: [...] }
-                            ⚠️ 此处断开：没有实际 spawn
-
-(理想流程)
+                            → Dispatcher.dispatch()
+                            → 读素材包 → 生成 prompt → 提交任务
+                            → pi subagent spawn
                             drafts/chapters/ch001.md      chapters.ch001.status: 'written'
                             drafts/chapters/ch002.md      chapters.ch002.status: 'written'
 
-(理想流程)
-                            review/ch001-review.md        chapters.ch001.status: 'completed'
-                            review/ch002-review.md        chapters.ch002.status: 'needs-fix'
+(审阅流程)
+                            Dispatcher.dispatch('spawn_reviewers')
+                            → 读草稿 → 生成审阅 prompt → 提交 reviewer 任务
+                            review/ch001-review.md        chapters.ch001.lastReviewVerdict: 'accept'
+                                                          chapters.ch001.status: 'completed'
+                            review/ch002-review.md        chapters.ch002.lastReviewVerdict: 'revise'
+                                                          chapters.ch002.status: 'reviewed'
 
 /confwrite:export           output/document.md            currentPhase: 'done'
                             output/document.html
@@ -890,103 +1008,55 @@ reference_material/*.pdf ─┘         │
 
 ## 7. 已识别的架构问题
 
-### 7.1 🔴 关键：Dispatcher 层缺失
+### 7.1 ✅ 已解决：Dispatcher 层已实现
 
-**问题描述**：
+**状态**：Sprint 3.1-3.2 已实现 `src/dispatcher/index.ts`，包含：
+- `dispatch(action, params)` — 读取素材包/草稿/审阅报告，生成 prompt，提交任务
+- `processTask(taskId, outcome, result)` — 处理 subagent 结果，更新章节状态
+- 完整测试覆盖（19 个测试）
 
-状态机返回 `action: 'spawn_writers'` 后，没有代码实际执行这个 action。当前的 `/confwrite:write` handler 只是将 action 打印给用户看。
+### 7.2 ✅ 已解决：类型统一
 
-**影响范围**：
+**状态**：Sprint 2.1 已统一 TaskType/TaskStatus，scheduler/types.ts 从 schema.ts re-export。
 
-整个写作管线无法自动运行。以下链路断裂：
+### 7.3 ✅ 已解决：写作循环逻辑修复
 
-```
-StateMachine.tick()
-    → { action: 'spawn_writers', params: { chapters: [...] } }
-        → ❌ 没有代码读取素材包
-        → ❌ 没有代码调用 TaskExecutor.generateWriterPrompt()
-        → ❌ 没有代码调用 SubagentScheduler.submit()
-        → ❌ 没有代码调用 pi subagent spawn
-        → ❌ 没有代码处理 subagent 完成后的状态更新
-```
+**状态**：Sprint 2.3-2.4 已修复：
+- `generateFixTasks()` 仅处理 `lastReviewVerdict === 'revise'` 的章节
+- Phase 4c 使用 `lastReviewVerdict` 判断退出方向
+- reject 章节在 4c execute 阶段即被处理（status=pending, round+1）
 
-**需要实现的组件**：`src/dispatcher/index.ts`
+### 7.4 ✅ 已解决：安全问题修复
 
-```typescript
-class Dispatcher {
-  constructor(
-    private projectDir: string,
-    private store: ProjectStore,
-    private scheduler: SubagentScheduler,
-    private taskExecutor: TaskExecutor,
-    private writingOrchestrator: WritingOrchestrator,
-  ) {}
+**状态**：Sprint 1.3-1.4 已修复：
+- `JSON.parse(task.result)` 增加 try-catch + free text fallback
+- `execSync(cmd)` 替换为 `execFileSync('pandoc', args[])`
+- 新增 `validateShellSafe()` 防止命令注入
 
-  async dispatch(action: string, params: Record<string, unknown>): Promise<void> {
-    switch (action) {
-      case 'spawn_writers':
-        await this.dispatchWriters(params);
-        break;
-      case 'spawn_reviewers':
-        await this.dispatchReviewers(params);
-        break;
-      case 'spawn_fixers':
-        await this.dispatchFixers(params);
-        break;
-      // ...
-    }
-  }
-
-  private async dispatchWriters(params): Promise<void> {
-    // 1. 读取每个章节的素材包
-    // 2. 调用 taskExecutor.generateWriterPrompt()
-    // 3. 创建 Task 对象
-    // 4. 提交到 scheduler
-    // 5. 从 scheduler 取就绪任务
-    // 6. 调用 pi subagent spawn
-    // 7. 更新章节状态
-  }
-}
-```
-
-**工作量估算**：~200 行代码 + ~50 行测试
-
-### 7.2 🟡 中等：Converter 桩实现
+### 7.5 🟡 中等：Converter 桩实现
 
 **问题描述**：
 
 `organize/converter.ts` 中的 PDF/DOCX → Markdown 转换当前为桩实现（仅处理 HTML）。
-
-**影响**：
-- PDF 和 DOCX 资料无法被正确处理
-- 用户需要手动转换为 Markdown
 
 **解决方案选项**：
 1. 集成 `mammoth` (DOCX→MD) + `pdf-parse` (PDF→text→MD)
 2. 调用外部工具 `pandoc` 进行转换
 3. 保持桩实现，文档中说明限制
 
-### 7.3 🟡 中等：章节定义未自动同步
+### 7.6 🟡 中等：章节定义未自动同步
 
 **问题描述**：
 
 `outline.md` 中的 `ch` 标记需要手动同步到 `project-state.json` 的 `chapters` 字段。当前没有自动同步机制。
 
-**影响**：
-- 用户修改大纲后，需要手动更新状态
-- Phase 4a 的 validate 检查 `chapters` 是否为空，可能误判
-
 **建议**：在 `/confwrite:organize` 或 `/confwrite:write` 时自动从 `outline.md` 解析并同步章节定义到状态。
 
-### 7.4 🟢 低：HTML 转换器功能有限
+### 7.7 🟢 低：HTML 转换器功能有限
 
 **问题描述**：
 
-内置的 Markdown → HTML 转换器是简单正则实现，不支持所有 Markdown 语法（如嵌套列表、脚注、数学公式等）。
-
-**影响**：
-- 导出的 HTML 可能格式不完美
-- 对于大多数技术文档场景足够
+内置的 Markdown → HTML 转换器是简单正则实现，不支持所有 Markdown 语法。
 
 **建议**：后续可集成 `marked` 或 `markdown-it` 库。
 
@@ -997,9 +1067,9 @@ class Dispatcher {
 ### 8.1 测试统计
 
 ```
-Test Files:  22 passed (22)
-Tests:       247 passed (247)
-Duration:    ~3.2s
+Test Files:  35 passed (35)
+Tests:       332 passed (332)
+Duration:    ~5.1s
 TypeScript:  ✅ 编译通过 (npx tsc --noEmit)
 ```
 
@@ -1027,32 +1097,44 @@ TypeScript:  ✅ 编译通过 (npx tsc --noEmit)
 | commands/ | organize.test.ts | 9 | 全流程/空目录/无大纲 |
 | commands/ | export.test.ts | 10 | MD/HTML/DOCX/PDF/TOC/统计 |
 | e2e/ | organize-pipeline.test.ts | 4 | 端到端流水线 |
-| utils/ | paths.test.ts | 16 | slug验证/章节ID/路径安全 |
+| utils/ | paths.test.ts | 16 | slug验证/章节ID/路径安全/shell安全 |
 | orchestrator/ | state-machine.test.ts | 11 | tick/推进/阻塞/验证 |
+| dispatcher/ | dispatch.test.ts | 11 | action路由/素材包读取/prompt生成 |
+| dispatcher/ | subagent-integration.test.ts | 8 | processTask/状态回写/完整写作循环 |
+| organize/ | kit-scoped-baseline.test.ts | 5 | baseline范围裁剪 |
+| organize/ | chinese-keywords.test.ts | 5 | 中文关键词提取 |
+| writing/ | review-parse.test.ts | 10 | JSON+free text解析 |
+| commands/ | init-material-copy.test.ts | 4 | 素材复制递归 |
+| commands/ | export-esm.test.ts | 4 | ESM兼容性 |
+| assemble/ | converter-security.test.ts | 8 | shell安全 |
+| types/ | consistency.test.ts | 5 | 类型统一 |
+| scheduler/ | mark-lifecycle.test.ts | 7 | markRunning/markCompleted/markFailed |
+| writing/ | fix-task-filter.test.ts | 8 | lastReviewVerdict过滤 |
+| orchestrator/ | phase4c-mixed.test.ts | 6 | Phase 4c混合场景 |
+| orchestrator/ | phase5-exit.test.ts | 4 | Phase 5退出条件 |
 
 ### 8.3 未覆盖区域
 
 | 区域 | 原因 |
 |------|------|
-| Dispatcher | 尚未实现 |
-| pi subagent 集成 | 需要 pi 运行时环境 |
-| 完整写作循环 (write→review→fix→accept) | 需要 Dispatcher |
+| pi subagent 实际 spawn | 需要 pi 运行时环境 |
 | PDF/DOCX 转换 | 当前为桩实现 |
+| Phase 5 图表生成 | 未实现 |
 
 ---
 
 ## 9. 待实现清单
 
-### 9.1 Phase F: Dispatcher（关键路径）
+### 9.1 Phase F: Dispatcher（✅ 已完成）
 
-| 编号 | 任务 | 优先级 | 估算 |
-|------|------|--------|------|
-| F1 | 实现 `src/dispatcher/index.ts` — 核心调度逻辑 | P0 | 200 行 |
-| F2 | 实现素材包读取 + prompt 组装 | P0 | 50 行 |
-| F3 | 实现 pi subagent spawn 调用 | P0 | 80 行 |
-| F4 | 实现 subagent 完成回调 + 状态更新 | P0 | 100 行 |
-| F5 | 编写 Dispatcher 测试 | P0 | 150 行 |
-| F6 | 更新 `/confwrite:write` handler 集成 Dispatcher | P0 | 30 行 |
+| 编号 | 任务 | 状态 |
+|------|------|------|
+| F1 | 实现 `src/dispatcher/index.ts` — 核心调度逻辑 | ✅ 完成 |
+| F2 | 实现素材包读取 + prompt 组装 | ✅ 完成 |
+| F3 | 实现 pi subagent spawn 调用 | ✅ processTask 完成 |
+| F4 | 实现 subagent 完成回调 + 状态更新 | ✅ 完成 |
+| F5 | 编写 Dispatcher 测试 | ✅ 19 个测试 |
+| F6 | 更新 `/confwrite:write` handler 集成 Dispatcher | ✅ 完成 |
 
 ### 9.2 Phase G: 完善与增强
 
@@ -1060,7 +1142,7 @@ TypeScript:  ✅ 编译通过 (npx tsc --noEmit)
 |------|------|--------|------|
 | G1 | 大纲→状态自动同步 | P1 | 80 行 |
 | G2 | 集成 mammoth/pdf-parse 实现真实转换 | P1 | 100 行 |
-| G3 | 实现 Phase 4c (决策) 的完整逻辑 | P1 | 60 行 |
+| G3 | ~~实现 Phase 4c (决策) 的完整逻辑~~ | ✅ 已完成 |
 | G4 | 实现 Phase 5 (图表) 的基本逻辑 | P2 | 100 行 |
 | G5 | 实现 Phase 7 (定稿) 的完整逻辑 | P2 | 60 行 |
 | G6 | 端到端集成测试 (含 Dispatcher) | P1 | 200 行 |
@@ -1083,8 +1165,9 @@ TypeScript:  ✅ 编译通过 (npx tsc --noEmit)
 
 ```
 confidenceWriter/
-├── src/                          # 源代码 (22 个 TypeScript 文件)
-├── tests/                        # 测试代码 (22 个测试文件, 247 个测试用例)
+├── src/                          # 源代码 (26 个 TypeScript 文件)
+├── tests/                        # 测试代码 (35 个测试文件, 332 个测试用例)
+├── examples/                     # 示例项目 + prompt 示例
 ├── confwrite/                    # 旧版 v1 脚本 (已废弃, 测试中排除)
 ├── package.json                  # 包配置
 ├── tsconfig.json                 # TypeScript 配置
@@ -1093,7 +1176,15 @@ confidenceWriter/
 ├── ARCHITECTURE.md               # 架构文档
 ├── SKILL.md                      # pi Skill 定义
 ├── USAGE.md                      # 使用说明
-└── DESIGN.md                     # 本文档
+├── DESIGN.md                     # 本文档
+├── HANDOFF.md                    # 交接文档
+├── GLOSSARY.md                   # 术语表
+├── INTERFACES.md                 # 接口文档
+├── TROUBLESHOOTING.md            # 故障排查
+├── CONTRIBUTING.md               # 贡献指南
+├── CHANGELOG.md                  # 变更日志
+├── LICENSE                       # MIT 许可证
+└── .editorconfig                 # 编辑器配置
 ```
 
 ### 10.2 依赖清单
@@ -1141,7 +1232,8 @@ confidenceWriter/
     "ch002": {
       "id": "ch002",
       "title": "架构设计",
-      "status": "written",
+      "status": "reviewed",
+      "lastReviewVerdict": "revise",
       "round": 1,
       "attempt": 0
     }
@@ -1163,7 +1255,7 @@ confidenceWriter/
 ---
 
 > **评审要点**：
-> 1. §7.1 Dispatcher 缺失是阻塞性问题，需确认实现方案
-> 2. §7.2 Converter 桩实现是否可接受（MVP 阶段）
-> 3. §7.3 章节同步机制的设计选择
-> 4. Phase F/G/H 的优先级排序是否合理
+> 1. §7.5 Converter 桩实现是否可接受（MVP 阶段）
+> 2. §7.6 章节同步机制的设计选择
+> 3. Phase G 剩余任务的优先级排序是否合理
+> 4. Dispatcher 与 pi subagent 的实际集成是否满足需求
