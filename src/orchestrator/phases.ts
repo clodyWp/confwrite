@@ -264,11 +264,23 @@ export const phase4c: PhaseDefinition = {
 
     for (const [id, ch] of chapters) {
       if (ch.status === 'reviewed') {
-        if (needsRewrite(ctx, ch.id)) reject++;
-        else if (needsFix(ctx, ch.id)) revise++;
-        else pass++;
+        const verdict = ch.lastReviewVerdict;
+        if (verdict === 'reject') {
+          // Process reject: reset to pending for rewrite
+          ch.status = 'pending';
+          ch.round = (ch.round || 1) + 1;
+          reject++;
+        } else if (verdict === 'revise') {
+          revise++;
+        } else {
+          // accept or no verdict — treat as pass
+          pass++;
+        }
       }
     }
+
+    // Persist state changes
+    ctx.state.lastUpdated = new Date().toISOString();
 
     return {
       action: 'decide',
@@ -280,13 +292,13 @@ export const phase4c: PhaseDefinition = {
     {
       target: '4d',
       condition: (ctx) => Object.values(ctx.state.chapters).some(
-        ch => ch.status === 'reviewed' && needsFix(ctx, ch.id),
+        ch => ch.status === 'reviewed' && ch.lastReviewVerdict === 'revise',
       ),
     },
     {
       target: '4a',
       condition: (ctx) => Object.values(ctx.state.chapters).some(
-        ch => ch.status === 'reviewed' && needsRewrite(ctx, ch.id),
+        ch => ch.status === 'pending' && ch.round > 1,
       ),
     },
     {

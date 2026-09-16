@@ -119,6 +119,9 @@ export class StateMachine {
     // Execute current phase
     const result = await definition.execute(ctx);
 
+    // Persist any state changes made during execute
+    this.store.save(state);
+
     return {
       phase,
       phaseName: definition.name,
