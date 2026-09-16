@@ -79,3 +79,17 @@ export function isWithinPath(child: string, parent: string): boolean {
   const rel = relative(resolvedParent, resolvedChild);
   return !rel.startsWith('..') && !isAbsolute(rel);
 }
+
+/**
+ * Validate that a path is safe for shell execution.
+ * Rejects paths containing shell metacharacters that could enable command injection.
+ */
+export function validateShellSafe(path: string): void {
+  // Reject shell metacharacters: ; | & $ ` ( ) { } < > \n \r
+  const dangerous = /[;|&$`(){}\x00-\x1f]/;
+  if (dangerous.test(path)) {
+    throw new Error(
+      `Path contains dangerous characters and cannot be used in shell commands: "${path}"`
+    );
+  }
+}

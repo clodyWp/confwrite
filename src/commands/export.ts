@@ -1,6 +1,7 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync, unlinkSync } from 'node:fs';
 import { join, dirname } from 'node:path';
-import { execSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
+import { validateShellSafe } from '../utils/paths.js';
 import { ChapterAssembler, AssemblyOptions, AssemblyResult } from '../assemble/assembler.js';
 import { FormatConverter } from '../assemble/converter.js';
 
@@ -212,8 +213,12 @@ function exportWithPandoc(
 
   writeFileSync(tempMdPath, assemblyResult.content, 'utf-8');
 
-  // Generate conversion command
-  const cmd = converter.generateConversionCommand(
+  // Validate paths for shell safety
+  validateShellSafe(tempMdPath);
+  validateShellSafe(options.outputPath);
+
+  // Generate conversion args
+  const args = converter.generateConversionCommand(
     tempMdPath,
     options.outputPath,
     options.format as 'docx' | 'pdf',
@@ -222,19 +227,21 @@ function exportWithPandoc(
     }
   );
 
+  const displayCmd = `pandoc ${args.join(' ')}`;
+
   if (options.dryRun) {
     return {
       success: true,
       outputPath: options.outputPath,
       stats: assemblyResult.stats,
       warnings: assemblyResult.warnings,
-      conversionCommand: cmd,
+      conversionCommand: displayCmd,
     };
   }
 
   // Execute conversion
   try {
-    execSync(cmd, { stdio: 'inherit' });
+    execFileSync('pandoc', args, { stdio: 'inherit' });
 
     // Clean up temporary file
     unlinkSync(tempMdPath);
@@ -250,7 +257,7 @@ function exportWithPandoc(
       success: false,
       warnings: assemblyResult.warnings,
       error: `Pandoc conversion failed: ${error instanceof Error ? error.message : String(error)}`,
-      conversionCommand: cmd,
+      conversionCommand: displayCmd,
     };
   }
 }

@@ -98,33 +98,29 @@ export class FormatConverter {
   }
 
   /**
-   * Generate pandoc conversion command
+   * Generate pandoc conversion args (as array for execFileSync)
    */
   generateConversionCommand(
     inputPath: string,
     outputPath: string,
     format: 'docx' | 'pdf',
     options: ConversionOptions = {}
-  ): string {
-    const cmd: string[] = ['pandoc'];
-
-    cmd.push(inputPath);
-    cmd.push(`-t ${format}`);
-    cmd.push(`-o ${outputPath}`);
+  ): string[] {
+    const args: string[] = [inputPath, '-t', format, '-o', outputPath];
 
     if (options.referenceDoc) {
-      cmd.push(`--reference-doc=${options.referenceDoc}`);
+      args.push(`--reference-doc=${options.referenceDoc}`);
     }
 
     if (options.toc) {
-      cmd.push('--toc');
+      args.push('--toc');
     }
 
     if (options.css) {
-      cmd.push(`--css=${options.css}`);
+      args.push(`--css=${options.css}`);
     }
 
-    return cmd.join(' ');
+    return args;
   }
 
   /**
