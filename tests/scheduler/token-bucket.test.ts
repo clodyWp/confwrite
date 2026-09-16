@@ -113,7 +113,7 @@ describe('TokenBucket', () => {
       bucket.consume(3);
       const state = bucket.serialize();
       
-      expect(state.tokens).toBe(7);
+      expect(state.tokens).toBeCloseTo(7, 0); // timing may add fractional refill
       expect(state.capacity).toBe(10);
       expect(state.refillRate).toBe(1);
       expect(state.lastRefillAt).toBeDefined();

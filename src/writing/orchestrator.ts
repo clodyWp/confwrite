@@ -88,7 +88,7 @@ export class WritingOrchestrator {
     let priority = 1;
     let sequence = 1;
     for (const chapter of chapters) {
-      if (chapter.status === 'reviewed') {
+      if (chapter.status === 'reviewed' && chapter.lastReviewVerdict === 'revise') {
         tasks.push({
           id: `fix-${chapter.id}-r${chapter.round}`,
           type: 'fixer',
@@ -134,6 +134,7 @@ export class WritingOrchestrator {
 
       case 'reviewer': {
         const decision = this.parseReviewResult(task.result);
+        chapter.lastReviewVerdict = decision.decision;
         if (decision.decision === 'accept') {
           chapter.status = 'completed';
         } else if (decision.decision === 'revise') {

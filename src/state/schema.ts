@@ -37,6 +37,11 @@ export const ChapterState = Type.Object({
   completedAt: Type.Optional(Type.String({ format: 'date-time' })),
   failedAt: Type.Optional(Type.String({ format: 'date-time' })),
   lastError: Type.Optional(Type.String()),
+  lastReviewVerdict: Type.Optional(Type.Union([
+    Type.Literal('accept'),
+    Type.Literal('revise'),
+    Type.Literal('reject'),
+  ])),
 });
 export type ChapterState = Static<typeof ChapterState>;
 

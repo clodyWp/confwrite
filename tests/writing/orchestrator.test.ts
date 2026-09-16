@@ -115,6 +115,7 @@ describe('WritingOrchestrator', () => {
   describe('generateFixTasks', () => {
     it('generates fix tasks for chapters needing revision', () => {
       mockState.chapters.ch001.status = 'reviewed';
+      mockState.chapters.ch001.lastReviewVerdict = 'revise';
       mockState.chapters.ch002.status = 'written';
 
       const tasks = orchestrator.generateFixTasks(mockState);
@@ -126,6 +127,7 @@ describe('WritingOrchestrator', () => {
 
     it('increments attempt counter', () => {
       mockState.chapters.ch001.status = 'reviewed';
+      mockState.chapters.ch001.lastReviewVerdict = 'revise';
       mockState.chapters.ch001.attempt = 2;
 
       const tasks = orchestrator.generateFixTasks(mockState);
@@ -286,6 +288,7 @@ describe('WritingOrchestrator', () => {
 
     it('returns fix tasks when chapters need fix', () => {
       mockState.chapters.ch001.status = 'reviewed';
+      mockState.chapters.ch001.lastReviewVerdict = 'revise';
       mockState.chapters.ch002.status = 'written';
 
       const action = orchestrator.getNextAction(mockState);
