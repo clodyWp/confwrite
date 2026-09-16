@@ -1,5 +1,6 @@
-import { readFileSync, existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { readFileSync, writeFileSync, mkdirSync, existsSync, unlinkSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { execSync } from 'node:child_process';
 import { ChapterAssembler, AssemblyOptions, AssemblyResult } from '../assemble/assembler.js';
 import { FormatConverter } from '../assemble/converter.js';
 
@@ -130,9 +131,6 @@ function exportMarkdown(
   assemblyResult: AssemblyResult,
   options: ExportOptions
 ): ExportResult {
-  const { writeFileSync, mkdirSync } = require('node:fs');
-  const { dirname } = require('node:path');
-
   // Create output directory if needed
   const dir = dirname(options.outputPath);
   if (!existsSync(dir)) {
@@ -158,8 +156,6 @@ function exportHtml(
   options: ExportOptions
 ): ExportResult {
   // First save as temporary markdown
-  const { writeFileSync, mkdirSync } = require('node:fs');
-  const { dirname } = require('node:path');
   const tempMdPath = options.outputPath.replace(/\.\w+$/, '.tmp.md');
 
   const dir = dirname(tempMdPath);
@@ -188,7 +184,6 @@ function exportHtml(
   converter.saveHtml(htmlResult, options.outputPath);
 
   // Clean up temporary file
-  const { unlinkSync } = require('node:fs');
   unlinkSync(tempMdPath);
 
   return {
@@ -208,8 +203,6 @@ function exportWithPandoc(
   options: ExportOptions
 ): ExportResult {
   // First save as temporary markdown
-  const { writeFileSync, mkdirSync } = require('node:fs');
-  const { dirname } = require('node:path');
   const tempMdPath = options.outputPath.replace(/\.\w+$/, '.tmp.md');
 
   const dir = dirname(tempMdPath);
@@ -241,11 +234,9 @@ function exportWithPandoc(
 
   // Execute conversion
   try {
-    const { execSync } = require('node:child_process');
     execSync(cmd, { stdio: 'inherit' });
 
     // Clean up temporary file
-    const { unlinkSync } = require('node:fs');
     unlinkSync(tempMdPath);
 
     return {
