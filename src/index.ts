@@ -185,6 +185,14 @@ export async function runWriteLoop(
       result.tasksFailed += runResult.failed;
       notify(`✅ 执行完成: ${runResult.succeeded} 成功, ${runResult.failed} 失败`, 'info');
 
+      // 检查熔断器
+      if (runner.isCircuitBroken()) {
+        notify(`⚡ 触发限流熔断，终止本轮。剩余任务将在下次运行时重试。`, 'warning');
+        result.stoppedReason = 'circuit_breaker';
+        result.completed = false;
+        break;
+      }
+
       if (runResult.failed > 0) {
         for (const ft of runResult.tasks.filter(t => t.status === 'failed')) {
           notify(`  ❌ ${ft.id}: ${ft.error || 'unknown error'}`, 'error');

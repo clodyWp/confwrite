@@ -39,6 +39,9 @@ export class SchedulerRunner {
   private rateLimitDelayMs: number;
   private maxTaskRetries: number;
   private pausedUntil = 0;
+  private consecutiveRateLimits = 0;
+  private maxConsecutiveRateLimits = 5; // 连续 429 次数上限
+  private circuitBroken = false; // run 级熔断标志
   private eventBus?: EventBus;
 
   constructor(
@@ -64,6 +67,17 @@ export class SchedulerRunner {
    * 执行所有就绪任务（并行）
    */
   async runAll(): Promise<RunResult> {
+    // 熔断检查：如果已触发熔断，不再执行新任务
+    if (this.circuitBroken) {
+      return {
+        executed: 0,
+        succeeded: 0,
+        failed: 0,
+        skipped: 0,
+        tasks: [],
+      };
+    }
+
     const readyTasks = this.scheduler.getReadyTasks();
     const batch = readyTasks.slice(0, this.maxConcurrency);
 
@@ -92,11 +106,19 @@ export class SchedulerRunner {
       if (outcome.status === 'completed') {
         result.succeeded++;
         result.tasks.push({ id: outcome.id, status: 'completed', chapterId: outcome.chapterId });
-      } else {
+      } else if (outcome.status === 'failed') {
         result.failed++;
         result.tasks.push({
           id: outcome.id,
           status: 'failed',
+          error: outcome.error,
+          chapterId: outcome.chapterId,
+        });
+      } else {
+        // retrying/queued — not terminal
+        result.tasks.push({
+          id: outcome.id,
+          status: outcome.status,
           error: outcome.error,
           chapterId: outcome.chapterId,
         });
@@ -135,6 +157,9 @@ export class SchedulerRunner {
     if (result.success) {
       this.scheduler.markCompleted(task.id, result.output);
 
+      // 成功后重置连续限流计数
+      this.consecutiveRateLimits = 0;
+
       // 发射任务完成事件（仅对 writer/reviewer/fixer）
       if (this.eventBus && this.isTrackableTask(task)) {
         this.eventBus.emit({
@@ -154,22 +179,30 @@ export class SchedulerRunner {
 
     // 检测 429 限流
     if (isRateLimitError(output)) {
+      this.consecutiveRateLimits++;
+
+      // 计算指数退避延迟：60s, 120s, 240s, 480s, 960s (最大 16 分钟)
+      const exponentialDelay = this.rateLimitDelayMs * Math.pow(2, this.consecutiveRateLimits - 1);
+      const maxDelay = this.rateLimitDelayMs * 16; // 最大 16 分钟
+      const actualDelay = Math.min(exponentialDelay, maxDelay);
+
       // 全局暂停
-      this.pausedUntil = Date.now() + this.rateLimitDelayMs;
+      this.pausedUntil = Date.now() + actualDelay;
 
       // 发射限流事件
       if (this.eventBus) {
         this.eventBus.emit({
           type: 'ratelimit',
           action: 'pause',
-          duration: this.rateLimitDelayMs,
+          duration: actualDelay,
           reason: output,
         });
       }
 
-      // 重试
-      if (task.attempt < this.maxTaskRetries) {
-        task.attempt++;
+      // 429 错误使用单独的重试计数（最多重试 5 次）
+      const maxRateLimitRetries = this.maxConsecutiveRateLimits;
+      if (this.consecutiveRateLimits <= maxRateLimitRetries) {
+        // 不增加 task.attempt，因为这是限流重试，不是任务失败重试
         this.scheduler.markRetrying(task.id);
 
         // 发射任务失败事件（带重试，仅对 writer/reviewer/fixer）
@@ -181,11 +214,23 @@ export class SchedulerRunner {
             chapterId: task.chapterId || '',
             error: output,
             willRetry: true,
-            retryDelay: this.rateLimitDelayMs,
+            retryDelay: actualDelay,
           });
         }
 
         return task;
+      }
+
+      // 超过连续限流次数上限，标记为失败并触发熔断
+      this.circuitBroken = true;
+
+      if (this.eventBus) {
+        this.eventBus.emit({
+          type: 'ratelimit',
+          action: 'pause',
+          duration: 0,
+          reason: `连续 ${this.consecutiveRateLimits} 次限流，触发熔断，终止本轮剩余任务`,
+        });
       }
     }
 
@@ -215,6 +260,13 @@ export class SchedulerRunner {
   }
 
   /**
+   * 检查是否触发了熔断
+   */
+  isCircuitBroken(): boolean {
+    return this.circuitBroken;
+  }
+
+  /**
    * 运行直到没有就绪任务
    */
   async runUntilIdle(): Promise<RunResult> {
@@ -230,6 +282,16 @@ export class SchedulerRunner {
     const maxIterations = 100; // safety limit
 
     while (iterations < maxIterations) {
+      // 熔断检查：如果已触发熔断，终止剩余任务
+      if (this.circuitBroken) {
+        for (const task of this.scheduler.list()) {
+          if (task.status === 'queued' || task.status === 'retrying') {
+            this.scheduler.markFailed(task.id, 'circuit_breaker: 连续限流，本轮终止');
+          }
+        }
+        break;
+      }
+
       // 检查是否在全局暂停中
       if (this.pausedUntil > Date.now()) {
         const waitMs = this.pausedUntil - Date.now();
