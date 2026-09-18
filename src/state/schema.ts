@@ -206,7 +206,7 @@ export interface SchedulerConfig {
 }
 
 export const DEFAULT_SCHEDULER_CONFIG: SchedulerConfig = {
-  maxConcurrency: 2,
+  maxConcurrency: 1,
   tokenBucketSize: 10,
   tokenRefillRate: 0.5,          // 1 token per 2 seconds
   retryBaseDelayMs: 5000,

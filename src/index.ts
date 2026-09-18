@@ -179,48 +179,66 @@ export async function runWriteLoop(
       const dispatchResult = await dispatcher.dispatch(step.action, step.params || {});
       notify(`🚀 已创建 ${dispatchResult.tasksCreated} 个任务`, 'info');
 
-      const runResult = await runner.runUntilIdle();
-      result.tasksExecuted += runResult.executed;
-      result.tasksSucceeded += runResult.succeeded;
-      result.tasksFailed += runResult.failed;
-      notify(`✅ 执行完成: ${runResult.succeeded} 成功, ${runResult.failed} 失败`, 'info');
-
-      // 检查熔断器
-      if (runner.isCircuitBroken()) {
-        notify(`⚡ 触发限流熔断，终止本轮。剩余任务将在下次运行时重试。`, 'warning');
-        result.stoppedReason = 'circuit_breaker';
-        result.completed = false;
-        break;
-      }
-
-      if (runResult.failed > 0) {
-        for (const ft of runResult.tasks.filter(t => t.status === 'failed')) {
-          notify(`  ❌ ${ft.id}: ${ft.error || 'unknown error'}`, 'error');
-        }
-      }
-
-      for (const taskResult of runResult.tasks) {
-        const outcome = taskResult.status === 'completed' ? 'success' : 'failed';
-        const output = outcome === 'success' ? 'completed' : (taskResult.error || 'failed');
+      // 流式处理：每批任务完成后立即处理结果
+      let batchCount = 0;
+      notify(`🔄 开始执行任务批次...`, 'info');
+      
+      while (true) {
+        notify(`📊 调用 runAll() 获取下一批任务...`, 'info');
+        const batchResult = await runner.runAll();
+        notify(`📊 runAll() 返回: executed=${batchResult.executed}, succeeded=${batchResult.succeeded}, failed=${batchResult.failed}`, 'info');
         
-        // 即时验证输出
-        if (outcome === 'success' && taskResult.chapterId) {
-          const originalTask = scheduler.list().find(t => t.id === taskResult.id);
-          if (originalTask) {
-            const validation = outputValidator.validate(originalTask, state.round);
-            if (!validation.valid) {
-              notify(`⚠️ ${OutputValidator.formatErrors(validation)}`, 'warning');
-              // 验证失败，标记任务为 failed 以便重试
-              await dispatcher.processTask(taskResult.id, 'failed', `Output validation failed: ${validation.errors.join('; ')}`);
-              result.tasksFailed++;
-              result.tasksSucceeded--; // 之前已经加了 succeeded，现在回退
-              continue;
+        if (batchResult.executed === 0) {
+          notify(`✅ 没有更多任务，退出批次循环`, 'info');
+          break; // 没有更多任务
+        }
+        
+        batchCount++;
+        result.tasksExecuted += batchResult.executed;
+        result.tasksSucceeded += batchResult.succeeded;
+        result.tasksFailed += batchResult.failed;
+        
+        notify(`📦 批次 ${batchCount} 完成: ${batchResult.succeeded} 成功, ${batchResult.failed} 失败 (总计: ${result.tasksSucceeded}/${dispatchResult.tasksCreated})`, 'info');
+
+        // 检查熔断器
+        if (runner.isCircuitBroken()) {
+          notify(`⚡ 触发限流熔断，终止本轮。剩余任务将在下次运行时重试。`, 'warning');
+          result.stoppedReason = 'circuit_breaker';
+          result.completed = false;
+          break;
+        }
+
+        // 立即处理这批任务的结果
+        for (const taskResult of batchResult.tasks) {
+          const outcome = taskResult.status === 'completed' ? 'success' : 'failed';
+          const output = outcome === 'success' ? 'completed' : (taskResult.error || 'failed');
+          
+          // 即时验证输出
+          if (outcome === 'success' && taskResult.chapterId) {
+            const originalTask = scheduler.list().find(t => t.id === taskResult.id);
+            if (originalTask) {
+              const validation = outputValidator.validate(originalTask, state.round);
+              if (!validation.valid) {
+                notify(`⚠️ ${OutputValidator.formatErrors(validation)}`, 'warning');
+                // 验证失败，标记任务为 failed 以便重试
+                await dispatcher.processTask(taskResult.id, 'failed', `Output validation failed: ${validation.errors.join('; ')}`);
+                result.tasksFailed++;
+                result.tasksSucceeded--; // 之前已经加了 succeeded，现在回退
+                continue;
+              }
+              notify(`✅ 输出验证通过: ${originalTask.id}`, 'info');
             }
-            notify(`✅ 输出验证通过: ${originalTask.id}`, 'info');
           }
+          
+          await dispatcher.processTask(taskResult.id, outcome as 'success' | 'failed', output);
         }
         
-        await dispatcher.processTask(taskResult.id, outcome as 'success' | 'failed', output);
+        // 熔断器触发时退出循环
+        if (result.stoppedReason === 'circuit_breaker') break;
+      }
+      
+      if (result.stoppedReason !== 'circuit_breaker') {
+        notify(`✅ 所有任务执行完成: ${result.tasksSucceeded} 成功, ${result.tasksFailed} 失败`, 'info');
       }
     } else if (step.action === 'advance' || step.action === 'phase_entered') {
       continue;
