@@ -133,7 +133,23 @@ export class DiagramPipeline {
           continue;
         }
 
-        // 解析描述为节点和连接
+        // 处理 mermaid 格式（向后兼容）
+        if (block.format === 'mermaid') {
+          const mermaidResult = await this.processMermaidBlock(block, diagramId, figuresDir, options);
+          if (mermaidResult.success) {
+            result.generated++;
+          } else {
+            // mermaid 处理失败，保留原始代码块，不阻塞流程
+            result.warnings.push({
+              diagramId,
+              warnings: [`mermaid 渲染失败，保留原始代码块: ${mermaidResult.error}`],
+            });
+            result.generated++; // 仍然算成功，因为保留了原始内容
+          }
+          continue;
+        }
+
+        // 标准格式：解析描述为节点和连接
         const { nodes, connections } = this.parseDescription(block);
 
         // 生成 SVG
@@ -286,5 +302,79 @@ export class DiagramPipeline {
     nodeMap.set(label, id);
 
     return id;
+  }
+
+  /**
+   * 处理 mermaid 格式的图表（向后兼容）
+   * 
+   * 尝试用 mmdc 渲染，如果不可用则保留原始 mermaid 代码块
+   */
+  private async processMermaidBlock(
+    block: DiagramBlock,
+    diagramId: string,
+    figuresDir: string,
+    options: PipelineOptions
+  ): Promise<{ success: boolean; error?: string }> {
+    const mmdPath = join(figuresDir, `${diagramId}.mmd`);
+    const svgPath = join(figuresDir, `${diagramId}.svg`);
+    const pngPath = join(figuresDir, `${diagramId}.png`);
+
+    // 写入 mermaid 文件
+    writeFileSync(mmdPath, block.description, 'utf-8');
+
+    // 尝试用 mmdc 渲染
+    const mmdcAvailable = this.checkMmdc();
+    
+    if (mmdcAvailable) {
+      try {
+        const { execFileSync } = await import('node:child_process');
+        execFileSync('mmdc', ['-i', mmdPath, '-o', svgPath], { stdio: 'pipe' });
+
+        // 生成 PNG
+        if (!options.skipPng) {
+          await convertToPng(svgPath, pngPath);
+        }
+
+        // 更新缓存
+        this.cache.setEntry(diagramId, {
+          sourceHash: this.cache.computeHash(block.rawContent),
+          svgFile: `${diagramId}.svg`,
+          pngFile: `${diagramId}.png`,
+          generatedAt: new Date().toISOString(),
+        });
+
+        return { success: true };
+      } catch (error) {
+        // mmdc 渲染失败，保留原始 mermaid 代码块
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : String(error),
+        };
+      }
+    } else {
+      // mmdc 不可用，保留原始 mermaid 代码块
+      // 不生成 SVG/PNG，Markdown 渲染器可以处理 mermaid 代码块
+      this.cache.setEntry(diagramId, {
+        sourceHash: this.cache.computeHash(block.rawContent),
+        svgFile: '', // 空表示未生成
+        pngFile: '',
+        generatedAt: new Date().toISOString(),
+      });
+
+      return { success: true };
+    }
+  }
+
+  /**
+   * 检查 mmdc 是否可用
+   */
+  private checkMmdc(): boolean {
+    try {
+      const { execFileSync } = require('node:child_process');
+      execFileSync('mmdc', ['--version'], { stdio: 'pipe' });
+      return true;
+    } catch {
+      return false;
+    }
   }
 }

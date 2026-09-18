@@ -49,7 +49,22 @@ export interface DiagramBlock {
 const DIAGRAM_BLOCK_RE = /<!--\s*diagram-start\s*\n([\s\S]*?)\n\s*diagram-end\s*-->/g;
 
 /**
+ * mermaid 代码块正则（向后兼容）
+ * 
+ * 匹配格式：
+ * ```mermaid
+ * graph TD
+ *     A --> B
+ * ```
+ */
+const MERMAID_BLOCK_RE = /```mermaid\s*\n([\s\S]*?)```/g;
+
+/**
  * 从 Markdown 内容中提取所有图表块
+ * 
+ * 支持两种格式：
+ * 1. diagram-start/end 标记（新格式）
+ * 2. mermaid 代码块（向后兼容）
  * 
  * @param content Markdown 内容
  * @param chapterId 章节 ID
@@ -59,9 +74,9 @@ export function extractDiagrams(content: string, chapterId: string): DiagramBloc
   const blocks: DiagramBlock[] = [];
   let index = 0;
 
+  // 提取 diagram-start 标记
   DIAGRAM_BLOCK_RE.lastIndex = 0;
   let match;
-
   while ((match = DIAGRAM_BLOCK_RE.exec(content)) !== null) {
     const rawContent = match[1].trim();
     const parsed = parseDiagramBlock(rawContent);
@@ -78,6 +93,28 @@ export function extractDiagrams(content: string, chapterId: string): DiagramBloc
 
     index++;
   }
+
+  // 提取 mermaid 代码块（向后兼容）
+  MERMAID_BLOCK_RE.lastIndex = 0;
+  let mermaidIndex = 0;
+  while ((match = MERMAID_BLOCK_RE.exec(content)) !== null) {
+    const mermaidCode = match[1].trim();
+
+    blocks.push({
+      chapterId,
+      index: index + mermaidIndex,
+      type: 'diagram',
+      title: `图表 ${index + mermaidIndex + 1}`,
+      description: mermaidCode,
+      rawContent: mermaidCode,
+      format: 'mermaid',
+    });
+
+    mermaidIndex++;
+  }
+
+  // 按在文档中出现的顺序排序
+  blocks.sort((a, b) => a.index - b.index);
 
   return blocks;
 }

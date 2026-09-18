@@ -106,6 +106,50 @@ diagram-end -->
       const diagrams = pipeline.extractDiagrams();
       expect(diagrams).toHaveLength(0);
     });
+
+    it('extracts mermaid code blocks (backward compatibility)', () => {
+      const chapterContent = `
+# 系统架构
+
+\`\`\`mermaid
+graph TD
+    A[客户端] --> B[API网关]
+    B --> C[微服务]
+\`\`\`
+`;
+      writeFileSync(join(TEST_DIR, 'drafts', 'chapters', 'ch01-v1.md'), chapterContent);
+
+      const diagrams = pipeline.extractDiagrams();
+
+      expect(diagrams).toHaveLength(1);
+      expect(diagrams[0].format).toBe('mermaid');
+      expect(diagrams[0].description).toContain('graph TD');
+    });
+
+    it('extracts both diagram-start and mermaid blocks', () => {
+      const chapterContent = `
+# 系统架构
+
+<!-- diagram-start
+type: architecture
+title: 架构图
+description: |
+  模块 A
+diagram-end -->
+
+\`\`\`mermaid
+graph TD
+    A --> B
+\`\`\`
+`;
+      writeFileSync(join(TEST_DIR, 'drafts', 'chapters', 'ch01-v1.md'), chapterContent);
+
+      const diagrams = pipeline.extractDiagrams();
+
+      expect(diagrams).toHaveLength(2);
+      expect(diagrams[0].format).toBe('unknown'); // diagram-start 格式
+      expect(diagrams[1].format).toBe('mermaid');
+    });
   });
 
   describe('run', () => {
