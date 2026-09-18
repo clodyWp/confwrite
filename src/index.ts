@@ -99,7 +99,7 @@ export async function runWriteLoop(
   const outputValidator = new OutputValidator(projectDir);
 
   const EXECUTABLE_ACTIONS = new Set(['spawn_writers', 'spawn_reviewers', 'spawn_fixers']);
-  const MAX_TICKS = 200;  // 增加到 200，支持更多章节
+  const MAX_TICKS = 2000;  // 足够支持 85 章节 × 3+ 轮
 
   while (result.ticks < MAX_TICKS) {
     result.ticks++;
