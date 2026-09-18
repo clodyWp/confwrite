@@ -20,6 +20,7 @@ import { TaskExecutor } from './writing/task-executor.js';
 import { WritingOrchestrator } from './writing/orchestrator.js';
 import { OutputValidator } from './writing/output-validator.js';
 import { ProjectStore } from './state/store.js';
+import { LoggingSystem } from './logging/index.js';
 import { resolve } from 'node:path';
 
 export type NotifyLevel = 'info' | 'error' | 'warning';
@@ -76,6 +77,10 @@ export async function runWriteLoop(
   }
 
   const config = { ...DEFAULT_SCHEDULER_CONFIG, ...configOverride };
+  
+  // 初始化日志系统
+  const loggingSystem = new LoggingSystem(notify);
+  
   const scheduler = new SubagentScheduler(config);
   const executor = executorOverride ?? new PiSubagentExecutor({ projectDir });
   const runner = new SchedulerRunner(
@@ -86,6 +91,7 @@ export async function runWriteLoop(
     config.rateLimitMaxTasks,
     config.rateLimitDelayMs,
     config.maxTaskRetries,
+    loggingSystem.eventBus, // 传递 EventBus
   );
   const taskExecutor = new TaskExecutor();
   const writingOrchestrator = new WritingOrchestrator();
@@ -155,6 +161,8 @@ export async function runWriteLoop(
 
     if (step.advanced) {
       notify(`⏩ ${step.previousPhase} → ${step.phase} (${step.phaseName})`, 'info');
+      // 更新日志系统的当前阶段
+      loggingSystem.setCurrentPhase(step.phase);
     }
 
     // 处理等待点
@@ -223,6 +231,9 @@ export async function runWriteLoop(
   if (!result.stoppedReason) {
     result.stoppedReason = 'completed';
   }
+
+  // 释放日志系统资源
+  loggingSystem.dispose();
 
   return result;
 }

@@ -12,6 +12,7 @@ import type { SubagentScheduler } from './index.js';
 import type { SubagentExecutor } from './executor.js';
 import type { Task } from './types.js';
 import { WindowRateLimiter } from './window-limiter.js';
+import type { EventBus } from '../logging/event-bus.js';
 
 export interface RunResult {
   executed: number;
@@ -38,6 +39,7 @@ export class SchedulerRunner {
   private rateLimitDelayMs: number;
   private maxTaskRetries: number;
   private pausedUntil = 0;
+  private eventBus?: EventBus;
 
   constructor(
     scheduler: SubagentScheduler,
@@ -47,6 +49,7 @@ export class SchedulerRunner {
     rateLimitMaxTasks = 0,
     rateLimitDelayMs = 60000,
     maxTaskRetries = 1,
+    eventBus?: EventBus,
   ) {
     this.scheduler = scheduler;
     this.executor = executor;
@@ -54,6 +57,7 @@ export class SchedulerRunner {
     this.rateLimiter = new WindowRateLimiter(rateLimitWindowMs, rateLimitMaxTasks);
     this.rateLimitDelayMs = rateLimitDelayMs;
     this.maxTaskRetries = maxTaskRetries;
+    this.eventBus = eventBus;
   }
 
   /**
@@ -106,12 +110,42 @@ export class SchedulerRunner {
    * 执行单个任务，支持 429 重试
    */
   private async runTask(task: Task): Promise<Task> {
+    const startTime = Date.now();
+
+    // 发射任务开始事件
+    if (this.eventBus) {
+      this.eventBus.emit({
+        type: 'task.start',
+        taskId: task.id,
+        taskType: task.type,
+        chapterId: task.chapterId || '',
+        round: 1, // TODO: get from task
+        concurrency: {
+          current: this.scheduler.getStats().running,
+          max: this.maxConcurrency,
+        },
+      });
+    }
+
     this.scheduler.markRunning(task.id);
 
     const result = await this.executor.execute(task);
+    const duration = Date.now() - startTime;
 
     if (result.success) {
       this.scheduler.markCompleted(task.id, result.output);
+
+      // 发射任务完成事件
+      if (this.eventBus) {
+        this.eventBus.emit({
+          type: 'task.complete',
+          taskId: task.id,
+          taskType: task.type,
+          chapterId: task.chapterId || '',
+          duration,
+        });
+      }
+
       return task;
     }
 
@@ -123,16 +157,53 @@ export class SchedulerRunner {
       // 全局暂停
       this.pausedUntil = Date.now() + this.rateLimitDelayMs;
 
+      // 发射限流事件
+      if (this.eventBus) {
+        this.eventBus.emit({
+          type: 'ratelimit',
+          action: 'pause',
+          duration: this.rateLimitDelayMs,
+          reason: output,
+        });
+      }
+
       // 重试
       if (task.attempt < this.maxTaskRetries) {
         task.attempt++;
         this.scheduler.markRetrying(task.id);
+
+        // 发射任务失败事件（带重试）
+        if (this.eventBus) {
+          this.eventBus.emit({
+            type: 'task.fail',
+            taskId: task.id,
+            taskType: task.type,
+            chapterId: task.chapterId || '',
+            error: output,
+            willRetry: true,
+            retryDelay: this.rateLimitDelayMs,
+          });
+        }
+
         return task;
       }
     }
 
     // 非 429 或重试耗尽 → 失败
     this.scheduler.markFailed(task.id, output);
+
+    // 发射任务失败事件
+    if (this.eventBus) {
+      this.eventBus.emit({
+        type: 'task.fail',
+        taskId: task.id,
+        taskType: task.type,
+        chapterId: task.chapterId || '',
+        error: output,
+        willRetry: false,
+      });
+    }
+
     return task;
   }
 
