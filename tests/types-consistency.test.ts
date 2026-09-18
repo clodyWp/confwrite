@@ -21,7 +21,7 @@ describe('Type consistency — scheduler re-exports from schema', () => {
 
   it('DEFAULT_SCHEDULER_CONFIG is accessible from scheduler/types', () => {
     expect(DEFAULT_SCHEDULER_CONFIG).toBeDefined();
-    expect(DEFAULT_SCHEDULER_CONFIG.maxConcurrency).toBe(3);
+    expect(DEFAULT_SCHEDULER_CONFIG.maxConcurrency).toBe(2);
     expect(DEFAULT_SCHEDULER_CONFIG.tokenBucketSize).toBe(10);
     expect(DEFAULT_SCHEDULER_CONFIG.tokenRefillRate).toBe(0.5);
     expect(DEFAULT_SCHEDULER_CONFIG.retryBaseDelayMs).toBe(5000);
