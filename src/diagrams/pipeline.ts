@@ -229,7 +229,7 @@ export class DiagramPipeline {
   } {
     const nodes: ParsedNode[] = [];
     const connections: ParsedConnection[] = [];
-    const nodeMap = new Map<string, number>();
+    const nodeMap = new Map<string, string>();
 
     const description = block.description;
     const lines = description.split('\n');
@@ -288,7 +288,7 @@ export class DiagramPipeline {
     label: string,
     layer: number,
     nodes: ParsedNode[],
-    nodeMap: Map<string, number>
+    nodeMap: Map<string, string>
   ): string {
     // 检查是否已存在
     const existingId = nodeMap.get(label);
