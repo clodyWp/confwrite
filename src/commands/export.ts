@@ -8,7 +8,7 @@ import { FormatConverter } from '../assemble/converter.js';
 /**
  * Export format
  */
-export type ExportFormat = 'md' | 'html' | 'docx' | 'pdf';
+export type ExportFormat = 'md' | 'html' | 'docx';
 
 /**
  * Export options
@@ -89,7 +89,6 @@ export async function exportDocument(
       return exportHtml(assemblyResult, converter, options);
 
     case 'docx':
-    case 'pdf':
       return exportWithPandoc(assemblyResult, converter, options);
 
     default:
@@ -221,7 +220,7 @@ function exportWithPandoc(
   const args = converter.generateConversionCommand(
     tempMdPath,
     options.outputPath,
-    options.format as 'docx' | 'pdf',
+    options.format as 'docx',
     {
       toc: options.toc,
     }

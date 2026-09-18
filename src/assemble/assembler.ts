@@ -31,6 +31,11 @@ export interface AssemblyResult {
 /**
  * Chapter Assembler
  * Assembles individual chapter files into a single document
+ * 
+ * 支持版本化文件（参考 bailian-agent/doc-chapters-v6）：
+ * - 版本化: ch001-v1.md, ch001-v2.md, ch001-v3.md
+ * - 非版本化: ch001.md (向后兼容)
+ * - 自动选择每个章节的最新版本
  */
 export class ChapterAssembler {
   /**
@@ -43,21 +48,26 @@ export class ChapterAssembler {
   ): AssemblyResult {
     const chaptersDir = join(projectDir, 'drafts/chapters');
     const warnings: string[] = [];
-    const chapters: { id: string; content: string; title: string }[] = [];
+    const chapters: { id: string; content: string; title: string; version: string }[] = [];
 
-    // Read each chapter
+    // Read each chapter (find latest version)
     for (const chapterId of chapterOrder) {
-      const chapterPath = join(chaptersDir, `${chapterId}.md`);
+      const chapterInfo = this.findLatestVersion(chaptersDir, chapterId);
 
-      if (!existsSync(chapterPath)) {
+      if (!chapterInfo) {
         warnings.push(`Chapter ${chapterId} not found`);
         continue;
       }
 
-      const content = readFileSync(chapterPath, 'utf-8');
+      const content = readFileSync(chapterInfo.path, 'utf-8');
       const title = this.extractTitle(content, chapterId);
 
-      chapters.push({ id: chapterId, content, title });
+      chapters.push({ 
+        id: chapterId, 
+        content, 
+        title,
+        version: chapterInfo.version,
+      });
     }
 
     if (chapters.length === 0) {
@@ -118,7 +128,7 @@ export class ChapterAssembler {
   }
 
   /**
-   * List available chapters in project
+   * List available chapters in project (returns latest version of each)
    */
   listChapters(projectDir: string): string[] {
     const chaptersDir = join(projectDir, 'drafts/chapters');
@@ -128,10 +138,81 @@ export class ChapterAssembler {
     }
 
     const files = readdirSync(chaptersDir);
-    return files
-      .filter(f => f.endsWith('.md'))
-      .map(f => basename(f, '.md'))
-      .sort();
+    
+    // Group by chapter ID, find latest version
+    const chapterVersions = new Map<string, { version: number; file: string }[]>();
+    
+    for (const file of files) {
+      if (!file.endsWith('.md')) continue;
+      
+      // 版本化文件: ch001-v1.md
+      const versionedMatch = file.match(/^(ch\d+)-v(\d+)\.md$/);
+      if (versionedMatch) {
+        const chapterId = versionedMatch[1];
+        const version = parseInt(versionedMatch[2]);
+        if (!chapterVersions.has(chapterId)) {
+          chapterVersions.set(chapterId, []);
+        }
+        chapterVersions.get(chapterId)!.push({ version, file });
+        continue;
+      }
+      
+      // 非版本化文件: ch001.md (向后兼容)
+      const legacyMatch = file.match(/^(ch\d+)\.md$/);
+      if (legacyMatch) {
+        const chapterId = legacyMatch[1];
+        if (!chapterVersions.has(chapterId)) {
+          chapterVersions.set(chapterId, [{ version: 0, file }]);
+        }
+      }
+    }
+    
+    // Return chapter IDs sorted
+    return Array.from(chapterVersions.keys()).sort();
+  }
+
+  /**
+   * Find the latest version of a chapter file
+   * Returns null if no version found
+   */
+  private findLatestVersion(chaptersDir: string, chapterId: string): { path: string; version: string } | null {
+    if (!existsSync(chaptersDir)) {
+      return null;
+    }
+
+    const files = readdirSync(chaptersDir);
+    let latestVersion = -1;
+    let latestFile = '';
+
+    for (const file of files) {
+      // 版本化文件: ch001-v1.md
+      const versionedMatch = file.match(new RegExp(`^${chapterId}-v(\\d+)\\.md$`));
+      if (versionedMatch) {
+        const version = parseInt(versionedMatch[1]);
+        if (version > latestVersion) {
+          latestVersion = version;
+          latestFile = file;
+        }
+        continue;
+      }
+
+      // 非版本化文件: ch001.md (向后兼容，视为 v0)
+      if (file === `${chapterId}.md`) {
+        if (latestVersion < 0) {
+          latestVersion = 0;
+          latestFile = file;
+        }
+      }
+    }
+
+    if (latestFile) {
+      return {
+        path: join(chaptersDir, latestFile),
+        version: latestVersion === 0 ? 'legacy' : `v${latestVersion}`,
+      };
+    }
+
+    return null;
   }
 
   /**
@@ -145,7 +226,7 @@ export class ChapterAssembler {
   /**
    * Generate table of contents
    */
-  private generateTOC(chapters: { id: string; content: string; title: string }[]): string {
+  private generateTOC(chapters: { id: string; content: string; title: string; version: string }[]): string {
     const lines: string[] = ['# 目录\n'];
 
     for (const chapter of chapters) {

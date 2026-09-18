@@ -99,17 +99,6 @@ ch002 2.1 架构设计
       expect(result.conversionCommand).toContain('-t docx');
     });
 
-    it('generates conversion command for PDF', async () => {
-      const result = await exportDocument(projectDir, {
-        format: 'pdf',
-        outputPath: join(projectDir, 'output/document.pdf'),
-        dryRun: true,
-      });
-
-      expect(result.success).toBe(true);
-      expect(result.conversionCommand).toContain('pandoc');
-      expect(result.conversionCommand).toContain('-t pdf');
-    });
 
     it('includes table of contents when requested', async () => {
       const result = await exportDocument(projectDir, {

@@ -56,13 +56,13 @@ describe('Dispatcher', () => {
     mkdirSync(join(TEST_DIR, 'drafts', 'chapters'), { recursive: true });
     mkdirSync(join(TEST_DIR, 'review'), { recursive: true });
 
-    // Create chapter kits
+    // Create chapter kits (filename matches KitGenerator output: {chapterId}.md)
     writeFileSync(
-      join(TEST_DIR, 'assets', 'chapter-kits', 'ch001-kit.md'),
+      join(TEST_DIR, 'assets', 'chapter-kits', 'ch001.md'),
       '# ch001 素材包\n\n## 相关文件\n- ref1.md\n\n## 关键数据\n- 性能: 99.9%'
     );
     writeFileSync(
-      join(TEST_DIR, 'assets', 'chapter-kits', 'ch002-kit.md'),
+      join(TEST_DIR, 'assets', 'chapter-kits', 'ch002.md'),
       '# ch002 素材包\n\n## 相关文件\n- ref2.md\n\n## 关键数据\n- 并发: 1000'
     );
 
@@ -112,7 +112,7 @@ describe('Dispatcher', () => {
     });
 
     it('handles missing chapter kit gracefully', async () => {
-      rmSync(join(TEST_DIR, 'assets', 'chapter-kits', 'ch002-kit.md'));
+      rmSync(join(TEST_DIR, 'assets', 'chapter-kits', 'ch002.md'));
 
       const result = await dispatcher.dispatch('spawn_writers', {
         chapters: ['ch001', 'ch002'],

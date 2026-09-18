@@ -37,6 +37,11 @@ export interface PhaseDefinition {
   validate: (ctx: PhaseContext) => ValidationResult;
   execute: (ctx: PhaseContext) => Promise<PhaseResult>;
   exits: Transition[];
+  /** 是否为等待点（暂停等待用户确认后才继续） */
+  waitPoint?: {
+    reason: string;
+    instructions: string;
+  };
 }
 
 // ============ Helper Functions ============
@@ -159,6 +164,30 @@ export const phase2: PhaseDefinition = {
       condition: (ctx) => hasFile(ctx, 'outline.md') && !hasOrganizedMaterials(ctx),
     },
   ],
+  waitPoint: {
+    reason: '大纲规划和图表风格需要用户确认',
+    instructions: `请确认以下两项内容：
+
+1. 大纲内容
+   请编辑 outline.md，用 ch001/ch002 等标记需要独立写作的章节。
+
+2. 图表风格偏好
+   当前配置 (assets/diagram-style.json):
+   - 配色方案: 暖色系 (warm)
+   - 节点形状: 圆角矩形 (rounded)
+   - 布局方向: 从上到下 (top-to-bottom)
+   - 字体大小: 标准 (normal)
+
+   可选配色方案:
+   - warm: 暖色系（橙色为主，适合技术方案）
+   - cool: 冷色系（蓝色为主，适合互联网/科技）
+   - mono: 黑白灰（适合正式文档/打印）
+   - custom: 自定义（编辑 diagram-style.json）
+
+   如需修改，请编辑 assets/diagram-style.json
+
+完成后再次运行 /confwrite:write 继续。`,
+  },
 };
 
 export const phase3: PhaseDefinition = {
@@ -248,7 +277,9 @@ export const phase4b: PhaseDefinition = {
       target: '4c',
       condition: (ctx) => {
         const chapters = Object.values(ctx.state.chapters);
-        return chapters.every(ch => !['written', 'reviewing'].includes(ch.status));
+        const needsReview = chapters.some(ch => ['written', 'reviewing'].includes(ch.status));
+        const hasProcessed = chapters.some(ch => ['reviewed', 'completed', 'failed', 'skipped'].includes(ch.status));
+        return !needsReview && hasProcessed;
       },
     },
   ],
@@ -338,16 +369,26 @@ export const phase5: PhaseDefinition = {
   name: '图表生成',
   validate: () => ({ ok: true }),
   async execute(ctx) {
+    const { DiagramPipeline } = await import('../diagrams/pipeline.js');
+    const pipeline = new DiagramPipeline(ctx.projectDir);
+    const result = await pipeline.run();
+
     return {
       action: 'generate_diagrams',
-      message: 'Phase 5: 图表生成',
-      params: { projectDir: ctx.projectDir },
+      message: `Phase 5: 图表生成完成 (${result.generated} 个图表)`,
+      params: {
+        projectDir: ctx.projectDir,
+        diagramCount: result.total,
+        generated: result.generated,
+        skipped: result.skipped,
+        errors: result.errors,
+      },
     };
   },
   exits: [
     {
       target: '6',
-      condition: (ctx) => ctx.state.status === 'assembling' || !hasFile(ctx, 'figures/diagrams-to-render.json'),
+      condition: (ctx) => ctx.state.status === 'assembling' || hasFile(ctx, 'figures/manifest.json'),
     },
   ],
 };
@@ -357,15 +398,25 @@ export const phase6: PhaseDefinition = {
   name: '组装',
   validate: () => ({ ok: true }),
   async execute(ctx) {
+    const { ChapterAssembler } = await import('../assemble/assembler.js');
+    const assembler = new ChapterAssembler();
+    const chapters = assembler.listChapters(ctx.projectDir);
+    const result = assembler.assemble(ctx.projectDir, chapters, { generateTOC: true });
+    const outputPath = join(ctx.projectDir, 'assembly', 'merged-v1.md');
+    assembler.save(result, outputPath);
     return {
       action: 'assemble',
-      message: 'Phase 6: 组装文档',
-      params: { projectDir: ctx.projectDir },
+      message: `Phase 6: 组装完成 (${result.stats.totalChapters} 章, ${result.stats.totalWords} 词)`,
+      params: { projectDir: ctx.projectDir, outputPath, stats: result.stats },
     };
   },
   exits: [
-    { target: '7', condition: (ctx) => hasFile(ctx, 'output/final.md') },
+    { target: '7', condition: (ctx) => hasFile(ctx, 'assembly/merged-v1.md') },
   ],
+  waitPoint: {
+    reason: '初稿组装完成，需要用户审阅确认',
+    instructions: '请审阅 assembly/merged-v1.md 初稿。确认无误后再次运行 /confwrite:write 继续定稿。',
+  },
 };
 
 export const phase7: PhaseDefinition = {
@@ -373,14 +424,22 @@ export const phase7: PhaseDefinition = {
   name: '定稿',
   validate: () => ({ ok: true }),
   async execute(ctx) {
+    const { finalize } = await import('../assemble/finalizer.js');
+    const report = finalize(ctx.projectDir);
+
     return {
-      action: 'wait_user_review',
-      message: 'Phase 7: 等待用户审阅定稿',
-      params: { projectDir: ctx.projectDir },
+      action: 'finalize',
+      message: `Phase 7: 定稿完成 — ${report.stats.words} 字, ${report.stats.chapters} 章, 一致性 ${report.consistency.termConsistency}`,
+      params: {
+        projectDir: ctx.projectDir,
+        stats: report.stats,
+        consistency: report.consistency,
+        readyForExport: report.readyForExport,
+      },
     };
   },
   exits: [
-    { target: '8', condition: (ctx) => ctx.state.status === 'exporting' },
+    { target: '8', condition: (ctx) => hasFile(ctx, 'output/finalization.json') },
   ],
 };
 

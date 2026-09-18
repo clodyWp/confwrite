@@ -136,84 +136,93 @@ export class FormatConverter {
    */
   private async convertHtml(sourcePath: string): Promise<string> {
     const html = readFileSync(sourcePath, 'utf-8');
-    
-    // 简单的 HTML 到 Markdown 转换
-    let markdown = html;
-    
-    // 转换标题
-    markdown = markdown.replace(/<h1[^>]*>(.*?)<\/h1>/gi, '# $1\n\n');
-    markdown = markdown.replace(/<h2[^>]*>(.*?)<\/h2>/gi, '## $1\n\n');
-    markdown = markdown.replace(/<h3[^>]*>(.*?)<\/h3>/gi, '### $1\n\n');
-    markdown = markdown.replace(/<h4[^>]*>(.*?)<\/h4>/gi, '#### $1\n\n');
-    
-    // 转换段落
-    markdown = markdown.replace(/<p[^>]*>(.*?)<\/p>/gi, '$1\n\n');
-    
-    // 转换列表
-    markdown = markdown.replace(/<li[^>]*>(.*?)<\/li>/gi, '- $1\n');
-    markdown = markdown.replace(/<\/?[uo]l[^>]*>/gi, '\n');
-    
-    // 转换链接
-    markdown = markdown.replace(/<a[^>]*href="([^"]*)"[^>]*>(.*?)<\/a>/gi, '[$2]($1)');
-    
-    // 转换粗体和斜体
-    markdown = markdown.replace(/<strong[^>]*>(.*?)<\/strong>/gi, '**$1**');
-    markdown = markdown.replace(/<b[^>]*>(.*?)<\/b>/gi, '**$1**');
-    markdown = markdown.replace(/<em[^>]*>(.*?)<\/em>/gi, '*$1*');
-    markdown = markdown.replace(/<i[^>]*>(.*?)<\/i>/gi, '*$1*');
-    
-    // 移除其他 HTML 标签
-    markdown = markdown.replace(/<[^>]+>/g, '');
-    
-    // 清理多余的空行
-    markdown = markdown.replace(/\n{3,}/g, '\n\n');
-    
-    return markdown.trim();
+    return this.htmlToMarkdown(html);
+  }
+
+  /**
+   * HTML → Markdown 转换（共享逻辑，供 convertHtml 和 convertDocx 使用）
+   */
+  private htmlToMarkdown(html: string): string {
+    let md = html;
+
+    // 标题
+    md = md.replace(/<h1[^>]*>(.*?)<\/h1>/gi, '# $1\n\n');
+    md = md.replace(/<h2[^>]*>(.*?)<\/h2>/gi, '## $1\n\n');
+    md = md.replace(/<h3[^>]*>(.*?)<\/h3>/gi, '### $1\n\n');
+    md = md.replace(/<h4[^>]*>(.*?)<\/h4>/gi, '#### $1\n\n');
+
+    // 段落
+    md = md.replace(/<p[^>]*>(.*?)<\/p>/gi, '$1\n\n');
+
+    // 列表
+    md = md.replace(/<li[^>]*>(.*?)<\/li>/gi, '- $1\n');
+    md = md.replace(/<\/?[uo]l[^>]*>/gi, '\n');
+
+    // 链接
+    md = md.replace(/<a[^>]*href="([^"]*)"[^>]*>(.*?)<\/a>/gi, '[$2]($1)');
+
+    // 粗体/斜体
+    md = md.replace(/<strong[^>]*>(.*?)<\/strong>/gi, '**$1**');
+    md = md.replace(/<b[^>]*>(.*?)<\/b>/gi, '**$1**');
+    md = md.replace(/<em[^>]*>(.*?)<\/em>/gi, '*$1*');
+    md = md.replace(/<i[^>]*>(.*?)<\/i>/gi, '*$1*');
+
+    // 移除剩余标签
+    md = md.replace(/<[^>]+>/g, '');
+
+    // 清理空行
+    md = md.replace(/\n{3,}/g, '\n\n');
+
+    return md.trim();
   }
   
   /**
-   * 转换 PDF 到 Markdown
-   * 注意：这是一个简化实现，实际需要专门的 PDF 解析库
+   * 转换 PDF 到 Markdown (使用 pdf-parse)
    */
   private async convertPdf(sourcePath: string): Promise<string> {
-    // 检查文件是否存在
     if (!existsSync(sourcePath)) {
       throw new Error('PDF file not found');
     }
-    
-    // 检查文件是否是有效的 PDF（简化检查）
+
     const buffer = readFileSync(sourcePath);
     const header = buffer.slice(0, 4).toString('ascii');
-    
     if (header !== '%PDF') {
       throw new Error('Invalid PDF file format');
     }
-    
-    // 实际 PDF 转换需要专门的库（如 pdf-parse）
-    // 这里返回一个占位符消息
-    throw new Error('PDF conversion requires pdf-parse library. Please install with: npm install pdf-parse');
+
+    // pdf-parse v2 API: class-based
+    const { PDFParse } = await import('pdf-parse');
+    const parser = new PDFParse({ data: buffer });
+    const result = await parser.getText();
+    await parser.destroy();
+
+    // Combine pages into markdown
+    return result.pages
+      .map((p: { text: string }) => p.text.trim())
+      .filter(Boolean)
+      .join('\n\n');
   }
-  
+
   /**
-   * 转换 DOCX 到 Markdown
-   * 注意：这是一个简化实现，实际需要专门的 DOCX 解析库
+   * 转换 DOCX 到 Markdown (使用 mammoth → HTML → MD)
    */
   private async convertDocx(sourcePath: string): Promise<string> {
-    // 检查文件是否存在
     if (!existsSync(sourcePath)) {
       throw new Error('DOCX file not found');
     }
-    
-    // DOCX 实际上是 ZIP 文件，检查文件头
+
     const buffer = readFileSync(sourcePath);
     const header = buffer.slice(0, 2).toString('hex');
-    
     if (header !== '504b') {
       throw new Error('Invalid DOCX file format (not a ZIP file)');
     }
-    
-    // 实际 DOCX 转换需要专门的库（如 mammoth）
-    // 这里返回一个占位符消息
-    throw new Error('DOCX conversion requires mammoth library. Please install with: npm install mammoth');
+
+    // mammoth converts DOCX → HTML
+    const mammoth = await import('mammoth');
+    const result = await mammoth.convertToHtml({ buffer });
+    const html = result.value;
+
+    // Reuse existing HTML → MD converter
+    return this.htmlToMarkdown(html);
   }
 }

@@ -1,7 +1,6 @@
 {
   "packages": [
     "npm:pi-subagents",
-    "npm:@dietrichgebert/ponytail",
-    "npm:@complexthings/pi-dynamic-context-pruning"
+    "npm:pi-web-access"
   ]
 }

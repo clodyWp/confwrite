@@ -144,15 +144,6 @@ app.listen(3000);
       expect(args).toContain('docx');
     });
 
-    it('generates pandoc command for PDF', () => {
-      const mdPath = join(tempDir, 'document.md');
-      const outputPath = join(tempDir, 'output/document.pdf');
-
-      const args = converter.generateConversionCommand(mdPath, outputPath, 'pdf');
-
-      expect(args).toContain('-t');
-      expect(args).toContain('pdf');
-    });
 
     it('includes reference doc when provided', () => {
       const mdPath = join(tempDir, 'document.md');

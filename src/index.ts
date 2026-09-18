@@ -10,7 +10,222 @@ import { initProject } from './commands/init.js';
 import { organizeMaterials } from './commands/organize.js';
 import { exportDocument } from './commands/export.js';
 import { StateMachine } from './orchestrator/state-machine.js';
+import { SubagentScheduler } from './scheduler/index.js';
+import { SchedulerRunner } from './scheduler/runner.js';
+import { PiSubagentExecutor } from './scheduler/pi-executor.js';
+import type { SubagentExecutor } from './scheduler/executor.js';
+import { DEFAULT_SCHEDULER_CONFIG, type SchedulerConfig } from './state/schema.js';
+import { Dispatcher } from './dispatcher/index.js';
+import { TaskExecutor } from './writing/task-executor.js';
+import { WritingOrchestrator } from './writing/orchestrator.js';
+import { OutputValidator } from './writing/output-validator.js';
+import { ProjectStore } from './state/store.js';
 import { resolve } from 'node:path';
+
+export type NotifyLevel = 'info' | 'error' | 'warning';
+
+export interface WriteLoopResult {
+  ticks: number;
+  tasksExecuted: number;
+  tasksSucceeded: number;
+  tasksFailed: number;
+  messages: Array<{ msg: string; level: NotifyLevel }>;
+  stoppedReason: string;
+  completed: boolean;
+}
+
+export interface WriteLoopOptions {
+  executorOverride?: SubagentExecutor;
+  configOverride?: Partial<SchedulerConfig>;
+  /** 检查上下文大小，返回当前 tokens。超过阈值时触发 compact */
+  getContextTokens?: () => number | null;
+  /** 触发上下文压缩 */
+  triggerCompact?: () => Promise<void>;
+}
+
+export async function runWriteLoop(
+  projectDir: string,
+  notify: (msg: string, level: NotifyLevel) => void,
+  options?: WriteLoopOptions,
+): Promise<WriteLoopResult> {
+  const { executorOverride, configOverride, getContextTokens, triggerCompact } = options || {};
+  const result: WriteLoopResult = {
+    ticks: 0,
+    tasksExecuted: 0,
+    tasksSucceeded: 0,
+    tasksFailed: 0,
+    messages: [],
+    stoppedReason: '',
+    completed: true,
+  };
+
+  const machine = new StateMachine(projectDir);
+  const store = machine.getStore();
+  const state = store.load();
+  if (!state) {
+    notify('未找到项目状态文件，请先运行 /confwrite:init', 'error');
+    result.stoppedReason = 'no_state';
+    result.completed = false;
+    return result;
+  }
+
+  // Clear waitPoint on resume — user explicitly requested to continue
+  if (state.waitPoint) {
+    state.waitPoint = undefined;
+    store.save(state);
+  }
+
+  const config = { ...DEFAULT_SCHEDULER_CONFIG, ...configOverride };
+  const scheduler = new SubagentScheduler(config);
+  const executor = executorOverride ?? new PiSubagentExecutor({ projectDir });
+  const runner = new SchedulerRunner(
+    scheduler,
+    executor,
+    config.maxConcurrency,
+    config.rateLimitWindowMs,
+    config.rateLimitMaxTasks,
+    config.rateLimitDelayMs,
+    config.maxTaskRetries,
+  );
+  const taskExecutor = new TaskExecutor();
+  const writingOrchestrator = new WritingOrchestrator();
+  const dispatcher = new Dispatcher(projectDir, store, scheduler, taskExecutor, writingOrchestrator);
+  const outputValidator = new OutputValidator(projectDir);
+
+  const EXECUTABLE_ACTIONS = new Set(['spawn_writers', 'spawn_reviewers', 'spawn_fixers']);
+  const MAX_TICKS = 50;
+
+  while (result.ticks < MAX_TICKS) {
+    result.ticks++;
+
+    // 检查上下文大小，超过阈值时触发压缩
+    if (getContextTokens && triggerCompact && config.compactThresholdTokens > 0) {
+      const currentTokens = getContextTokens();
+      if (currentTokens !== null && currentTokens > config.compactThresholdTokens) {
+        notify(`⚠️ 上下文已达 ${currentTokens} tokens，超过阈值 ${config.compactThresholdTokens}，触发压缩...`, 'warning');
+        
+        let compactSuccess = false;
+        let lastError = '';
+        
+        // 重试一次
+        for (let attempt = 0; attempt < 2; attempt++) {
+          try {
+            await triggerCompact();
+            compactSuccess = true;
+            notify('✅ 上下文压缩完成', 'info');
+            break;
+          } catch (err) {
+            lastError = err instanceof Error ? err.message : String(err);
+            if (attempt === 0) {
+              notify(`⚠️ 压缩失败，重试中...`, 'warning');
+            }
+          }
+        }
+        
+        if (!compactSuccess) {
+          notify(`⛔ 上下文压缩失败: ${lastError}`, 'error');
+          notify(`💡 请手动执行 /confwrite:compact 压缩上下文，然后 /confwrite:resume 继续`, 'info');
+          result.stoppedReason = 'compact_failed';
+          result.completed = false;
+          break;
+        }
+      }
+    }
+
+    const tickResult = await machine.tick();
+
+    if ('blocked' in tickResult && tickResult.blocked) {
+      notify(`⛔ ${tickResult.phaseName}: ${tickResult.error}`, 'error');
+      result.stoppedReason = 'blocked';
+      break;
+    }
+
+    const step = tickResult as {
+      phase: string;
+      phaseName: string;
+      action: string;
+      message: string;
+      params?: Record<string, unknown>;
+      advanced: boolean;
+      previousPhase?: string;
+      atWaitPoint?: boolean;
+      waitPointReason?: string;
+      waitPointInstructions?: string;
+    };
+
+    if (step.advanced) {
+      notify(`⏩ ${step.previousPhase} → ${step.phase} (${step.phaseName})`, 'info');
+    }
+
+    // 处理等待点
+    if (step.atWaitPoint || step.action === 'wait_point') {
+      notify(`⏸️ 等待点: ${step.waitPointReason || step.message}`, 'info');
+      notify(`💡 ${step.waitPointInstructions || '请完成操作后再次运行 /confwrite:write 继续'}`, 'info');
+      result.stoppedReason = 'wait_point';
+      break;
+    }
+
+    notify(`📝 [${step.phase}] ${step.phaseName}: ${step.message}`, 'info');
+
+    if (EXECUTABLE_ACTIONS.has(step.action)) {
+      const dispatchResult = await dispatcher.dispatch(step.action, step.params || {});
+      notify(`🚀 已创建 ${dispatchResult.tasksCreated} 个任务`, 'info');
+
+      const runResult = await runner.runUntilIdle();
+      result.tasksExecuted += runResult.executed;
+      result.tasksSucceeded += runResult.succeeded;
+      result.tasksFailed += runResult.failed;
+      notify(`✅ 执行完成: ${runResult.succeeded} 成功, ${runResult.failed} 失败`, 'info');
+
+      if (runResult.failed > 0) {
+        for (const ft of runResult.tasks.filter(t => t.status === 'failed')) {
+          notify(`  ❌ ${ft.id}: ${ft.error || 'unknown error'}`, 'error');
+        }
+      }
+
+      for (const taskResult of runResult.tasks) {
+        const outcome = taskResult.status === 'completed' ? 'success' : 'failed';
+        const output = outcome === 'success' ? 'completed' : (taskResult.error || 'failed');
+        
+        // 即时验证输出
+        if (outcome === 'success' && taskResult.chapterId) {
+          const originalTask = scheduler.list().find(t => t.id === taskResult.id);
+          if (originalTask) {
+            const validation = outputValidator.validate(originalTask, state.round);
+            if (!validation.valid) {
+              notify(`⚠️ ${OutputValidator.formatErrors(validation)}`, 'warning');
+              // 验证失败，标记任务为 failed 以便重试
+              await dispatcher.processTask(taskResult.id, 'failed', `Output validation failed: ${validation.errors.join('; ')}`);
+              result.tasksFailed++;
+              result.tasksSucceeded--; // 之前已经加了 succeeded，现在回退
+              continue;
+            }
+            notify(`✅ 输出验证通过: ${originalTask.id}`, 'info');
+          }
+        }
+        
+        await dispatcher.processTask(taskResult.id, outcome as 'success' | 'failed', output);
+      }
+    } else if (step.action === 'advance' || step.action === 'phase_entered') {
+      continue;
+    } else {
+      // Non-dispatchable action (e.g. generate_diagrams, assemble) — already executed,
+      // continue loop so next tick can check exit conditions and advance phase.
+      continue;
+    }
+  }
+
+  if (result.ticks >= MAX_TICKS) {
+    notify(`⚠️ 达到最大推进次数 (${MAX_TICKS})，请检查状态`, 'info');
+    result.stoppedReason = 'max_ticks';
+  }
+
+  if (!result.stoppedReason) {
+    result.stoppedReason = 'completed';
+  }
+
+  return result;
+}
 
 export default function (pi: ExtensionAPI) {
   // ============ /confwrite:init ============
@@ -77,30 +292,25 @@ export default function (pi: ExtensionAPI) {
 
   // ============ /confwrite:write ============
   pi.registerCommand('confwrite:write', {
-    description: '推进写作流程（执行状态机一步）',
+    description: '推进写作流程（自动执行任务）',
     handler: async (args, ctx) => {
       const projectDir = args ? resolve(ctx.cwd || process.cwd(), args) : ctx.cwd || process.cwd();
-      const machine = new StateMachine(projectDir);
-
-      const result = await machine.tick();
-
-      if ('blocked' in result && result.blocked) {
-        ctx.ui.notify(`⛔ ${result.phaseName}: ${result.error}`, 'error');
-        return;
-      }
-
-      const step = result as { phase: string; phaseName: string; action: string; message: string; params?: Record<string, unknown>; advanced: boolean; previousPhase?: string };
-
-      if (step.advanced) {
-        ctx.ui.notify(`⏩ ${step.previousPhase} → ${step.phase} (${step.phaseName})`, 'info');
-      }
-
-      ctx.ui.notify(`📝 [${step.phase}] ${step.phaseName}: ${step.message}`, 'info');
-
-      if (step.action !== 'advance' && step.action !== 'wait_user_review' && step.action !== 'phase_entered') {
-        const actionJson = JSON.stringify({ action: step.action, params: step.params }, null, 2);
-        ctx.ui.notify(`待执行:\n${actionJson}`, 'info');
-      }
+      
+      await runWriteLoop(projectDir, (msg, level) => ctx.ui.notify(msg, level), {
+        getContextTokens: () => {
+          const usage = ctx.getContextUsage();
+          return usage?.tokens ?? null;
+        },
+        triggerCompact: async () => {
+          return new Promise<void>((resolve, reject) => {
+            ctx.compact({
+              customInstructions: '保留 ConfWrite 项目状态、章节进度和最近的关键操作',
+              onComplete: () => resolve(),
+              onError: (err) => reject(err),
+            });
+          });
+        },
+      });
     },
   });
 
@@ -145,7 +355,6 @@ export default function (pi: ExtensionAPI) {
     handler: async (args, ctx) => {
       const projectDir = args ? resolve(ctx.cwd || process.cwd(), args) : ctx.cwd || process.cwd();
       const machine = new StateMachine(projectDir);
-
       const status = machine.status();
       if (!status) {
         ctx.ui.notify('未找到项目状态文件', 'error');
@@ -153,37 +362,63 @@ export default function (pi: ExtensionAPI) {
       }
 
       ctx.ui.notify(`恢复项目: ${status.phase} (${status.name})`, 'info');
+      
+      await runWriteLoop(projectDir, (msg, level) => ctx.ui.notify(msg, level), {
+        getContextTokens: () => {
+          const usage = ctx.getContextUsage();
+          return usage?.tokens ?? null;
+        },
+        triggerCompact: async () => {
+          return new Promise<void>((resolve, reject) => {
+            ctx.compact({
+              customInstructions: '保留 ConfWrite 项目状态、章节进度和最近的关键操作',
+              onComplete: () => resolve(),
+              onError: (err) => reject(err),
+            });
+          });
+        },
+      });
+    },
+  });
 
-      // Delegate to write logic
-      const result = await machine.tick();
-
-      if ('blocked' in result && result.blocked) {
-        ctx.ui.notify(`⛔ ${result.phaseName}: ${result.error}`, 'error');
-        return;
-      }
-
-      const step = result as { phase: string; phaseName: string; action: string; message: string; params?: Record<string, unknown>; advanced: boolean; previousPhase?: string };
-
-      if (step.advanced) {
-        ctx.ui.notify(`⏩ ${step.previousPhase} → ${step.phase} (${step.phaseName})`, 'info');
-      }
-
-      ctx.ui.notify(`📝 [${step.phase}] ${step.phaseName}: ${step.message}`, 'info');
+  // ============ /confwrite:compact ============
+  pi.registerCommand('confwrite:compact', {
+    description: '手动压缩上下文（当自动压缩失败时使用）',
+    handler: async (_args, ctx) => {
+      const usage = ctx.getContextUsage();
+      const tokens = usage?.tokens ?? 0;
+      
+      ctx.ui.notify(`当前上下文: ${tokens.toLocaleString()} tokens`, 'info');
+      ctx.ui.notify('正在压缩上下文...', 'info');
+      
+      return new Promise<void>((resolve) => {
+        ctx.compact({
+          customInstructions: '保留 ConfWrite 项目状态、章节进度和最近的关键操作',
+          onComplete: () => {
+            ctx.ui.notify('✅ 上下文压缩完成', 'info');
+            resolve();
+          },
+          onError: (err) => {
+            ctx.ui.notify(`❌ 压缩失败: ${err.message}`, 'error');
+            resolve();
+          },
+        });
+      });
     },
   });
 
   // ============ /confwrite:export ============
   pi.registerCommand('confwrite:export', {
-    description: '导出文档（md/html/docx/pdf）',
+    description: '导出文档（md/html/docx）',
     handler: async (args, ctx) => {
       if (!args) {
         ctx.ui.notify('用法: /confwrite:export <format> [output-path]', 'info');
-        ctx.ui.notify('格式: md, html, docx, pdf', 'info');
+        ctx.ui.notify('格式: md, html, docx', 'info');
         return;
       }
 
       const parts = args.split(/\s+/);
-      const format = parts[0] as 'md' | 'html' | 'docx' | 'pdf';
+      const format = parts[0] as 'md' | 'html' | 'docx';
       const projectDir = ctx.cwd || process.cwd();
       const outputPath = parts[1] || resolve(projectDir, `output/document.${format}`);
 

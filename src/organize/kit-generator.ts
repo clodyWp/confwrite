@@ -2,6 +2,7 @@ import { writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import type { ChapterMapping } from './chapter-mapper.js';
 import type { DataBaseline } from './baseline-extractor.js';
+import type { KnowledgeLoader } from '../knowledge/loader.js';
 
 /**
  * 生成结果
@@ -26,6 +27,12 @@ export interface BatchStats {
  * 素材包生成器
  */
 export class KitGenerator {
+  private knowledgeLoader?: KnowledgeLoader;
+
+  constructor(knowledgeLoader?: KnowledgeLoader) {
+    this.knowledgeLoader = knowledgeLoader;
+  }
+
   /**
    * 生成单个章节的素材包内容
    */
@@ -95,6 +102,15 @@ export class KitGenerator {
     lines.push('3. 引用关键数据时保持一致性');
     lines.push('4. 覆盖所有需求要点');
     lines.push('5. 保持与整体文档风格一致');
+    lines.push('');
+
+    // 图表知识库注入
+    if (this.knowledgeLoader) {
+      const knowledgeContent = this.knowledgeLoader.generateWriterInjection(mapping.relatedCategories);
+      if (knowledgeContent) {
+        lines.push(knowledgeContent);
+      }
+    }
 
     return lines.join('\n');
   }

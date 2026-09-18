@@ -15,7 +15,8 @@
   - [3.3 /confwrite:write](#33-confwritewrite)
   - [3.4 /confwrite:status](#34-confwritestatus)
   - [3.5 /confwrite:resume](#35-confwriteresume)
-  - [3.6 /confwrite:export](#36-confwriteexport)
+  - [3.6 /confwrite:compact](#36-confwritecompact)
+  - [3.7 /confwrite:export](#37-confwriteexport)
 - [4. 完整工作流](#4-完整工作流)
   - [Step 1: 初始化项目](#step-1-初始化项目)
   - [Step 2: 导入参考资料](#step-2-导入参考资料)
@@ -255,6 +256,7 @@ projects/my-proposal/
 - 每次调用只推进一步
 - 如果前置条件不满足，会返回阻塞错误
 - 阶段转换是确定性的（TypeScript 状态机控制），不依赖 LLM 判断
+- **Context Compaction**：设置 `compactThresholdTokens` 后（如 120000），每轮自动检查 token 用量，超过阈值自动压缩上下文，防止长任务 429 错误
 
 ---
 
@@ -302,7 +304,25 @@ projects/my-proposal/
 
 ---
 
-### 3.6 /confwrite:export
+### 3.6 /confwrite:compact
+
+**功能**：手动压缩上下文。长文档写作过程中，context 可能膨胀导致 429 错误。此命令触发 pi 的上下文压缩机制，保留项目状态的关键信息。
+
+**语法**：
+```
+/confwrite:compact
+```
+
+**使用场景**：
+- 长任务过程中感觉 context 接近上限
+- 自动压缩失败后，手动重试
+- 预防性地压缩上下文，再继续写作
+
+**自动压缩**：设置 `compactThresholdTokens`（如 120000）后，`/confwrite:write` 会在 token 超过阈值时自动触发压缩。压缩失败会自动暂停，提示用户用此命令手动处理。
+
+---
+
+### 3.7 /confwrite:export
 
 **功能**：将所有章节组装并导出为指定格式。
 
@@ -742,6 +762,16 @@ ConfWrite 使用确定性状态机控制整个写作流程。LLM 只负责内容
 - 基础延迟 5 秒，倍数 2x，最大延迟 60 秒
 - 无硬性重试上限
 
+**窗口速率限制器 (Window Limiter)**：
+- 滑动窗口限制：如“每 5 分钟最多 3 个 subagent”
+- 配置：`rateLimitWindowMs`（窗口时长，默认 60000ms）、`rateLimitMaxTasks`（窗口内最大任务数，默认 10）
+
+**Context Compaction**：
+- 长任务过程中自动监控 token 用量
+- 配置：`compactThresholdTokens`（默认 0 = 禁用），建议设置为 120000
+- 超过阈值自动触发上下文压缩，防止 429 错误
+- 压缩失败自动重试一次，再失败则暂停执行，提示用户手动处理
+
 ---
 
 ## 8. 项目目录结构
@@ -875,6 +905,14 @@ A: 理论上最多 999 章（`ch001` ~ `ch999`）。实际建议 10~30 章，每
 ### Q: 可以并行写作多个章节吗？
 
 A: 可以。调度器支持并行执行，受令牌桶速率限制。默认最大并发数为 3。
+
+### Q: 长任务过程中遇到 429 错误怎么办？
+
+A: 这是 context 膨胀导致的。解决方法：
+1. 设置 `compactThresholdTokens: 120000`（在 `project-state.json` 的 `schedulerConfig` 中）
+2. 系统会自动在 token 超过阈值时压缩上下文
+3. 如果自动压缩失败，用 `/confwrite:compact` 手动压缩
+4. 压缩后用 `/confwrite:resume` 继续写作
 
 ---
 

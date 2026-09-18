@@ -1,8 +1,8 @@
 # ConfWrite 详细设计文档
 
-> **版本**: v0.2.0-draft  
-> **日期**: 2025-01-16  
-> **状态**: Sprint 1-3 完成，待评审  
+> **版本**: v0.7.2  
+> **日期**: 2025-06  
+> **状态**: 全链路可用，已发布就绪  
 > **作者**: ConfWrite Team
 
 ---
@@ -26,8 +26,7 @@
 - [6. 关键设计决策](#6-关键设计决策)
 - [7. 已识别的架构问题](#7-已识别的架构问题)
 - [8. 测试覆盖](#8-测试覆盖)
-- [9. 待实现清单](#9-待实现清单)
-- [10. 附录](#10-附录)
+- [9. 附录](#9-附录)
 
 ---
 
@@ -69,7 +68,7 @@ ConfWrite 是一个 **pi 原生扩展包**（Extension + Skill），用于生成
 | G3 | 单任务失败不阻塞 | 失败隔离 + 自动重试 |
 | G4 | 可中断可恢复 | 状态持久化到 JSON |
 | G5 | 速率安全 | 令牌桶限流 |
-| G6 | 多格式导出 | MD / HTML / DOCX / PDF |
+| G6 | 多格式导出 | MD / HTML / DOCX |
 
 ### 2.2 约束
 
@@ -196,14 +195,19 @@ src/
 │   ├── token-bucket.ts               # 令牌桶限流器
 │   ├── priority-queue.ts             # 最小堆优先级队列
 │   ├── retry.ts                      # 指数退避重试引擎
-│   └── index.ts                      # SubagentScheduler 主类 (含 markRunning/markCompleted/markFailed)
+│   ├── index.ts                      # SubagentScheduler 主类 (含 markRunning/markCompleted/markFailed)
+│   ├── executor.ts                   # SubagentExecutor 接口 (隔离调度器与执行环境)
+│   ├── mock-executor.ts              # MockSubagentExecutor (测试用，写模拟文件)
+│   ├── pi-executor.ts                # PiSubagentExecutor (真实 pi SDK 桥接)
+│   └── runner.ts                     # SchedulerRunner (执行循环: 就绪→执行→标记)
 ├── organize/
 │   ├── scanner.ts                    # 资料文件扫描 + 自动分类 + 中文关键词提取
-│   ├── converter.ts                  # HTML/PDF/DOCX → Markdown 转换
+│   ├── converter.ts                  # HTML/PDF/DOCX → Markdown 转换 (mammoth + pdf-parse)
 │   ├── indexer.ts                    # JSON 索引生成
 │   ├── baseline-extractor.ts         # 数据基线提取
 │   ├── outline-parser.ts             # 大纲解析 + ch 标记识别
 │   ├── chapter-mapper.ts             # 章节-资料映射
+│   ├── chapter-syncer.ts             # 大纲→状态自动同步 (G1)
 │   └── kit-generator.ts              # 章节素材包生成 (scoped baseline)
 ├── writing/
 │   ├── task-executor.ts              # Prompt 构建 + 审阅结果解析 (JSON + free text fallback)
@@ -212,7 +216,8 @@ src/
 │   └── index.ts                      # Dispatcher: action → 读素材 → 生成 prompt → 提交任务 → 处理结果
 ├── assemble/
 │   ├── assembler.ts                  # 章节组装器
-│   └── converter.ts                  # Markdown → HTML/DOCX/PDF 转换 (execFileSync 安全调用)
+│   ├── converter.ts                  # Markdown → HTML/DOCX/PDF 转换 (execFileSync 安全调用)
+│   └── finalizer.ts                  # 定稿处理 (统计+一致性检查) (G5)
 ├── orchestrator/
 │   ├── phases.ts                     # 14 个阶段声明式定义
 │   └── state-machine.ts              # 确定性状态机
@@ -220,6 +225,8 @@ src/
 │   ├── init.ts                       # /confwrite:init (ESM 兼容)
 │   ├── organize.ts                   # /confwrite:organize
 │   └── export.ts                     # /confwrite:export (ESM 兼容)
+├── knowledge/
+│   └── loader.ts                     # 知识库加载器 (图表规范/选型指南/Writer注入)
 └── utils/
     └── paths.ts                      # 路径安全工具 (防遍历 + validateShellSafe)
 ```
@@ -792,7 +799,7 @@ processTask('task-001', 'completed', resultText)
 | `spawn_writers` | chapter-kit | Writer prompt | writer task |
 | `spawn_reviewers` | chapter draft | Reviewer prompt | reviewer task |
 | `spawn_fixers` | chapter draft + review | Fixer prompt | fixer task |
-| `generate_diagrams` | (未实现) | - | - |
+| `generate_diagrams` | 草稿中的 `<!-- diagram-start -->` 块 | Mermaid prompt | diagram task |
 | `assemble` | (由 Assembler 处理) | - | - |
 
 #### 4.7.2 与 pi subagent 的集成
@@ -820,14 +827,15 @@ for (const task of tasks) {
 | `/confwrite:organize` | organize.ts | 扫描→索引→基线→映射→素材包 | ✅ 完整 |
 | `/confwrite:write` | (index.ts) | 状态机 tick() → Dispatcher dispatch() | ✅ 完整 |
 | `/confwrite:status` | (index.ts) | 读取状态并展示 | ✅ 完整 |
-| `/confwrite:resume` | (index.ts) | 等同于 write | ✅ 完整 |
+| `/confwrite:resume` | (index.ts) | 恢复中断项目 | ✅ 完整 |
+| `/confwrite:compact` | (index.ts) | 手动压缩上下文 | ✅ 完整 |
 | `/confwrite:export` | export.ts | 组装 + 格式转换 | ✅ 完整 |
 
 ---
 
 ### 4.9 Extension 入口 (index.ts)
 
-注册 6 个命令到 pi Extension API。
+注册 7 个命令到 pi Extension API。
 
 **`/confwrite:write` handler 逻辑**：
 
@@ -1033,24 +1041,13 @@ reference_material/*.pdf ─┘         │
 - `execSync(cmd)` 替换为 `execFileSync('pandoc', args[])`
 - 新增 `validateShellSafe()` 防止命令注入
 
-### 7.5 🟡 中等：Converter 桩实现
+### 7.5 ✅ 已解决：Converter 真实转换
 
-**问题描述**：
+**状态**：已集成 `mammoth` (DOCX→HTML→MD) + `pdf-parse` v2 (PDF→text)。10 个测试覆盖。
 
-`organize/converter.ts` 中的 PDF/DOCX → Markdown 转换当前为桩实现（仅处理 HTML）。
+### 7.6 ✅ 已解决：章节定义自动同步
 
-**解决方案选项**：
-1. 集成 `mammoth` (DOCX→MD) + `pdf-parse` (PDF→text→MD)
-2. 调用外部工具 `pandoc` 进行转换
-3. 保持桩实现，文档中说明限制
-
-### 7.6 🟡 中等：章节定义未自动同步
-
-**问题描述**：
-
-`outline.md` 中的 `ch` 标记需要手动同步到 `project-state.json` 的 `chapters` 字段。当前没有自动同步机制。
-
-**建议**：在 `/confwrite:organize` 或 `/confwrite:write` 时自动从 `outline.md` 解析并同步章节定义到状态。
+**状态**：`chapter-syncer.ts` 实现大纲→状态自动同步。在 `/confwrite:organize` 中自动调用。9 个测试覆盖。
 
 ### 7.7 🟢 低：HTML 转换器功能有限
 
@@ -1067,9 +1064,9 @@ reference_material/*.pdf ─┘         │
 ### 8.1 测试统计
 
 ```
-Test Files:  35 passed (35)
-Tests:       332 passed (332)
-Duration:    ~5.1s
+Test Files:  51 passed (51)
+Tests:       433 passed (433)
+Duration:    ~7s
 TypeScript:  ✅ 编译通过 (npx tsc --noEmit)
 ```
 
@@ -1084,7 +1081,7 @@ TypeScript:  ✅ 编译通过 (npx tsc --noEmit)
 | scheduler/ | index.test.ts | 13 | 提交/就绪/依赖/暂停/序列化 |
 | organize/ | outline-parser.test.ts | 10 | 解析/ch标记/层级/查找 |
 | organize/ | scanner.test.ts | 13 | 扫描/分类/元数据/递归 |
-| organize/ | converter.test.ts | 7 | HTML转换/错误处理 |
+| organize/ | converter.test.ts | 10 | HTML/DOCX(mammoth)/PDF(pdf-parse)转换 |
 | organize/ | indexer.test.ts | 10 | 索引/分类/关键词/搜索 |
 | organize/ | baseline-extractor.test.ts | 10 | 提取指标/术语/需求/验证 |
 | organize/ | chapter-mapper.test.ts | 9 | 映射/关键词/分类/摘要 |
@@ -1112,86 +1109,58 @@ TypeScript:  ✅ 编译通过 (npx tsc --noEmit)
 | writing/ | fix-task-filter.test.ts | 8 | lastReviewVerdict过滤 |
 | orchestrator/ | phase4c-mixed.test.ts | 6 | Phase 4c混合场景 |
 | orchestrator/ | phase5-exit.test.ts | 4 | Phase 5退出条件 |
+| diagrams/ | extractor.test.ts | 7 | mermaid 代码块提取 |
+| diagrams/ | pipeline.test.ts | 6 | 完整管线 |
+| knowledge/ | loader.test.ts | 11 | 知识库加载/分类/注入 |
+| scheduler/ | runner.test.ts | 8 | 执行循环/并发/mock |
+| e2e/ | full-pipeline.test.ts | 5 | init→organize→write→review→assemble→export |
+| organize/ | chapter-syncer.test.ts | 9 | 大纲→状态同步/新增/移除/保护 |
+| assemble/ | finalizer.test.ts | 7 | 定稿统计/一致性检查/报告生成 |
+| e2e/ | h5-mock-trial.test.ts | 6 | H5 模拟试用: init→finalize→export |
+| e2e/ | h5-full-simulation.test.ts | 6 | H5 全流程: G1/G2/G5 集成验证 |
 
 ### 8.3 未覆盖区域
 
 | 区域 | 原因 |
 |------|------|
-| pi subagent 实际 spawn | 需要 pi 运行时环境 |
-| PDF/DOCX 转换 | 当前为桩实现 |
-| Phase 5 图表生成 | 未实现 |
+| ~~pi subagent 实际 spawn~~ | ~~已实现 SubagentExecutor 桥接~~ |
+| ~~PDF/DOCX 转换~~ | ~~已实现 (mammoth + pdf-parse)~~ |
+| ~~Phase 5 图表生成~~ | ~~已实现~~ |
+| ~~全量端到端测试~~ | ~~已实现 (init→export)~~ |
+| ~~H5 模拟试用~~ | ~~已实现 (12 tests, 含 G1/G2/G5)~~ |
 
 ---
 
-## 9. 待实现清单
+## 9. 附录
 
-### 9.1 Phase F: Dispatcher（✅ 已完成）
-
-| 编号 | 任务 | 状态 |
-|------|------|------|
-| F1 | 实现 `src/dispatcher/index.ts` — 核心调度逻辑 | ✅ 完成 |
-| F2 | 实现素材包读取 + prompt 组装 | ✅ 完成 |
-| F3 | 实现 pi subagent spawn 调用 | ✅ processTask 完成 |
-| F4 | 实现 subagent 完成回调 + 状态更新 | ✅ 完成 |
-| F5 | 编写 Dispatcher 测试 | ✅ 19 个测试 |
-| F6 | 更新 `/confwrite:write` handler 集成 Dispatcher | ✅ 完成 |
-
-### 9.2 Phase G: 完善与增强
-
-| 编号 | 任务 | 优先级 | 估算 |
-|------|------|--------|------|
-| G1 | 大纲→状态自动同步 | P1 | 80 行 |
-| G2 | 集成 mammoth/pdf-parse 实现真实转换 | P1 | 100 行 |
-| G3 | ~~实现 Phase 4c (决策) 的完整逻辑~~ | ✅ 已完成 |
-| G4 | 实现 Phase 5 (图表) 的基本逻辑 | P2 | 100 行 |
-| G5 | 实现 Phase 7 (定稿) 的完整逻辑 | P2 | 60 行 |
-| G6 | 端到端集成测试 (含 Dispatcher) | P1 | 200 行 |
-
-### 9.3 Phase H: 打包与发布
-
-| 编号 | 任务 | 优先级 | 估算 |
-|------|------|--------|------|
-| H1 | 完善 README.md | P2 | - |
-| H2 | 添加 CHANGELOG.md | P2 | - |
-| H3 | 配置 npm pack 排除测试文件 | P2 | - |
-| H4 | 编写安装脚本 | P2 | 50 行 |
-| H5 | 实际项目试用 + 修复问题 | P1 | - |
-
----
-
-## 10. 附录
-
-### 10.1 项目目录结构
+### 9.1 项目目录结构
 
 ```
 confidenceWriter/
-├── src/                          # 源代码 (26 个 TypeScript 文件)
-├── tests/                        # 测试代码 (35 个测试文件, 332 个测试用例)
+├── src/                          # 源代码 (35 个 TypeScript 文件)
+├── tests/                        # 测试代码 (51 个测试文件, 433 个测试用例)
+├── knowledge/diagrams/           # 图表知识库 (15 个 Markdown 文件)
 ├── examples/                     # 示例项目 + prompt 示例
-├── confwrite/                    # 旧版 v1 脚本 (已废弃, 测试中排除)
 ├── package.json                  # 包配置
 ├── tsconfig.json                 # TypeScript 配置
 ├── vitest.config.ts              # Vitest 测试配置
 ├── README.md                     # 项目说明
-├── ARCHITECTURE.md               # 架构文档
 ├── SKILL.md                      # pi Skill 定义
 ├── USAGE.md                      # 使用说明
 ├── DESIGN.md                     # 本文档
-├── HANDOFF.md                    # 交接文档
-├── GLOSSARY.md                   # 术语表
-├── INTERFACES.md                 # 接口文档
-├── TROUBLESHOOTING.md            # 故障排查
-├── CONTRIBUTING.md               # 贡献指南
 ├── CHANGELOG.md                  # 变更日志
 ├── LICENSE                       # MIT 许可证
 └── .editorconfig                 # 编辑器配置
 ```
 
-### 10.2 依赖清单
+### 9.2 依赖清单
 
 | 依赖 | 版本 | 用途 |
 |------|------|------|
 | `@sinclair/typebox` | ^0.32.0 | JSON Schema 类型定义 |
+| `mammoth` | ^1.8.0 | DOCX→HTML 转换 |
+| `pdf-parse` | ^2.4.0 | PDF 文本提取 |
+| `sharp` | ^0.33.0 | 图片处理 (SVG→PNG) |
 
 | 开发依赖 | 版本 | 用途 |
 |------|------|------|
@@ -1199,18 +1168,19 @@ confidenceWriter/
 | `vitest` | ^1.0.0 | 测试框架 |
 | `@types/node` | ^20.0.0 | Node.js 类型 |
 
-### 10.3 命令速查
+### 9.3 命令速查
 
 ```
 /confwrite:init <slug> [material-dir]    初始化项目
 /confwrite:organize [project-dir]        整理素材
-/confwrite:write [project-dir]           推进写作（状态机一步）
+/confwrite:write [project-dir]           推进写作（含自动 context compaction）
 /confwrite:status [project-dir]          查看进度
 /confwrite:resume [project-dir]          恢复中断项目
+/confwrite:compact                       手动压缩上下文
 /confwrite:export <format> [output-path] 导出文档
 ```
 
-### 10.4 状态文件示例
+### 9.4 状态文件示例
 
 ```json
 {
@@ -1254,8 +1224,4 @@ confidenceWriter/
 
 ---
 
-> **评审要点**：
-> 1. §7.5 Converter 桩实现是否可接受（MVP 阶段）
-> 2. §7.6 章节同步机制的设计选择
-> 3. Phase G 剩余任务的优先级排序是否合理
-> 4. Dispatcher 与 pi subagent 的实际集成是否满足需求
+> **文档版本**: v0.7.2 | 最后更新: 2025-06

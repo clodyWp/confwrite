@@ -5,7 +5,7 @@
  * and generates template files.
  */
 import { existsSync, mkdirSync, writeFileSync, copyFileSync, readdirSync, statSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { join, resolve, dirname } from 'node:path';
 import { validateSlug, normalizePath } from '../utils/paths.js';
 import { ProjectStore } from '../state/store.js';
 import type { ProjectState } from '../state/schema.js';
@@ -90,6 +90,9 @@ export function initProject(options: InitOptions): InitResult {
   // Generate agent-instructions.md
   generateAgentInstructions(projectDir, slug);
 
+  // Generate default diagram style
+  generateDiagramStyleDefaults(projectDir);
+
   // Copy materials if source provided
   if (options.materialSourceDir && existsSync(options.materialSourceDir)) {
     copyMaterialDirectory(options.materialSourceDir, join(projectDir, 'reference_material'));
@@ -98,6 +101,13 @@ export function initProject(options: InitOptions): InitResult {
   // Copy requirements if provided
   if (options.requirementsPath && existsSync(options.requirementsPath)) {
     copyFileSync(options.requirementsPath, join(projectDir, 'inputs', 'requirements.md'));
+  }
+
+  // Copy knowledge base (diagrams/, etc.) so KitGenerator can inject it
+  const knowledgeSrc = join(dirname(dirname(new URL(import.meta.url).pathname)), 'knowledge');
+  const knowledgeDest = join(projectDir, 'knowledge');
+  if (existsSync(knowledgeSrc) && !existsSync(knowledgeDest)) {
+    copyDirRecursive(knowledgeSrc, knowledgeDest);
   }
 
   return {
@@ -159,6 +169,21 @@ ${slug}/
 `;
 
   writeFileSync(join(projectDir, 'inputs', 'agent-instructions.md'), content, 'utf-8');
+}
+
+function generateDiagramStyleDefaults(projectDir: string): void {
+  const defaults = {
+    colorScheme: 'warm',
+    nodeShape: 'rounded',
+    layoutDirection: 'top-to-bottom',
+    fontSize: 'normal',
+    customColors: null,
+  };
+  writeFileSync(
+    join(projectDir, 'assets', 'diagram-style.json'),
+    JSON.stringify(defaults, null, 2),
+    'utf-8'
+  );
 }
 
 function copyMaterialDirectory(sourceDir: string, destDir: string): void {

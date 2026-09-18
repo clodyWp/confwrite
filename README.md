@@ -1,6 +1,6 @@
 # ConfWrite
 
-长文档生成 pi package。支持 100+ 章节、100 万字级文档的结构化写作。
+长文档生成 pi Extension。支持 100+ 章节、100 万字级文档的结构化写作。
 
 > 流程由 TypeScript 状态机控制，LLM 只做内容生成。
 
@@ -12,15 +12,19 @@
 - **状态持久化** — 每一步都持久化到 JSON，随时可恢复
 - **素材包体系** — 先整理素材再写作，每个章节有独立的素材包
 - **知识库与素材分离** — 知识库存通用规则，素材存项目专属资料
+- **大纲→状态自动同步** — 编辑 outline.md 后自动同步章节到项目状态
+- **真实文档转换** — 支持 PDF (pdf-parse) / DOCX (mammoth) / HTML → Markdown
+- **定稿一致性检查** — Phase 7 自动统计文档 + 校验数据基线一致性
 
 ## 安装
 
 ```bash
-# 本地打包
-npm pack
+# 方式 1: 从本地目录安装（推荐）
+pi install ./confidenceWriter
 
-# 安装到 pi
-pi install ./confwrite-0.1.0.tgz
+# 方式 2: 使用安装脚本（自动编译）
+bash scripts/install.sh      # Linux/macOS
+.\scripts\install.ps1        # Windows PowerShell
 ```
 
 ## 使用
@@ -38,7 +42,7 @@ projects/my-project/
 ├── inputs/                    # 需求文档
 ├── reference_material/        # 原始参考资料（PDF/Word/HTML/MD）
 ├── assets/
-│   ├── indexes/               # JSON 索引（按主题域分区）
+│   ├── indexes/               # JSON 索引
 │   ├── chapter-kits/          # 章节素材包
 │   ├── data-baseline.json     # 数据基线
 │   └── references-index.md    # 资料清单
@@ -68,6 +72,7 @@ projects/my-project/
 - 提取数据基线
 - 建立章节-索引映射
 - 生成章节素材包（chapter-kits）
+- **同步大纲→状态**（自动添加/移除章节）
 
 ### 4. 大纲规划
 
@@ -104,16 +109,27 @@ ch003 技术选型
 | 4b | 审阅 | reviewer subagent 批量 |
 | 4c | 决策 | 自动判断 pass/revise/reject |
 | 4d | 修复 | fixer subagent 批量 |
-| 5 | 图表生成 | diagram agents → SVG→PNG |
+| 5 | 图表生成 | 提取 mermaid → SVG → PNG |
 | 6 | 组装 | 合并章节 → final.md |
-| 7 | 定稿 | 用户审阅确认 |
+| 7 | 定稿 | 统计文档 + 基线一致性检查 |
 | 8 | 导出 | convert-to-docx → final.docx |
 
-### 6. 查看进度 / 恢复
+### 6. 查看进度 / 恢复 / 上下文管理
 
 ```
 /confwrite:status    # 查看当前阶段和章节完成情况
 /confwrite:resume    # 恢复中断的项目
+/confwrite:compact   # 手动压缩上下文（防止长任务 429 错误）
+```
+
+**Context Compaction**：长文档写作过程中，context 可能膨胀导致 429 错误。设置 `compactThresholdTokens`（如 120000）后，系统会在 token 超过阈值时自动压缩上下文。压缩失败会自动暂停，提示用户手动处理。
+
+### 7. 导出
+
+```
+/confwrite:export md      # 导出 Markdown
+/confwrite:export html    # 导出 HTML
+/confwrite:export docx    # 导出 Word（需 pandoc）
 ```
 
 ## 执行模型
@@ -166,51 +182,70 @@ npm test
 npm run test:watch
 ```
 
+### 项目统计
+
+| 指标 | 数值 |
+|------|------|
+| 源文件 | 35 个 TypeScript 文件 |
+| 测试文件 | 51 个 |
+| 测试用例 | 433 个 |
+| 依赖 | mammoth, pdf-parse, sharp, marked, docx, @sinclair/typebox |
+
 ### 项目结构
 
 ```
 src/
-├── index.ts                  # Extension 入口
+├── index.ts                  # Extension 入口 (7 个命令 + runWriteLoop)
 ├── commands/                 # pi 命令
 │   ├── init.ts               # /confwrite:init
 │   ├── organize.ts           # /confwrite:organize
-│   ├── write.ts              # /confwrite:write
-│   ├── status.ts             # /confwrite:status
-│   └── resume.ts             # /confwrite:resume
+│   └── export.ts             # /confwrite:export
 ├── orchestrator/             # 状态机
 │   ├── state-machine.ts      # 核心状态机
-│   ├── phases.ts             # Phase 定义
-│   └── transitions.ts        # 转换规则
+│   └── phases.ts             # 14 个 Phase 定义
 ├── scheduler/                # Subagent 调度器
-│   ├── index.ts              # 调度器主入口
+│   ├── index.ts              # SubagentScheduler 主类
+│   ├── executor.ts           # 执行器接口
+│   ├── mock-executor.ts      # 测试用 Mock
+│   ├── pi-executor.ts        # 真实 pi SDK 桥接
+│   ├── runner.ts             # 执行循环
 │   ├── token-bucket.ts       # 令牌桶
+│   ├── window-limiter.ts     # 滑动窗口速率限制
 │   ├── priority-queue.ts     # 优先级队列
-│   ├── retry.ts              # 重试引擎
-│   └── lifecycle.ts          # 生命周期管理
+│   └── retry.ts              # 重试引擎
 ├── organize/                 # 素材整理
 │   ├── scanner.ts            # 资料扫描
-│   ├── converter.ts          # 格式转换
+│   ├── converter.ts          # 格式转换 (mammoth + pdf-parse)
 │   ├── indexer.ts            # JSON 索引生成
 │   ├── baseline-extractor.ts # 数据基线提取
+│   ├── outline-parser.ts     # 大纲解析
 │   ├── chapter-mapper.ts     # 章节-索引映射
-│   ├── kit-generator.ts      # 素材包生成
-│   └── outline-parser.ts     # 大纲解析
-├── agents/                   # Prompt 构建器
-├── knowledge/                # 知识库
-├── services/                 # 业务逻辑
+│   ├── chapter-syncer.ts     # 大纲→状态同步
+│   └── kit-generator.ts      # 素材包生成
+├── writing/                  # 写作管线
+│   ├── task-executor.ts      # Prompt 构建 + 审阅解析
+│   ├── content-validator.ts  # 内容深度验证
+│   └── orchestrator.ts       # 写作阶段编排
+├── dispatcher/               # 任务分发
+│   └── index.ts              # action → prompt → 提交任务
+├── assemble/                 # 组装与导出
+│   ├── assembler.ts          # 章节组装
+│   ├── converter.ts          # 格式转换 (MD→HTML/DOCX)
+│   └── finalizer.ts          # 定稿处理 (统计+一致性)
+├── diagrams/                 # 图表管线
+│   ├── extractor.ts          # mermaid 提取
+│   ├── generator.ts          # mermaid → SVG/PNG
+│   └── pipeline.ts           # 渲染管线
+├── knowledge/                # 知识库加载
+│   └── loader.ts             # 知识库加载+注入
 ├── state/                    # 状态管理
 │   ├── schema.ts             # TypeBox schema
-│   └── store.ts              # 持久化存储
-└── utils/                    # 工具函数
+│   └── store.ts              # 原子化持久化
+└── utils/
     └── paths.ts              # 路径安全
 
-knowledge/                    # 内置知识库
-├── writing-methodology.md
-├── review-criteria.md
-├── diagram-rules.md
-└── outline-patterns.md
-
-tests/                        # 测试（TDD）
+knowledge/diagrams/           # 内置图表知识库 (15 个 MD 文件)
+tests/                        # 433 个测试用例
 ```
 
 ### 设计原则

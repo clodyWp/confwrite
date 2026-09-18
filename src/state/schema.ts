@@ -177,6 +177,14 @@ export const ProjectState = Type.Object({
 
   // Flags
   escalatedToHuman: Type.Optional(Type.Boolean({ default: false })),
+
+  // Wait point: 暂停等待用户确认
+  waitPoint: Type.Optional(Type.Object({
+    phase: Type.String(),
+    reason: Type.String(),
+    instructions: Type.String(),
+    createdAt: Type.String({ format: 'date-time' }),
+  })),
 });
 export type ProjectState = Static<typeof ProjectState>;
 
@@ -190,6 +198,11 @@ export interface SchedulerConfig {
   retryBackoffMultiplier: number;
   retryMaxDelayMs: number;
   taskTimeoutMs: number;
+  rateLimitWindowMs: number;     // 窗口限流：窗口大小（毫秒），0 表示禁用
+  rateLimitMaxTasks: number;     // 窗口限流：窗口内最大任务数，0 表示禁用
+  compactThresholdTokens: number; // 上下文压缩阈值（tokens），0 表示不自动压缩
+  rateLimitDelayMs: number;      // 429 限流固定等待时间（毫秒）
+  maxTaskRetries: number;        // runner 内单任务重试上限
 }
 
 export const DEFAULT_SCHEDULER_CONFIG: SchedulerConfig = {
@@ -200,4 +213,9 @@ export const DEFAULT_SCHEDULER_CONFIG: SchedulerConfig = {
   retryBackoffMultiplier: 2,
   retryMaxDelayMs: 60000,
   taskTimeoutMs: 600000,          // 10 minutes
+  rateLimitWindowMs: 0,           // 默认不限流
+  rateLimitMaxTasks: 0,
+  compactThresholdTokens: 0,      // 默认不自动压缩
+  rateLimitDelayMs: 60000,        // 429 固定等待 60s
+  maxTaskRetries: 1,              // runner 内重试 1 次
 };

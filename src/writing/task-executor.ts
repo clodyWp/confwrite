@@ -1,3 +1,11 @@
+/**
+ * TaskExecutor — 生成 subagent prompt 并解析输出
+ * 
+ * 文件版本化设计（参考 bailian-agent/doc-chapters-v6）：
+ * - Writer: drafts/chapters/${chapterId}-v${round}.md
+ * - Reviewer: review/${chapterId}-r${round}.json
+ * - Fixer: 读取上一版本，输出新版本 drafts/chapters/${chapterId}-v${round+1}.md
+ */
 import type { Task } from '../scheduler/types.js';
 
 /**
@@ -20,64 +28,214 @@ export interface ReviewBaseline {
 
 /**
  * 任务执行器
- * 负责生成 subagent 的 prompt 并解析输出
  */
 export class TaskExecutor {
   /**
    * 生成 Writer subagent 的 prompt
+   * 
+   * 输出版本化文件: drafts/chapters/${chapterId}-v${round}.md
    */
-  generateWriterPrompt(task: Task, kitContent: string): string {
+  generateWriterPrompt(task: Task, kitContent: string, round: number = 1): string {
+    const outputFile = `drafts/chapters/${task.chapterId}-v${round}.md`;
+    
     return `# 写作任务
 
-你需要撰写章节 **${task.chapterId}** 的内容。
+## 你的身份
+
+你是一位**资深技术写作者**，拥有 10 年以上技术文档写作经验。你的写作风格：
+
+- **专业严谨**：用词准确，逻辑清晰，避免口语化表达
+- **深入浅出**：复杂概念用简单语言解释，配合具体示例
+- **结构清晰**：层次分明，善用标题、列表、表格组织内容
+- **注重细节**：每个论点都有论据支撑，避免空洞论述
+- **追求品质**：宁可多花时间写清楚，也不敷衍了事
+
+**写作品味**：
+- 避免"正确的废话"——每句话都要有信息量
+- 避免重复论述——一个观点说清楚即可
+- 避免过度修饰——简洁优于华丽
+- 避免堆砌术语——必要时解释，首次出现给定义
+- 追求"读完就能用"——读者看完能理解原理、掌握方法、解决问题
+
+---
+
+你正在撰写文档的章节：**${task.chapterId}**（第 ${round} 轮）
 
 ## 素材包
 
 ${kitContent}
 
-## 写作要求
+---
 
-1. **严格遵循素材包**：使用素材包中提供的文件、数据和术语
-2. **数据一致性**：所有数字、指标必须与素材包中的"关键数据"一致
-3. **术语准确**：使用素材包中列出的技术术语
-4. **覆盖需求**：确保覆盖素材包中提到的所有需求要点
-5. **结构清晰**：使用合适的标题层级（##、###、####）
-6. **引用来源**：在引用具体数据或概念时，注明来自哪个文件
+## 深度要求（强制执行，不可降级）
+
+### 1. 篇幅要求（强制）
+- **每个子节（## 或 ### 下的内容）整体不少于 5000 字**
+- **每个独立成段的段落不少于 300 字**
+- **图表前后必须有独立段落说明**（见第 3 条）
+- 宁可写得详细充分，不要写得简略空洞
+- 一个子节通常需要多个段落、多个示例、多个分析维度才能达到 5000 字
+- **不允许通过重复、废话、空洞论述凑字数**——每句话都要有信息量
+
+### 2. 结构层次（根据主题选择适用层次）
+
+**Layer 1 — 概念与定义**
+- 核心术语的准确定义
+- 概念的边界：它是什么，不是什么
+- 历史背景或演进脉络
+
+**Layer 2 — 原理与机制**
+- 底层工作原理
+- 关键设计决策及其原因
+- 技术细节：流程、算法、架构、数据流
+- 涉及流程/架构时，使用图表描述标记
+
+**Layer 3 — 多维度分析**
+- 对比分析（用表格展示）
+- 优缺点、适用场景
+- 权衡取舍分析
+
+**Layer 4 — 实践与应用**
+- 具体示例、案例、配置片段
+- 最佳实践
+- 常见问题与解决方案
+
+**Layer 5 — 进阶与前沿**（如适用）
+- 高级用法
+- 局限性和未来方向
+- 生态和趋势
+
+### 3. 图表要求（描述→画图→总结，强制）
+
+涉及流程、架构、关系、状态时，使用图表描述标记。
+
+**图表格式**（必须使用 diagram-start 标记）：
+
+\`\`\`
+<!-- diagram-start
+type: <architecture|flow|concept|relation|timeline|diagram>
+title: <图表标题>
+description: |
+  <详细描述元素清单和关系>
+diagram-end -->
+\`\`\`
+
+**图表类型**：
+- **architecture**: 系统架构、模块划分、分层结构
+- **flow**: 业务流程、操作步骤、决策分支
+- **concept**: 概念关系、知识体系
+- **relation**: 实体关系、数据关联
+- **timeline**: 时间线、演进历程
+- **diagram**: 其他类型图表
+
+**限制**：每章最多 3 个图表标记。
+
+**严禁使用 mermaid 代码块。**
+
+**图表前后必须有文字说明**，格式：
+
+1. **先描述**：用独立段落（≥300字）说明图表要表达的内容、背景、关键要素
+2. **再画图**：插入 diagram-start 标记
+3. **再总结**：用独立段落（≥300字）总结图表的关键要点、启示、注意事项
+
+示例格式：
+
+    ### 系统架构
+
+    本系统采用分层架构设计，主要分为客户端层、网关层、服务层和数据层。各层职责明确，通过标准化接口通信...（这里是对架构图的描述，说明设计背景和各层定位，≥300字）
+
+    <!-- diagram-start
+    type: architecture
+    title: 系统整体架构
+    description: |
+      三层架构：
+      - 客户端层：Web 浏览器、移动端 App
+      - 服务层：API Gateway、用户服务、订单服务
+      - 数据层：MySQL 主从、Redis 集群
+      连接关系：
+      - 客户端 → API Gateway（HTTP/HTTPS）
+      - API Gateway → 各微服务（gRPC）
+    diagram-end -->
+
+    从架构图可以看出，API 网关承担了路由、鉴权、限流等职责，有效隔离了客户端与后端服务的直接耦合。这种设计使得服务可以独立部署和扩展...（这里是对架构图的总结，提炼关键要点和设计优势，≥300字）
+
+### 4. 内容质量
+- 每个论断有解释或论据支撑
+- 使用具体数据、版本号（如素材包中有）
+- 用表格对比关键维度
+- 用代码/配置示例说明操作
+- 专业术语首次出现时给出解释
+- **不要写"正确的废话"**——每句话都要有信息量
+- **不要重复论述**——一个观点说清楚即可
+- **不要堆砌术语**——必要时解释
+
+### 5. 数据一致性
+- 所有数字、指标必须与素材包中的"关键数据"一致
+- 使用素材包中列出的技术术语
+- 不要编造素材包中没有的数据
+- 如果素材包信息不足，在对应位置标注"[需要补充: xxx]"，**但仍然要保证篇幅要求**
+
+---
 
 ## 输出格式
 
-将完成的章节内容写入文件：**drafts/chapters/${task.chapterId}.md**
+将完成的章节内容写入文件：**${outputFile}**
 
 文件格式：
 \`\`\`markdown
-# ${task.chapterId} 章节标题
+# 章节标题
 
 ## 概述
-简要介绍本章节内容...
+简要介绍本章节内容...（≥300字）
 
 ## 主要内容
-...
+### 子主题1
+充分展开的内容（≥5000字）...
+
+### 子主题2
+充分展开的内容（≥5000字）...
 
 ## 小结
-总结本章节要点...
+总结本章节要点...（≥300字）
 \`\`\`
 
-## 注意事项
+---
 
-- 不要编造素材包中没有的数据
-- 如果素材包信息不足，在文末标注"[需要补充: xxx]"
-- 保持与整体文档风格一致
-- 字数要求：根据章节复杂度，通常 2000-5000 字
+## 写作规范
+- Markdown 格式，层次分明
+- 章节可独立阅读
+- 不重复其他章节内容
+- 不加过渡语（"本章小结""下一章"等）
+- **只输出本章内容** — 不要在文件末尾附加大纲、目录或其他非本章内容
+
+---
+
+## 完成标准
+- [ ] 调用了 write 工具写入文件
+- [ ] 每个子节充分展开（≥5000字）
+- [ ] 每个独立段落 ≥ 300 字
+- [ ] 图表前有描述段落（≥300字），图表后有总结段落（≥300字）
+- [ ] 有具体例子或数据支撑
+- [ ] 有对比分析（如适用）
+- [ ] 涉及流程/架构的地方有图表描述标记
+- [ ] 所有数据与素材包一致
+- [ ] 输出文件存在于 drafts/chapters/ 目录
+- [ ] 文件末尾没有附加大纲、目录等非本章内容
+- [ ] 没有重复、废话、空洞论述
 `;
   }
 
   /**
    * 生成 Reviewer subagent 的 prompt
+   * 
+   * 输入版本化文件: drafts/chapters/${chapterId}-v${round}.md
    */
   generateReviewerPrompt(
     task: Task,
     chapterContent: string,
-    baseline: ReviewBaseline
+    baseline: ReviewBaseline,
+    round: number = 1,
+    knowledgeContent: string = ''
   ): string {
     const metricsList = Object.entries(baseline.metrics)
       .map(([k, v]) => `- ${k}: ${v}`)
@@ -88,7 +246,19 @@ ${kitContent}
 
     return `# 审阅任务
 
-你需要审阅章节 **${task.chapterId}** 的内容。
+## 你的身份
+
+你是一位**资深技术审阅专家**，拥有 10 年以上技术文档审阅经验。你的审阅风格：
+
+- **严谨细致**：逐段检查，不放过任何细节
+- **标准明确**：按标准评分，不凭主观感觉
+- **建设性反馈**：指出问题的同时给出改进建议
+- **关注质量**：不仅看字数，更看内容密度和信息量
+- **追求完美**：宁可严格要求，也不降低标准
+
+---
+
+你需要审阅章节 **${task.chapterId}**（第 ${round} 轮）的内容。
 
 ## 章节内容
 
@@ -109,63 +279,132 @@ ${requirementsList || '无'}
 
 ## 审阅标准
 
-1. **数据一致性**：检查所有数字、指标是否与基线一致
-2. **术语准确性**：检查技术术语使用是否正确
-3. **需求覆盖**：检查是否覆盖了所有需求要点
-4. **内容准确性**：检查技术内容是否准确
-5. **结构清晰度**：检查章节结构是否合理
-6. **文字质量**：检查语法、拼写、表达是否清晰
+### 1. 数据一致性（必须通过）
+- 检查所有数字、指标是否与基线一致
+- 检查技术术语使用是否正确
+
+### 2. 需求覆盖（必须通过）
+- 检查是否覆盖了所有需求要点
+
+### 3. 内容深度（重点检查）
+
+**篇幅检查**：
+- 每个子节（## 或 ### 下的内容）整体是否 ≥ 5000 字
+- 每个独立成段的段落是否 ≥ 300 字
+- 如果内容过于简略，必须标记为 revise 并指出哪些子节需要扩充
+
+**内容密度检查**（重要）：
+- 是否存在重复段落或重复论述
+- 是否存在"正确的废话"（没有信息量的句子）
+- 是否存在空洞论述（看似很长但没有实质内容）
+- 如果发现注水内容，即使字数达标也要标记为 revise
+
+### 4. 图表规范（强制）
+- 图表前是否有独立描述段落（≥300字，说明背景、要素）
+- 图表后是否有独立总结段落（≥300字，提炼要点、启示）
+- 如果图表前后缺少文字说明，必须标记为 revise
+
+### 5. 结构清晰度
+- 检查章节结构是否合理
+- 检查层次是否分明
+
+### 6. 文字质量
+- 检查语法、拼写、表达是否清晰
+- 检查是否有口语化表达
+- 检查术语使用是否一致
+
+## 评分标准
+
+| 维度 | 5分 | 7分 | 9分 |
+|------|-----|-----|-----|
+| accuracy（准确性） | 有明显错误 | 基本准确，有小问题 | 完全准确 |
+| consistency（一致性） | 与基线不一致 | 基本一致 | 完全一致 |
+| clarity（清晰度） | 难以理解 | 基本清晰 | 非常清晰，逻辑严密 |
+| depth（深度） | 只有概念定义 | 有原理+示例 | 有多维度分析+实践案例+对比表格 |
+| quality（质量） | 有大量废话 | 内容扎实 | 每句话都有信息量 |
 
 ## 输出格式
 
-将审阅报告写入文件：**review/${task.chapterId}-review.md**
+将审阅报告写入文件：**review/${task.chapterId}-r${round}.json**
 
-文件格式：
-\`\`\`markdown
-# ${task.chapterId} 审阅报告
-
-## 结论
-**决定**: accept | reject | revise
-
-## 评分
-- 内容准确性: X/10
-- 数据一致性: X/10
-- 结构清晰度: X/10
-- 文字质量: X/10
-
-## 问题列表
-1. [严重程度: 高/中/低] 问题描述
-   - 位置: 具体段落或句子
-   - 建议: 修改建议
-
-## 优点
-- 列出章节的优点
-
-## 总结
-总体评价和改进建议
+JSON 格式：
+\`\`\`json
+{
+  "chapterId": "${task.chapterId}",
+  "round": ${round},
+  "verdict": "accept | revise | reject",
+  "scores": {
+    "accuracy": 8,
+    "consistency": 9,
+    "clarity": 8,
+    "depth": 7,
+    "quality": 8
+  },
+  "issues": [
+    {
+      "severity": "high | medium | low",
+      "description": "问题描述",
+      "location": "具体段落",
+      "suggestion": "修改建议"
+    }
+  ],
+  "summary": "总体评价"
+}
 \`\`\`
 
 ## 决定标准
 
-- **accept**: 质量达标，可以直接使用
-- **revise**: 有小问题，需要修改后重新审阅
-- **reject**: 质量问题严重，需要重写
-`;
+- **accept**: 质量达标，内容深度、图表规范、数据一致性全部通过
+- **revise**: 有小问题，需要修改后重新审阅（如：某个子节字数不足、图表前后缺少说明、有重复内容）
+- **reject**: 质量问题严重，需要重写（如：大量内容错误、严重注水、结构混乱）
+${knowledgeContent ? `
+## 图表质量对抗性检查（必须执行）
+
+${knowledgeContent}
+` : ''}`;
   }
 
   /**
    * 生成 Fix subagent 的 prompt
+   * 
+   * 输入上一版本: drafts/chapters/${chapterId}-v${round}.md
+   * 输出新版本: drafts/chapters/${chapterId}-v${round+1}.md
    */
   generateFixPrompt(
     task: Task,
     chapterContent: string,
-    reviewContent: string
+    reviewContent: string,
+    currentRound: number
   ): string {
+    const nextRound = currentRound + 1;
+    const outputFile = `drafts/chapters/${task.chapterId}-v${nextRound}.md`;
+    
     return `# 修复任务
+
+## 你的身份
+
+你是一位**资深技术写作者**，擅长根据审阅反馈改进文档质量。你的修复风格：
+
+- **精准修复**：针对性解决审阅报告中的每个问题
+- **保持深度**：确保修复后内容仍然达到深度要求
+- **保护优点**：不要破坏原有好的内容
+- **追求完美**：宁可多花时间修复，也不敷衍了事
+
+**写作品味**：
+- 避免"正确的废话"——每句话都要有信息量
+- 避免重复论述——一个观点说清楚即可
+- 避免过度修饰——简洁优于华丽
+- 避免堆砌术语——必要时解释，首次出现给定义
+
+---
 
 你需要根据审阅反馈修复章节 **${task.chapterId}** 的内容。
 
-## 原始章节内容
+## 当前版本
+- 输入文件: drafts/chapters/${task.chapterId}-v${currentRound}.md
+- 输出文件: **${outputFile}**（新版本）
+
+## 原始章节内容（v${currentRound}）
 
 ${chapterContent}
 
@@ -175,16 +414,52 @@ ${reviewContent}
 
 ## 修复要求
 
-1. **解决所有问题**：逐一解决审阅报告中列出的所有问题
-2. **保持结构**：除非审阅报告明确要求，不要大幅改变章节结构
-3. **数据准确**：确保所有数据与基线一致
-4. **改进质量**：根据审阅建议改进文字质量
+### 1. 解决所有问题
+- 逐一解决审阅报告中列出的所有问题
+- 每个问题都要有明确的修复措施
+
+### 2. 保持深度（强制）
+- 每个子节整体 ≥ 5000 字
+- 每个独立段落 ≥ 300 字
+- 图表前后有独立段落说明（≥300字）
+- 不允许降低深度要求
+
+### 3. 如何加深内容
+如果审阅报告指出某个子节内容不足，可以通过以下方式加深：
+- **加示例**：补充具体案例、代码片段、配置示例
+- **加对比**：用表格对比不同方案、技术、方法的优缺点
+- **加原理**：深入解释底层原理、设计决策、工作机制
+- **加实践**：补充最佳实践、常见问题、解决方案
+- **加分析**：多维度分析，包括适用场景、局限性、权衡取舍
+
+### 4. 保护优点
+- 不要大幅改变章节结构（除非审阅报告明确要求）
+- 不要删除原有的好内容
+- 在原有基础上改进，而不是重写
+
+### 5. 数据准确
+- 确保所有数据与基线一致
+- 不要编造数据
+
+### 6. 改进质量
+- 根据审阅建议改进文字质量
+- 消除重复、废话、空洞论述
+- 确保每句话都有信息量
 
 ## 输出格式
 
-将修复后的章节内容写入文件：**drafts/chapters/${task.chapterId}.md**
+将修复后的章节内容写入文件：**${outputFile}**
 
-注意：完全覆盖原文件，不要保留原始内容。
+注意：这是新版本文件，不要覆盖原文件。
+
+## 完成标准
+- [ ] 调用了 write 工具写入文件
+- [ ] 解决了审阅报告中的所有问题
+- [ ] 每个子节 ≥ 5000 字
+- [ ] 每个独立段落 ≥ 300 字
+- [ ] 图表前有描述段落（≥300字），图表后有总结段落（≥300字）
+- [ ] 没有重复、废话、空洞论述
+- [ ] 所有数据与基线一致
 `;
   }
 
@@ -198,22 +473,44 @@ ${reviewContent}
       reasons: [],
     };
 
-    // 提取决定
-    const decisionMatch = reviewOutput.match(/\*\*决定\*\*:\s*(accept|reject|revise)/i);
+    // 尝试解析 JSON 格式
+    try {
+      const jsonMatch = reviewOutput.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        if (parsed.verdict) {
+          decision.decision = parsed.verdict.toLowerCase() as 'accept' | 'reject' | 'revise';
+        }
+        if (parsed.scores) {
+          const scores = Object.values(parsed.scores).filter((s): s is number => typeof s === 'number');
+          if (scores.length > 0) {
+            decision.confidence = scores.reduce((a, b) => a + b, 0) / scores.length / 10;
+          }
+        }
+        if (parsed.issues && Array.isArray(parsed.issues)) {
+          decision.reasons = parsed.issues.map((i: any) => i.description || i).slice(0, 5);
+        }
+        return decision;
+      }
+    } catch {
+      // JSON 解析失败，尝试文本格式
+    }
+
+    // 文本格式 fallback
+    const decisionMatch = reviewOutput.match(/\*\*决定\*\*:\s*(accept|reject|revise)/i) ||
+                          reviewOutput.match(/verdict["\s:]+(accept|reject|revise)/i);
     if (decisionMatch) {
       decision.decision = decisionMatch[1].toLowerCase() as 'accept' | 'reject' | 'revise';
     }
 
-    // 提取评分（用于计算置信度）
+    // 提取评分
     const scoreMatches = reviewOutput.matchAll(/(\d+)\/10/g);
     const scores: number[] = [];
     for (const match of scoreMatches) {
       scores.push(parseInt(match[1]));
     }
-
     if (scores.length > 0) {
-      const avgScore = scores.reduce((a, b) => a + b, 0) / scores.length;
-      decision.confidence = avgScore / 10;
+      decision.confidence = scores.reduce((a, b) => a + b, 0) / scores.length / 10;
     }
 
     // 提取问题列表

@@ -7,6 +7,9 @@ import { BaselineExtractor } from '../organize/baseline-extractor.js';
 import { OutlineParser } from '../organize/outline-parser.js';
 import { ChapterMapper } from '../organize/chapter-mapper.js';
 import { KitGenerator } from '../organize/kit-generator.js';
+import { KnowledgeLoader } from '../knowledge/loader.js';
+import { syncChaptersFromOutline } from '../organize/chapter-syncer.js';
+import { ProjectStore } from '../state/store.js';
 import type { MaterialFile } from '../organize/scanner.js';
 import type { IndexData } from '../organize/indexer.js';
 import type { DataBaseline } from '../organize/baseline-extractor.js';
@@ -105,11 +108,18 @@ export async function organizeMaterials(projectDir: string): Promise<OrganizeRes
     const mapper = new ChapterMapper();
     chapterMappings = mapper.map(outline, indexData);
     
-    // 7. 生成素材包
-    const kitGenerator = new KitGenerator();
+    // 7. 同步大纲→状态（自动添加/移除章节）
+    const store = new ProjectStore(projectDir);
+    if (store.exists()) {
+      syncChaptersFromOutline(projectDir, store);
+    }
+
+    // 8. 生成素材包（注入图表知识库）
+    const knowledgeLoader = new KnowledgeLoader(projectDir);
+    const kitGenerator = new KitGenerator(knowledgeLoader);
     const kitResult = kitGenerator.generateBatch(chapterMappings, baseline, kitsDir);
     
-    // 8. 生成参考资料索引
+    // 9. 生成参考资料索引
     generateReferencesIndex(files, join(assetsDir, 'references-index.md'));
     
     return {

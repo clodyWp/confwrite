@@ -66,8 +66,12 @@ describe('TaskExecutor', () => {
       const kitContent = '# ch001 素材包';
       const prompt = executor.generateWriterPrompt(task, kitContent);
 
-      expect(prompt).toContain('写作要求');
+      expect(prompt).toContain('深度要求');
       expect(prompt).toContain('输出格式');
+      // 验证新的深度要求
+      expect(prompt).toContain('5000 字');
+      expect(prompt).toContain('300 字');
+      expect(prompt).toContain('描述→画图→总结');
     });
 
     it('specifies output file path', () => {
@@ -86,7 +90,7 @@ describe('TaskExecutor', () => {
       const kitContent = '# ch001 素材包';
       const prompt = executor.generateWriterPrompt(task, kitContent);
 
-      expect(prompt).toContain('drafts/chapters/ch001.md');
+      expect(prompt).toContain('drafts/chapters/ch001-v1.md');
     });
   });
 
@@ -167,7 +171,7 @@ describe('TaskExecutor', () => {
 
       const prompt = executor.generateReviewerPrompt(task, chapterContent, baseline);
 
-      expect(prompt).toContain('review/ch001-review.md');
+      expect(prompt).toContain('review/ch001-r1.json');
     });
   });
 

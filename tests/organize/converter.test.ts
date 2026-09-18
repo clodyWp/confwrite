@@ -5,6 +5,37 @@ import { tmpdir } from 'node:os';
 import { FormatConverter } from '../../src/organize/converter.js';
 import type { ConversionResult } from '../../src/organize/converter.js';
 
+/**
+ * Create a minimal valid DOCX buffer for testing.
+ * DOCX is a ZIP with specific XML structure.
+ */
+async function createMinimalDocx(text: string): Promise<Buffer> {
+  const JSZip = (await import('jszip')).default;
+  const zip = new JSZip();
+
+  zip.file('[Content_Types].xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+</Types>`);
+
+  zip.file('_rels/.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>`);
+
+  zip.file('word/document.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:body>
+    <w:p><w:r><w:t>${text}</w:t></w:r></w:p>
+  </w:body>
+</w:document>`);
+
+  const buf = await zip.generateAsync({ type: 'nodebuffer' });
+  return buf;
+}
+
 describe('FormatConverter', () => {
   let tempDir: string;
   let converter: FormatConverter;
@@ -118,6 +149,43 @@ describe('FormatConverter', () => {
       expect(stats.total).toBe(3);
       expect(stats.success).toBe(2);
       expect(stats.failed).toBe(1);
+    });
+  });
+
+  describe('DOCX conversion', () => {
+    it('converts DOCX to Markdown via mammoth', async () => {
+      const docxPath = join(tempDir, 'test.docx');
+      const buf = await createMinimalDocx('Hello World from DOCX');
+      writeFileSync(docxPath, buf);
+
+      const result = await converter.convert(docxPath, tempDir);
+
+      expect(result.success).toBe(true);
+      expect(result.format).toBe('docx');
+      expect(result.outputPath).toContain('.md');
+
+      const content = readFileSync(result.outputPath!, 'utf-8');
+      expect(content).toContain('Hello World from DOCX');
+    });
+
+    it('rejects invalid DOCX (not a ZIP)', async () => {
+      const docxPath = join(tempDir, 'fake.docx');
+      writeFileSync(docxPath, 'not a zip file', 'utf-8');
+
+      const result = await converter.convert(docxPath, tempDir);
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Invalid DOCX');
+    });
+  });
+
+  describe('PDF conversion', () => {
+    it('rejects invalid PDF', async () => {
+      const pdfPath = join(tempDir, 'fake.pdf');
+      writeFileSync(pdfPath, 'not a real pdf', 'utf-8');
+
+      const result = await converter.convert(pdfPath, tempDir);
+      expect(result.success).toBe(false);
+      expect(result.error).toBeDefined();
     });
   });
 });

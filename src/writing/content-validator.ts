@@ -1,0 +1,144 @@
+/**
+ * ContentValidator - 内容深度验证器
+ * 
+ * 验证 Writer 输出是否符合深度要求：
+ * 1. 每个子节（## 或 ### 下）整体 ≥ 5000 字
+ * 2. 每个独立段落 ≥ 300 字
+ * 3. 图表前后有描述/总结段落
+ */
+
+export interface ValidationResult {
+  sectionLengthValid: boolean;
+  paragraphLengthValid: boolean;
+  diagramFormatValid: boolean;
+  isValid: boolean;
+  shortSections: Array<{ section: string; charCount: number }>;
+  shortParagraphs: Array<{ paragraph: string; charCount: number }>;
+  diagramIssues: Array<{ diagramIndex: number; issue: string }>;
+}
+
+export class ContentValidator {
+  private readonly MIN_SECTION_CHARS = 5000;
+  private readonly MIN_PARAGRAPH_CHARS = 300;
+
+  /**
+   * 验证内容是否符合深度要求
+   */
+  validate(content: string): ValidationResult {
+    const shortSections = this.validateSectionLength(content);
+    const shortParagraphs = this.validateParagraphLength(content);
+    const diagramIssues = this.validateDiagramFormat(content);
+
+    return {
+      sectionLengthValid: shortSections.length === 0,
+      paragraphLengthValid: shortParagraphs.length === 0,
+      diagramFormatValid: diagramIssues.length === 0,
+      isValid: shortSections.length === 0 && shortParagraphs.length === 0 && diagramIssues.length === 0,
+      shortSections,
+      shortParagraphs,
+      diagramIssues,
+    };
+  }
+
+  /**
+   * 验证每个子节是否 ≥ 5000 字
+   */
+  private validateSectionLength(content: string): Array<{ section: string; charCount: number }> {
+    const shortSections: Array<{ section: string; charCount: number }> = [];
+    
+    // 按 ## 或 ### 分割（跳过一级标题 #）
+    const sections = content.split(/\n(?=##\s|###\s)/);
+    
+    for (const section of sections) {
+      const trimmed = section.trim();
+      if (!trimmed) continue;
+      
+      // 跳过一级标题（# 开头但不是 ## 或 ###）
+      if (trimmed.match(/^#\s/) && !trimmed.match(/^##/)) continue;
+      
+      // 提取标题
+      const titleMatch = trimmed.match(/^#{2,3}\s+(.+)/);
+      const title = titleMatch ? titleMatch[1] : '(无标题)';
+      
+      // 计算字符数（排除标题和空行）
+      const contentLines = trimmed.split('\n').filter(line => !line.match(/^#{2,3}\s/) && line.trim());
+      const charCount = contentLines.join('').length;
+      
+      if (charCount < this.MIN_SECTION_CHARS) {
+        shortSections.push({ section: title, charCount });
+      }
+    }
+    
+    return shortSections;
+  }
+
+  /**
+   * 验证每个独立段落是否 ≥ 300 字
+   */
+  private validateParagraphLength(content: string): Array<{ paragraph: string; charCount: number }> {
+    const shortParagraphs: Array<{ paragraph: string; charCount: number }> = [];
+    
+    // 按双换行分割段落
+    const paragraphs = content.split(/\n\n+/).map(p => p.trim()).filter(p => p);
+    
+    for (const para of paragraphs) {
+      // 跳过标题、代码块、列表项、表格
+      if (para.match(/^#{1,6}\s/)) continue;
+      if (para.startsWith('```')) continue;
+      if (para.match(/^[-*]\s/)) continue;
+      if (para.match(/^\d+\.\s/)) continue;
+      if (para.startsWith('|')) continue; // 跳过表格
+      
+      const charCount = para.replace(/\s/g, '').length;
+      
+      if (charCount > 0 && charCount < this.MIN_PARAGRAPH_CHARS) {
+        shortParagraphs.push({ 
+          paragraph: para.substring(0, 50) + (para.length > 50 ? '...' : ''), 
+          charCount 
+        });
+      }
+    }
+    
+    return shortParagraphs;
+  }
+
+  /**
+   * 验证图表前后是否有描述/总结段落
+   */
+  private validateDiagramFormat(content: string): Array<{ diagramIndex: number; issue: string }> {
+    const issues: Array<{ diagramIndex: number; issue: string }> = [];
+    
+    // 查找所有 mermaid 代码块
+    const diagramRegex = /```mermaid[\s\S]*?```/g;
+    let match;
+    let diagramIndex = 0;
+    
+    while ((match = diagramRegex.exec(content)) !== null) {
+      diagramIndex++;
+      const diagramStart = match.index;
+      const diagramEnd = diagramStart + match[0].length;
+      
+      // 检查图表前的内容（往前找 200 字符）
+      const beforeContent = content.substring(Math.max(0, diagramStart - 300), diagramStart);
+      const beforeParagraphs = beforeContent.split(/\n\n+/).filter(p => p.trim());
+      const lastBeforePara = beforeParagraphs[beforeParagraphs.length - 1]?.trim() || '';
+      
+      // 图表前需要有描述段落（至少 50 字）
+      if (lastBeforePara.replace(/\s/g, '').length < 50) {
+        issues.push({ diagramIndex, issue: '图表前缺少描述段落' });
+      }
+      
+      // 检查图表后的内容（往后找 200 字符）
+      const afterContent = content.substring(diagramEnd, Math.min(content.length, diagramEnd + 300));
+      const afterParagraphs = afterContent.split(/\n\n+/).filter(p => p.trim());
+      const firstAfterPara = afterParagraphs[0]?.trim() || '';
+      
+      // 图表后需要有总结段落（至少 50 字）
+      if (firstAfterPara.replace(/\s/g, '').length < 50) {
+        issues.push({ diagramIndex, issue: '图表后缺少总结段落' });
+      }
+    }
+    
+    return issues;
+  }
+}

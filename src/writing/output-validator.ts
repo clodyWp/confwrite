@@ -1,0 +1,193 @@
+/**
+ * OutputValidator — 即时验证 subagent 输出
+ * 
+ * 参考 bailian-agent/doc-chapters-v6 的"Writer 完成后即时验证"模式：
+ * - Writer: 检查草稿文件存在、大小 > 1000 字节、可读性
+ * - Reviewer: 检查 JSON 存在、可解析、verdict 合法
+ * - Fixer: 检查新版本文件存在、大小 > 1000 字节
+ */
+import { existsSync, statSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import type { Task } from '../scheduler/types.js';
+
+export interface ValidationResult {
+  valid: boolean;
+  taskType: string;
+  chapterId: string;
+  checks: ValidationCheck[];
+  errors: string[];
+}
+
+export interface ValidationCheck {
+  name: string;
+  passed: boolean;
+  detail?: string;
+}
+
+const MIN_FILE_SIZE = 1000; // 字节
+
+export class OutputValidator {
+  private projectDir: string;
+
+  constructor(projectDir: string) {
+    this.projectDir = projectDir;
+  }
+
+  /**
+   * 验证任务输出
+   */
+  validate(task: Task, round: number): ValidationResult {
+    const result: ValidationResult = {
+      valid: true,
+      taskType: task.type,
+      chapterId: task.chapterId || '',
+      checks: [],
+      errors: [],
+    };
+
+    switch (task.type) {
+      case 'writer':
+        this.validateWriterOutput(result, task.chapterId!, round);
+        break;
+      case 'reviewer':
+        this.validateReviewerOutput(result, task.chapterId!, round);
+        break;
+      case 'fixer':
+        this.validateFixerOutput(result, task.chapterId!, round);
+        break;
+    }
+
+    result.valid = result.errors.length === 0;
+    return result;
+  }
+
+  /**
+   * Writer 输出验证
+   * 检查: drafts/chapters/${chapterId}-v${round}.md
+   */
+  private validateWriterOutput(result: ValidationResult, chapterId: string, round: number): void {
+    const filePath = join(this.projectDir, 'drafts', 'chapters', `${chapterId}-v${round}.md`);
+    
+    // 1. 文件存在性
+    const exists = existsSync(filePath);
+    result.checks.push({ name: '文件存在', passed: exists, detail: filePath });
+    if (!exists) {
+      result.errors.push(`草稿文件不存在: ${filePath}`);
+      return; // 后续检查无意义
+    }
+
+    // 2. 文件大小
+    const stat = statSync(filePath);
+    const sizeOk = stat.size >= MIN_FILE_SIZE;
+    result.checks.push({ name: '文件大小', passed: sizeOk, detail: `${stat.size} bytes (min ${MIN_FILE_SIZE})` });
+    if (!sizeOk) {
+      result.errors.push(`草稿文件过小: ${stat.size} bytes < ${MIN_FILE_SIZE} bytes`);
+    }
+
+    // 3. 可读性（防编码损坏）
+    try {
+      const content = readFileSync(filePath, 'utf-8').substring(0, 500);
+      const hasCorruption = /[\uFFFD]/.test(content) || /[\x00-\x08\x0B\x0C\x0E-\x1F]/.test(content);
+      result.checks.push({ name: '文件可读', passed: !hasCorruption });
+      if (hasCorruption) {
+        result.errors.push('草稿文件编码损坏（包含替换字符或控制字符）');
+      }
+    } catch (err) {
+      result.checks.push({ name: '文件可读', passed: false, detail: String(err) });
+      result.errors.push(`无法读取草稿文件: ${err}`);
+    }
+  }
+
+  /**
+   * Reviewer 输出验证
+   * 检查: review/${chapterId}-r${round}.json
+   */
+  private validateReviewerOutput(result: ValidationResult, chapterId: string, round: number): void {
+    const filePath = join(this.projectDir, 'review', `${chapterId}-r${round}.json`);
+    
+    // 1. 文件存在
+    const exists = existsSync(filePath);
+    result.checks.push({ name: 'JSON 文件存在', passed: exists, detail: filePath });
+    if (!exists) {
+      result.errors.push(`审阅报告不存在: ${filePath}`);
+      return;
+    }
+
+    // 2. 文件大小 > 0
+    const stat = statSync(filePath);
+    const sizeOk = stat.size > 0;
+    result.checks.push({ name: 'JSON 非空', passed: sizeOk });
+    if (!sizeOk) {
+      result.errors.push(`审阅报告为空: ${filePath}`);
+      return;
+    }
+
+    // 3. JSON 可解析
+    let parsed: any;
+    try {
+      parsed = JSON.parse(readFileSync(filePath, 'utf-8'));
+      result.checks.push({ name: 'JSON 格式合法', passed: true });
+    } catch (err) {
+      result.checks.push({ name: 'JSON 格式合法', passed: false, detail: String(err) });
+      result.errors.push(`审阅报告 JSON 格式错误: ${err}`);
+      return;
+    }
+
+    // 4. verdict 合法
+    const validVerdicts = ['accept', 'revise', 'reject'];
+    const verdictOk = parsed.verdict && validVerdicts.includes(parsed.verdict);
+    result.checks.push({ name: 'verdict 合法', passed: verdictOk, detail: parsed.verdict || 'missing' });
+    if (!verdictOk) {
+      result.errors.push(`审阅报告 verdict 无效: ${parsed.verdict || 'missing'} (应为 accept/revise/reject)`);
+    }
+  }
+
+  /**
+   * Fixer 输出验证
+   * 检查: drafts/chapters/${chapterId}-v${round+1}.md
+   */
+  private validateFixerOutput(result: ValidationResult, chapterId: string, round: number): void {
+    const nextRound = round + 1;
+    const filePath = join(this.projectDir, 'drafts', 'chapters', `${chapterId}-v${nextRound}.md`);
+    
+    // 1. 文件存在
+    const exists = existsSync(filePath);
+    result.checks.push({ name: '新版本文件存在', passed: exists, detail: filePath });
+    if (!exists) {
+      result.errors.push(`修复后的草稿文件不存在: ${filePath}`);
+      return;
+    }
+
+    // 2. 文件大小
+    const stat = statSync(filePath);
+    const sizeOk = stat.size >= MIN_FILE_SIZE;
+    result.checks.push({ name: '文件大小', passed: sizeOk, detail: `${stat.size} bytes` });
+    if (!sizeOk) {
+      result.errors.push(`修复后文件过小: ${stat.size} bytes`);
+    }
+
+    // 3. 可读性
+    try {
+      const content = readFileSync(filePath, 'utf-8').substring(0, 500);
+      const hasCorruption = /[\uFFFD]/.test(content);
+      result.checks.push({ name: '文件可读', passed: !hasCorruption });
+      if (hasCorruption) {
+        result.errors.push('修复后文件编码损坏');
+      }
+    } catch (err) {
+      result.checks.push({ name: '文件可读', passed: false });
+      result.errors.push(`无法读取修复后文件: ${err}`);
+    }
+  }
+
+  /**
+   * 生成验证失败的消息
+   */
+  static formatErrors(result: ValidationResult): string {
+    const lines = [`验证失败 (${result.taskType} ${result.chapterId}):`];
+    for (const err of result.errors) {
+      lines.push(`  ❌ ${err}`);
+    }
+    return lines.join('\n');
+  }
+}

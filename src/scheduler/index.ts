@@ -104,6 +104,16 @@ export class SubagentScheduler {
   }
 
   /**
+   * Mark a task as retrying (re-queue for next runAll cycle)
+   */
+  markRetrying(id: string): void {
+    const task = this.tasks.get(id);
+    if (!task) return;
+    task.status = 'queued';
+    task.error = undefined;
+  }
+
+  /**
    * 获取所有任务
    */
   list(): Task[] {

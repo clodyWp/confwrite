@@ -3,9 +3,14 @@
  * 
  * 职责：
  * 1. 接收状态机返回的 action
- * 2. 读取章节素材包/草稿/审阅报告
+ * 2. 读取章节素材包/草稿/审阅报告（支持版本化文件）
  * 3. 通过 TaskExecutor 生成 prompt
  * 4. 创建 Task 并提交到 SubagentScheduler
+ * 
+ * 文件版本化设计（参考 bailian-agent/doc-chapters-v6）：
+ * - Writer: drafts/chapters/${chapterId}-v${round}.md
+ * - Reviewer: review/${chapterId}-r${round}.json
+ * - Fixer: 读取上一版本，输出新版本
  */
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
@@ -14,6 +19,7 @@ import type { SubagentScheduler } from '../scheduler/index.js';
 import type { Task } from '../scheduler/types.js';
 import type { TaskExecutor, ReviewBaseline } from '../writing/task-executor.js';
 import type { WritingOrchestrator } from '../writing/orchestrator.js';
+import { KnowledgeLoader } from '../knowledge/loader.js';
 
 export interface DispatchResult {
   action: string;
@@ -62,13 +68,14 @@ export class Dispatcher {
 
   private async dispatchWriters(params: Record<string, unknown>): Promise<DispatchResult> {
     const chapters = params.chapters as string[];
+    const round = (params.round as number) || 1;
     const tasks: Task[] = [];
     let sequence = 1;
 
     for (const chapterId of chapters) {
       const kitContent = this.readChapterKit(chapterId);
       const task: Task = {
-        id: `write-${chapterId}`,
+        id: `write-${chapterId}-r${round}`,
         type: 'writer',
         chapterId,
         priority: sequence,
@@ -78,7 +85,7 @@ export class Dispatcher {
         prompt: '',
         dependencies: [],
       };
-      task.prompt = this.taskExecutor.generateWriterPrompt(task, kitContent);
+      task.prompt = this.taskExecutor.generateWriterPrompt(task, kitContent, round);
       sequence++;
       tasks.push(task);
       this.scheduler.submit(task);
@@ -88,7 +95,7 @@ export class Dispatcher {
       action: 'spawn_writers',
       tasksCreated: tasks.length,
       tasks,
-      message: `已创建 ${tasks.length} 个写作任务`,
+      message: `已创建 ${tasks.length} 个写作任务 (round ${round})`,
     };
   }
 
@@ -98,9 +105,19 @@ export class Dispatcher {
     const tasks: Task[] = [];
     let sequence = 1;
 
+    // 初始化知识库加载器
+    const knowledgeLoader = new KnowledgeLoader(this.projectDir);
+
     for (const chapterId of chapters) {
-      const draftContent = this.readChapterDraft(chapterId);
+      // 读取版本化草稿文件: ch001-v${round}.md
+      const draftContent = this.readChapterDraft(chapterId, round);
       const baseline = this.extractBaseline();
+      
+      // 从素材包提取相关分类，加载知识库内容
+      const kitContent = this.readChapterKit(chapterId);
+      const categories = this.extractCategoriesFromKit(kitContent);
+      const knowledgeContent = knowledgeLoader.generateReviewerInjection(categories);
+      
       const task: Task = {
         id: `review-${chapterId}-r${round}`,
         type: 'reviewer',
@@ -112,7 +129,7 @@ export class Dispatcher {
         prompt: '',
         dependencies: [],
       };
-      task.prompt = this.taskExecutor.generateReviewerPrompt(task, draftContent, baseline);
+      task.prompt = this.taskExecutor.generateReviewerPrompt(task, draftContent, baseline, round, knowledgeContent);
       sequence++;
       tasks.push(task);
       this.scheduler.submit(task);
@@ -122,7 +139,7 @@ export class Dispatcher {
       action: 'spawn_reviewers',
       tasksCreated: tasks.length,
       tasks,
-      message: `已创建 ${tasks.length} 个审阅任务`,
+      message: `已创建 ${tasks.length} 个审阅任务 (round ${round})`,
     };
   }
 
@@ -133,7 +150,9 @@ export class Dispatcher {
     let sequence = 1;
 
     for (const chapterId of chapters) {
-      const draftContent = this.readChapterDraft(chapterId);
+      // 读取当前版本草稿: ch001-v${round}.md
+      const draftContent = this.readChapterDraft(chapterId, round);
+      // 读取当前版本审阅报告: ch001-r${round}.json
       const reviewContent = this.readReviewReport(chapterId, round);
       const task: Task = {
         id: `fix-${chapterId}-r${round}`,
@@ -146,7 +165,8 @@ export class Dispatcher {
         prompt: '',
         dependencies: [],
       };
-      task.prompt = this.taskExecutor.generateFixPrompt(task, draftContent, reviewContent);
+      // Fixer 输出新版本: ch001-v${round+1}.md
+      task.prompt = this.taskExecutor.generateFixPrompt(task, draftContent, reviewContent, round);
       sequence++;
       tasks.push(task);
       this.scheduler.submit(task);
@@ -156,7 +176,7 @@ export class Dispatcher {
       action: 'spawn_fixers',
       tasksCreated: tasks.length,
       tasks,
-      message: `已创建 ${tasks.length} 个修复任务`,
+      message: `已创建 ${tasks.length} 个修复任务 (round ${round} → ${round + 1})`,
     };
   }
 
@@ -167,11 +187,14 @@ export class Dispatcher {
     const task = this.scheduler.getTask(taskId);
     if (!task) return;
 
-    // Update scheduler state
-    if (outcome === 'success') {
-      this.scheduler.markCompleted(taskId, result);
-    } else {
-      this.scheduler.markFailed(taskId, result);
+    // Runner already called markCompleted/markFailed — only update chapter status
+    // If task is still running (e.g. validation failure path), mark it
+    if (task.status === 'running') {
+      if (outcome === 'success') {
+        this.scheduler.markCompleted(taskId, result);
+      } else {
+        this.scheduler.markFailed(taskId, result);
+      }
     }
 
     // Update chapter status in project state
@@ -183,19 +206,32 @@ export class Dispatcher {
   }
 
   private readChapterKit(chapterId: string): string {
-    const kitPath = join(this.projectDir, 'assets', 'chapter-kits', `${chapterId}-kit.md`);
+    const kitPath = join(this.projectDir, 'assets', 'chapter-kits', `${chapterId}.md`);
     if (!existsSync(kitPath)) {
       return `[素材包缺失] 章节 ${chapterId} 的素材包文件不存在: ${kitPath}`;
     }
     return readFileSync(kitPath, 'utf-8');
   }
 
-  private readChapterDraft(chapterId: string): string {
-    const draftPath = join(this.projectDir, 'drafts', 'chapters', `${chapterId}.md`);
-    if (!existsSync(draftPath)) {
-      return `[草稿缺失] 章节 ${chapterId} 的草稿文件不存在: ${draftPath}`;
+  /**
+   * 读取版本化草稿文件
+   * @param chapterId 章节 ID
+   * @param round 轮次（用于定位版本化文件）
+   */
+  private readChapterDraft(chapterId: string, round: number): string {
+    // 版本化文件: ch001-v1.md
+    const versionedPath = join(this.projectDir, 'drafts', 'chapters', `${chapterId}-v${round}.md`);
+    if (existsSync(versionedPath)) {
+      return readFileSync(versionedPath, 'utf-8');
     }
-    return readFileSync(draftPath, 'utf-8');
+    
+    // Fallback: 非版本化文件（向后兼容）
+    const legacyPath = join(this.projectDir, 'drafts', 'chapters', `${chapterId}.md`);
+    if (existsSync(legacyPath)) {
+      return readFileSync(legacyPath, 'utf-8');
+    }
+    
+    return `[草稿缺失] 章节 ${chapterId} 的草稿文件不存在 (round ${round}): ${versionedPath}`;
   }
 
   private readReviewReport(chapterId: string, round: number): string {
@@ -221,5 +257,43 @@ export class Dispatcher {
     } catch {
       return { metrics: {}, technicalTerms: [], requirements: [] };
     }
+  }
+
+  /**
+   * 从素材包中提取相关分类
+   * 素材包格式：
+   * ## 相关分类
+   * - 技术栈选型参考图 结构化
+   * - 资产管理系统功能示意图 结构化
+   */
+  private extractCategoriesFromKit(kitContent: string): string[] {
+    const categories: string[] = [];
+    const lines = kitContent.split('\n');
+    let inCategorySection = false;
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      
+      // 检测分类部分开始
+      if (trimmed === '## 相关分类') {
+        inCategorySection = true;
+        continue;
+      }
+      
+      // 检测下一个部分开始（结束分类部分）
+      if (inCategorySection && trimmed.startsWith('## ') && trimmed !== '## 相关分类') {
+        break;
+      }
+      
+      // 提取分类项
+      if (inCategorySection && trimmed.startsWith('- ')) {
+        const category = trimmed.slice(2).trim();
+        if (category) {
+          categories.push(category);
+        }
+      }
+    }
+
+    return categories;
   }
 }

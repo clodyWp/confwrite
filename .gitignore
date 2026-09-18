@@ -32,6 +32,10 @@ tests/tmp/
 *.bak
 *.cache
 
+# Manual test scripts (real LLM testing)
+.test-*.mjs
+.e2e-*/
+
 # ConfWrite project state (generated at runtime)
 # Uncomment if you want to ignore generated project data
 # projects/

@@ -103,7 +103,7 @@ export class FormatConverter {
   generateConversionCommand(
     inputPath: string,
     outputPath: string,
-    format: 'docx' | 'pdf',
+    format: 'docx',
     options: ConversionOptions = {}
   ): string[] {
     const args: string[] = [inputPath, '-t', format, '-o', outputPath];
