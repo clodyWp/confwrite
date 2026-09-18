@@ -112,12 +112,12 @@ export class SchedulerRunner {
   private async runTask(task: Task): Promise<Task> {
     const startTime = Date.now();
 
-    // 发射任务开始事件
-    if (this.eventBus) {
+    // 发射任务开始事件（仅对 writer/reviewer/fixer）
+    if (this.eventBus && this.isTrackableTask(task)) {
       this.eventBus.emit({
         type: 'task.start',
         taskId: task.id,
-        taskType: task.type,
+        taskType: task.type as 'writer' | 'reviewer' | 'fixer',
         chapterId: task.chapterId || '',
         round: 1, // TODO: get from task
         concurrency: {
@@ -135,12 +135,12 @@ export class SchedulerRunner {
     if (result.success) {
       this.scheduler.markCompleted(task.id, result.output);
 
-      // 发射任务完成事件
-      if (this.eventBus) {
+      // 发射任务完成事件（仅对 writer/reviewer/fixer）
+      if (this.eventBus && this.isTrackableTask(task)) {
         this.eventBus.emit({
           type: 'task.complete',
           taskId: task.id,
-          taskType: task.type,
+          taskType: task.type as 'writer' | 'reviewer' | 'fixer',
           chapterId: task.chapterId || '',
           duration,
         });
@@ -172,12 +172,12 @@ export class SchedulerRunner {
         task.attempt++;
         this.scheduler.markRetrying(task.id);
 
-        // 发射任务失败事件（带重试）
-        if (this.eventBus) {
+        // 发射任务失败事件（带重试，仅对 writer/reviewer/fixer）
+        if (this.eventBus && this.isTrackableTask(task)) {
           this.eventBus.emit({
             type: 'task.fail',
             taskId: task.id,
-            taskType: task.type,
+            taskType: task.type as 'writer' | 'reviewer' | 'fixer',
             chapterId: task.chapterId || '',
             error: output,
             willRetry: true,
@@ -192,12 +192,12 @@ export class SchedulerRunner {
     // 非 429 或重试耗尽 → 失败
     this.scheduler.markFailed(task.id, output);
 
-    // 发射任务失败事件
-    if (this.eventBus) {
+    // 发射任务失败事件（仅对 writer/reviewer/fixer）
+    if (this.eventBus && this.isTrackableTask(task)) {
       this.eventBus.emit({
         type: 'task.fail',
         taskId: task.id,
-        taskType: task.type,
+        taskType: task.type as 'writer' | 'reviewer' | 'fixer',
         chapterId: task.chapterId || '',
         error: output,
         willRetry: false,
@@ -205,6 +205,13 @@ export class SchedulerRunner {
     }
 
     return task;
+  }
+
+  /**
+   * 检查任务是否是需要跟踪的类型
+   */
+  private isTrackableTask(task: Task): boolean {
+    return task.type === 'writer' || task.type === 'reviewer' || task.type === 'fixer';
   }
 
   /**

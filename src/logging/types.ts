@@ -3,6 +3,11 @@
  */
 
 /**
+ * 通知级别
+ */
+export type NotifyLevel = 'info' | 'warning' | 'error';
+
+/**
  * 任务开始事件
  */
 export interface TaskStartEvent {

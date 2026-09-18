@@ -1,4 +1,4 @@
-import type { LogEvent, NotifyLevel } from '../index.js';
+import type { LogEvent, NotifyLevel } from './types.js';
 
 /**
  * 格式化结果
