@@ -10,6 +10,45 @@ import { existsSync, statSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Task } from '../scheduler/types.js';
 
+/**
+ * 尝试修复常见的 JSON 格式错误
+ */
+function tryFixJSON(content: string): any {
+  // 1. 直接解析（最快路径）
+  try {
+    return JSON.parse(content);
+  } catch (e) {
+    // 继续尝试修复
+  }
+
+  let fixed = content;
+
+  // 2. 移除注释（// 和 /* */）
+  fixed = fixed
+    .replace(/\/\/.*$/gm, '')
+    .replace(/\/\*[\s\S]*?\*\//g, '');
+
+  // 3. 尝试解析
+  try {
+    return JSON.parse(fixed);
+  } catch (e) {
+    // 继续尝试修复
+  }
+
+  // 4. 修复中文引号（"" → 移除）
+  fixed = fixed.replace(/\u201c|\u201d/g, '');
+
+  // 5. 尝试解析
+  try {
+    return JSON.parse(fixed);
+  } catch (e) {
+    // 继续尝试修复
+  }
+
+  // 6. 最终失败
+  throw new Error('JSON 格式错误，无法修复');
+}
+
 export interface ValidationResult {
   valid: boolean;
   taskType: string;
@@ -122,10 +161,11 @@ export class OutputValidator {
       return;
     }
 
-    // 3. JSON 可解析
+    // 3. JSON 可解析（带自动修复）
     let parsed: any;
+    const rawContent = readFileSync(filePath, 'utf-8');
     try {
-      parsed = JSON.parse(readFileSync(filePath, 'utf-8'));
+      parsed = tryFixJSON(rawContent);
       result.checks.push({ name: 'JSON 格式合法', passed: true });
     } catch (err) {
       result.checks.push({ name: 'JSON 格式合法', passed: false, detail: String(err) });

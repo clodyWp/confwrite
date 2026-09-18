@@ -323,16 +323,24 @@ ${requirementsList || '无'}
 | depth（深度） | 只有概念定义 | 有原理+示例 | 有多维度分析+实践案例+对比表格 |
 | quality（质量） | 有大量废话 | 内容扎实 | 每句话都有信息量 |
 
-## 输出格式
+## 输出格式（极其重要）
 
 将审阅报告写入文件：**review/${task.chapterId}-r${round}.json**
 
-JSON 格式：
+**必须严格遵守以下 JSON 格式规则**：
+1. 使用严格的 JSON 格式（不要添加注释）
+2. 所有字符串使用双引号（不要使用单引号）
+3. **字符串中的引号必须转义为 \"**（例如：\"示例\"）
+4. **字符串中的换行必须转义为 \n**（不要直接换行）
+5. 确保所有括号、逗号都正确配对
+6. **不要使用中文引号 "" 或 ''**，必须使用转义的英文引号 \"
+
+JSON 格式示例：
 \`\`\`json
 {
   "chapterId": "${task.chapterId}",
   "round": ${round},
-  "verdict": "accept | revise | reject",
+  "verdict": "accept",
   "scores": {
     "accuracy": 8,
     "consistency": 9,
@@ -342,10 +350,10 @@ JSON 格式：
   },
   "issues": [
     {
-      "severity": "high | medium | low",
-      "description": "问题描述",
-      "location": "具体段落",
-      "suggestion": "修改建议"
+      "severity": "medium",
+      "description": "第2段内容不足，需要扩充。注意：引号必须转义为 \"示例\"",
+      "location": "section-2.1",
+      "suggestion": "补充具体案例和对比分析"
     }
   ],
   "summary": "总体评价"

@@ -54,33 +54,54 @@ Phase 8:  导出           → MD / HTML / DOCX
 | PDF (.pdf) | pdf-parse v2 提取文本 |
 | DOCX (.docx) | mammoth → HTML → Markdown |
 
+## 执行方式
+
+**重要：这些命令由 extension 实现，不是 skill 直接执行。**
+
+当用户输入 `/skill:confwrite <command> [args]` 时，你应该：
+
+1. **识别命令**：从用户输入中提取 `command` 和 `args`
+2. **调用 extension 命令**：使用对应的 `/confwrite:<command>` 格式
+
+例如：
+- 用户输入：`/skill:confwrite write projects/dongd`
+- 你应该调用：`/confwrite:write projects/dongd`
+
+**不要自己执行写作逻辑！** 调用注册的 extension 命令即可。
+
 ## 使用方式
 
 ```bash
 # 1. 初始化项目
-/confwrite:init my-project
+/skill:confwrite init my-project
+# → 实际调用: /confwrite:init my-project
 
 # 2. 将参考资料放入 projects/my-project/reference_material/
 #    支持 PDF、Word、HTML、Markdown
 
 # 3. 整理素材（自动转换格式、提取基线、同步大纲章节）
-/confwrite:organize
+/skill:confwrite organize
+# → 实际调用: /confwrite:organize
 
 # 4. 编辑 outline.md，用 ch001/ch002 标记章节
 
 # 5. 启动写作（状态机自动推进 write→review→fix→assemble→finalize→export）
-/confwrite:write
+/skill:confwrite write
+# → 实际调用: /confwrite:write
 
 # 6. 查看进度
-/confwrite:status
+/skill:confwrite status
+# → 实际调用: /confwrite:status
 
 # 6.5 长任务防止 429：手动压缩上下文
-/confwrite:compact
+/skill:confwrite compact
+# → 实际调用: /confwrite:compact
 
 # 7. 导出
-/confwrite:export md
-/confwrite:export html
-/confwrite:export docx
+/skill:confwrite export md
+# → 实际调用: /confwrite:export md
+/skill:confwrite export html
+/skill:confwrite export docx
 ```
 
 ## 写作循环
