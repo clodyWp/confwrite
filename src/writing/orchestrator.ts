@@ -1,6 +1,8 @@
 import type { ProjectState, ChapterState } from '../state/schema.js';
 import type { Task } from '../scheduler/types.js';
 import type { ReviewDecision } from './task-executor.js';
+import { readFileSync, existsSync } from 'node:fs';
+import { join } from 'node:path';
 
 /**
  * 下一步动作
@@ -112,7 +114,8 @@ export class WritingOrchestrator {
   updateChapterStatus(
     state: ProjectState,
     task: Task,
-    outcome: 'success' | 'failed'
+    outcome: 'success' | 'failed',
+    projectDir?: string,
   ): void {
     if (!task.chapterId) return;
     
@@ -133,7 +136,7 @@ export class WritingOrchestrator {
         break;
 
       case 'reviewer': {
-        const decision = this.parseReviewResult(task.result);
+        const decision = this.parseReviewResult(task.result, task.chapterId, chapter.round, projectDir);
         chapter.lastReviewVerdict = decision.decision;
         if (decision.decision === 'accept') {
           chapter.status = 'completed';
@@ -156,19 +159,53 @@ export class WritingOrchestrator {
 
   /**
    * 安全解析 Reviewer 输出
-   * 优先尝试 JSON，失败后从自由文本提取决定
+   * 
+   * 优先从磁盘读取 JSON 文件（verdict 字段），失败后从 task.result 文本提取
    * 最终默认 revise（安全侧：不丢弃内容也不盲目接受）
+   * 
+   * 注意：LLM 输出 JSON 文件使用 `verdict` 字段，而非 `decision`
    */
-  private parseReviewResult(result: string | undefined): ReviewDecision {
+  private parseReviewResult(result: string | undefined, chapterId?: string, round?: number, projectDir?: string): ReviewDecision {
+    // 优先尝试从磁盘读取 JSON 文件
+    if (chapterId && round && projectDir) {
+      try {
+        const reviewPath = join(projectDir, 'review', `${chapterId}-r${round}.json`);
+        
+        if (existsSync(reviewPath)) {
+          const fileContent = readFileSync(reviewPath, 'utf-8');
+          const parsed = JSON.parse(fileContent);
+          
+          // 支持 verdict 和 decision 两种字段名
+          const verdict = parsed.verdict || parsed.decision;
+          if (verdict && ['accept', 'reject', 'revise'].includes(verdict)) {
+            return {
+              decision: verdict as 'accept' | 'reject' | 'revise',
+              confidence: parsed.confidence || 0.8,
+              reasons: parsed.reasons || ['parsed from JSON file'],
+            };
+          }
+        }
+      } catch {
+        // File read/parse failed, fall through to text parsing
+      }
+    }
+
+    // Fallback: 尝试从 task.result 文本解析
     if (!result) {
       return { decision: 'revise', confidence: 0, reasons: ['empty review result'] };
     }
 
     // Try JSON first
     try {
-      const parsed = JSON.parse(result) as ReviewDecision;
-      if (parsed && ['accept', 'reject', 'revise'].includes(parsed.decision)) {
-        return parsed;
+      const parsed = JSON.parse(result) as any;
+      // 支持 verdict 和 decision 两种字段名
+      const verdict = parsed.verdict || parsed.decision;
+      if (verdict && ['accept', 'reject', 'revise'].includes(verdict)) {
+        return {
+          decision: verdict as 'accept' | 'reject' | 'revise',
+          confidence: parsed.confidence || 0.8,
+          reasons: parsed.reasons || ['parsed from JSON'],
+        };
       }
     } catch {
       // Not JSON, fall through to text parsing
@@ -176,6 +213,7 @@ export class WritingOrchestrator {
 
     // Fallback: extract decision from free text
     const decisionMatch = result.match(/\*\*决定\*\*:\s*(accept|reject|revise)/i)
+      || result.match(/verdict:\s*(accept|reject|revise)/i)
       || result.match(/decision:\s*(accept|reject|revise)/i)
       || result.match(/\b(accept|reject|revise)\b/i);
 

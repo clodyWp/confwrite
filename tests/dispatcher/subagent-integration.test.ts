@@ -261,6 +261,8 @@ describe('Dispatcher — subagent integration', () => {
       expect(state.chapters.ch001.status).toBe('written');
 
       // Step 4: review again → accept
+      writeFileSync(join(TEST_DIR, 'review', 'ch001-r1.json'), '{"verdict":"accept"}');
+      
       await dispatcher.dispatch('spawn_reviewers', {
         chapters: ['ch001'],
         round: 1,

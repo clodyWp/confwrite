@@ -201,7 +201,7 @@ export class Dispatcher {
     const state = this.store.load();
     if (!state) return;
 
-    this.writingOrchestrator.updateChapterStatus(state, task, outcome);
+    this.writingOrchestrator.updateChapterStatus(state, task, outcome, this.projectDir);
     this.store.save(state);
   }
 
