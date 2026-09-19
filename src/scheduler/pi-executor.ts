@@ -32,7 +32,16 @@ export interface PiExecutorOptions {
   verboseLog?: boolean;
 }
 
-const DEFAULT_TOOLS = ['read', 'write', 'edit', platform() === 'win32' ? 'powershell' : 'bash'];
+/**
+ * 解析给定平台应使用的 shell 工具。
+ * Windows 用 powershell —— bash 在 Windows 上有路径转义问题。
+ */
+export function resolveShellTool(plat: string): string {
+  return plat === 'win32' ? 'powershell' : 'bash';
+}
+
+/** 默认工具集：文件读写 + 当前平台 shell */
+export const DEFAULT_TOOLS = ['read', 'write', 'edit', resolveShellTool(platform())];
 
 // ============ Turn 硬预算 ============
 
