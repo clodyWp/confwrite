@@ -1,220 +1,291 @@
 # 待办与交接（ConfWrite）
 
-> 记录时间：2026-09-19 晚
-> 主要分支：`feat/tool-least-privilege`
+> 最后更新：2026-09-20
+> 当前分支：`feat/ch-level-length` @ `e8231e0`
+> **本文档的核心结论已推翻前一版。见 §2。**
 
 ---
 
-## 1. 当前状态快照
+## 1. 一句话现状
 
-### 仓库
+**找到了真正的根因：prompt 把「章」误写成「子节」，导致度量层级错了一层。**
+修复代码已提交，**尚未在真机验证**。
 
-| 项 | 值 |
-|----|-----|
-| 所在分支 | `feat/tool-least-privilege` |
-| 工作区 | 干净（0 个未提交改动） |
-| 相对 master | 领先 5 个提交 |
-| `dist/` 构建于 | 2026-09-19 23:38，**来自本分支** |
-| 当前 dist 是否含「职责分离」prompt | **否**（本分支基于 master） |
+---
 
-### 三个分支
+## 2. 根因（本次最重要的发现）
+
+### 2.1 事故链
 
 ```
-4d30e14 (master)  ← v0.7.3 已发布基线
-├── f62f85c  feat/responsibility-separation   （prompt 职责分离）
-└── 0bd69f2  feat/tool-least-privilege        （工具最小权限 + turn 预算）← 当前
+prompt 写着：「每个子节（## 或 ### 下的内容）整体不少于 5000 字」
+                ↑ 度量发生在 ch 的内部（小节层）
 ```
 
-### 当前 `dist/` 实际包含的能力
+一个 ch 被模型切成约 27 个小节：
 
-| 能力 | 状态 |
+```
+27 个小节 × 5000 字 = 要求这一个 ch 写 135,000 字
+模型单次回答实际只能产出 ≈ 18,000 字
+                       ─────────────────────
+                       差 7.5 倍
+```
+
+### 2.2 连锁后果（全部由这一个词引起）
+
+| # | 现象 | 机制 |
+|---|------|------|
+| ① | 「量字数→补内容→再量」循环 | 模型发现每节仅 660 字、要求 5000，于是一遍遍测量+补充 |
+| ② | 循环吃掉 **50% 运行时间** | ch001: 554.8s / 1108.3s |
+| ③ | 章节被切成 27 个碎片 | 为迎合「每节独立达标」而过度细分 |
+| ④ | 结构在 **37→6 节**之间剧烈波动 | 碎片化程度不受控 |
+| ⑤ | 「每节达标率 13%」 | 不是模型不努力，是要求不可能达成 |
+
+### 2.3 前几版的错误结论（已废弃）
+
+| 曾经的结论 | 实际情况 |
+|---|---|
+| ❌「80% 工具调用是病态校验循环」 | 那些 bash 的原文是 `Count characters per ## section`，是**有目的的补写尝试**，不是焦虑 |
+| ❌「移除 bash 可让循环物理上不可能」 | 循环确实消失了，但代价是**连「写得不够」也感知不到了**（篇幅 -37%，结构更不稳） |
+| ❌「问题在于任务粒度太大，需重构调度器」 | 不需要。**改一个词即可** |
+| ❌「工具最小权限是主要优化」 | 它在修一个由 prompt 笔误制造出来的伪问题 |
+
+### 2.4 术语对齐（这是之前沟通不畅的原因）
+
+```
+智慧园区...技术方案                              ← 文档
+│
+├── 1. 投标概述                                 ← 章（6 个）
+│   ├── 1.1 项目理解与需求分析                    ← 节  = ch001  ← 用户说的 "ch"
+│   │   ├── ## 概述                             ← 小节（模型自己切）
+│   │   │   └── ### xxx                        ← 更下一层
+│   │   └── ## xxx
+│   └── 1.2 投标响应总览与承诺                    ← 节  = ch002
+```
+
+| 层级 | 编号 | 系统内 id | 用户叫它 | 曾误叫成 |
+|------|------|-----------|---------|---------|
+| 章 | `1.` `2.` | 大纲 h2 | — | — |
+| **节** | `1.1` `2.1` | **ch001–ch015** | **ch** | ❌「章」 |
+| 小节 | `2.1.1` | 草稿里的 `##` | — | ❌「节」 |
+| 小小节 | `2.1.1.1` | 草稿里的 `###` | — | ❌「子节」 |
+
+**需求口径（已确认）**：工作单元 = **ch 级**。一次 subagent 调用 = 写一个 ch，
+编写与度量**都在 ch 层**，单次产出 ≥ 字数下限。
+
+---
+
+## 3. 已完成
+
+### 3.1 新分支 `feat/ch-level-length`
+
+| 提交 | 内容 |
 |------|------|
-| 素材包注入文件路径 | ✅（master 已有） |
-| 跨平台 shell 选择 | ✅（master 已有） |
-| **writer/fixer 无 shell** | ✅ 本分支 |
-| **turn 硬预算（默认 40）** | ✅ 本分支 |
-| prompt「写完就结束」 | ❌ 不在本分支 |
+| `2eb7768` | **revert：把 bash 加回**（撤销角色工具最小权限） |
+| `7c467b4` | **test：修复假的跨平台测试** —— 原测试把 `plat==='win32'?…` 复制进测试体断言自己，不碰源码。改为调用真实导出的 `resolveShellTool` |
+| `e8231e0` | **fix：度量层级从小节改为 ch，目标 `MIN_CHAPTER_CHARS = 8000`** |
 
-> **有价值的副作用**：当前构建恰好是**只含工具限制、不含 prompt 改动**的版本。
-> 这是一个干净的单变量实验条件，可用于单独度量「工具最小权限」的效果。
+改动位置（`src/writing/task-executor.ts`，共 9 处「子节」措辞）：
 
----
+| 行 | 角色 | 改后 |
+|----|------|------|
+| 篇幅要求 | writer | 整个章节正文合计 ≥ 8000 字；**不按**内部小节分别计算 |
+| 完成标准 | writer | 整节正文合计 ≥ 8000 字 |
+| 篇幅检查 | reviewer | 本节正文合计是否 ≥ 8000 字；不足时给出**实际字数与差额** |
+| 决定标准 | reviewer | revise 例改为「整节字数不足」 |
+| 保持深度 | fixer | 本节正文合计 ≥ 8000 字 |
+| 完成标准 | fixer | 整节正文合计 ≥ 8000 字 |
 
-## 2. 已完成
-
-| 阶段 | 内容 | 提交 | 测试 |
-|------|------|------|------|
-| — | 计划文档 | `a669542` | — |
-| — | Git 操作指南 | `c869e35` | — |
-| P1/P2 | 角色工具最小权限 | `f4208e4` | +20 例 |
-| P3 | 输出目录预创建 | — | **无需代码**（见 §5） |
-| P4 | turn 硬预算 | `2fb533c` | +23 例 |
-| P5 | 全量回归 | — | **641 通过** |
-| — | 进度更新 | `0bd69f2` | — |
-
-### 测试基线
+### 3.2 测试
 
 ```
-全量：641 passed (72 files)
-├─ 原有 602
-├─ 新增 pi-executor-tools.test.ts   20 例
-└─ 新增 pi-executor-budget.test.ts  23 例
-（删除 pi-executor-platform.test.ts 4 例 —— 它在测试内复制逻辑而非调用真实源码）
+全量 640 通过（73 文件）
+
+新增 tests/writing/prompt-length-level.test.ts（10 例）
+  锁定「整节口径」语义
+  显式断言「每个子节 5000」措辞不得回归   ← 防止事故重演
 ```
 
----
+### 3.3 当前 `dist/` 状态（已经 build，可直接测）
 
-## 3. 待办
-
-### P6 真机验证（最高优先，被 429 阻塞）
-
-**目标**：
-
-| ID | 验收 |
-|----|------|
-| G1 | writer / fixer 会话中 `bash` 调用数 **恒为 0** |
-| G2 | turn 超限时任务被判**失败**，不污染状态机 |
-| — | 采集正常章节的 turn 基线（用于校准预算默认值 40） |
-
-**必须先验的最小假设**：
-
-> `void session.abort()` 之后，`await session.prompt()` 是否**确实 resolve**？
-
-若不会 resolve，任务会**挂死**而非失败 —— 比不做预算更糟。这是本分支唯一无法靠单测覆盖的假设。
-
-**低成本验法（建议先做这个）**：
-写一个默认 `skip` 的集成测试，`maxTurnsPerTask=2` + 一个必然需要多轮的任务，
-验证链路：`abort → prompt resolve → classifyOutcome 判失败`。
-消耗 token 极少，不必等完整基准测试。
-
-**完整基准测试**（方法论已在计划 §5.2 修正）：
-
-必须满足：
-1. **干净初始状态** —— 先清空 `drafts/chapters/`，否则模型只做校验不写作
-2. **同章 ≥3 轮** —— 单样本受采样随机性影响
-3. **成对比较** —— 同章、同素材、仅改被测变量
-
-### P7 对抗性验证
-
-构造故意诱导「反复校验字数直到达标」的 prompt，验证：
-- writer 的 bash 调用仍为 0（工具缺失，物理不可能）
-- turn 数不突破预算
-
-### P8 合并策略与汇总报告
-
-需要决定：`feat/tool-least-privilege` 与 `feat/responsibility-separation`
-是分别合并到 master，还是先合并到一起再联合验证。
+| 项 | 状态 | 验证命令 |
+|---|---|---|
+| bash 工具 | ✅ 已加回 | `grep -c "resolveShellTool(platform())" dist/scheduler/pi-executor.js` → 1 |
+| 角色工具限制 | ✅ 已移除 | `grep -c 'TOOLS_BY_ROLE' dist/scheduler/pi-executor.js` → 0 |
+| turn 硬预算（40） | ✅ 保留 | `grep -c 'budget exhausted' dist/scheduler/pi-executor.js` → >0 |
+| ch 级篇幅要求 | ✅ 已修正 | `grep -c '整个章节（本 ch）正文合计' dist/writing/task-executor.js` → 1 |
+| 旧的子节措辞 | ✅ 已清除 | `grep -c '每个子节（## 或 ### 下的内容）整体不少于' dist/writing/task-executor.js` → 0 |
 
 ---
 
-## 4. 恢复工作的方法
+## 4. 待办：真机验证（最高优先）
+
+**t3 的 pi 会话已停止**，需要重开一个来跑 2–3 个 ch。
+
+### 4.1 核心预期
+
+**「量字数→补内容→再量」的循环不应再出现。**
+因为 8000 < 18000，模型一次就超额达标，没有缺口可补。
+
+### 4.2 观察指标
+
+| 指标 | 旧构建 | 上次（删 bash） | **本次预期** |
+|------|--------|----------------|-------------|
+| bash 调用 | 14 | 0（被拿走） | **少量**（真的需要时才用） |
+| 循环耗时占比 | 50% | 5% | **仍应很低** |
+| 每章字数 | 24495 | 12711–17917 | **≥8000** |
+| 结构（节数） | 37→6 波动 | 37→6 波动 | **待观察** |
+| turn 数 | 34 | 6–15 | 待观察 |
+
+### 4.3 判读标准
+
+| 观察到的现象 | 结论 |
+|---|---|
+| bash 只调用 1–2 次（核对总字数）后收工 | ✅ 修复正确 |
+| bash 又出现十几次调用的循环 | ❌ 诊断仍有遗漏 → 考虑回退 |
+| 字数 ≥8000 且节数稳定（如 5–10 节） | ✅ 彻底修好 |
+| 字数 ≥8000 但节数仍剧烈波动 | ⚠️ 部分修好，结构问题需单独处理 |
+
+### 4.4 操作步骤
 
 ```bash
-# ① 进入仓库，确认状态
-cd /home/water/Projects/confidenceWriter
-git branch --show-current      # 应为 feat/tool-least-privilege
-git status --short             # 应为空
+# ① 确认 dist 是新版（切分支后必须 build）
+grep -c '整个章节（本 ch）正文合计' dist/writing/task-executor.js   # 应为 1
 
-# ② 看本分支的提交
-git log --oneline master..HEAD
+# ② 开 t3 会话
+herdr workspace create --cwd /home/water/Projects/t3/projects/LmERP2 --label lmerp2-test
+herdr agent start pi --kind pi --pane <新pane>
+herdr agent prompt <新pane> "/confwrite:write projects/LmERP2"
 
-# ③ 确认 dist 版本（务必，否则可能跑旧代码）
-grep -c "budget exhausted" dist/scheduler/pi-executor.js   # >0 = 预算已实现
-grep -c "写完就结束" dist/writing/task-executor.js          # 0 = 不含职责分离
+# ③ 监控（脚本在 /tmp，重开终端后需重建）
+/tmp/cw-monitor.sh
 
-# ④ 如需重新构建
-npm run build
-npm test
-
-# ⑤ 切换分支（详见 GIT-GUIDE.md）
-git checkout feat/responsibility-separation
-npm run build        # ← 切分支后必须 build，否则跑的还是旧代码
+# ④ 关键：日志分段。日志是追加的，要按 "Task started" 分段看最后一次运行
 ```
 
-> **重要**：`dist/` 不被 git 跟踪。切分支**不会**改变 `dist/`。
-> 忘了 `npm run build` 会静默运行旧版本（不报错）。
+### 4.5 验证建议
+
+**先清空 `drafts/chapters/` 再跑**，否则模型可能只做校验不写作
+（参见 §6.2 那个无效测量的教训）。
+
+或者直接用未写过的 ch（`ch007`–`ch015`，当前 9 个 pending）。
 
 ---
 
-## 5. 已确认的技术事实（避免重复调查）
+## 5. 回退方式
 
-### P3 无需代码：pi 的 write 工具自动创建父目录
-
-```javascript
-// pi/dist/core/tools/write.js
-description: "Write content to a file. ... Automatically creates parent directories."
-await ops.mkdir(dir);
+```
+tag   before-ch-level-fix          ─┐
+                                    ├─→ 1e502ff  ← 修正前的快照
+分支  feat/tool-least-privilege     ─┘             （原地未动）
 ```
 
-### 429 限流
+```bash
+git checkout feat/tool-least-privilege
+npm run build     # ← 必须，dist/ 不被 git 跟踪
+```
 
-t3 的 LmERP2 任务因 429 停止。已知原因：并行执行会触发 qwen3.7-plus 限流。
-当前配置 `maxConcurrency: 1` 已串行，仍可能触发。
+### 五个分支的定位
 
-### 判定顺序是预算成立的前提
-
-`abort()` 后 `stopReason` 可能仍是 `'stop'`。若先判 `stopReason`，
-被中止的任务会被判成**成功**。该顺序由 `classifyOutcome()` 集中实现并单测锁定。
-
-### 预算必须放在 `verboseLog` 早退之前
-
-subscribe 回调开头是 `if (!verboseLog) return;`。
-预算逻辑若写在它后面，**关闭日志时预算静默失效**。
+| 分支 | 指向 | 内容 | 状态 |
+|------|------|------|------|
+| `master` | `4d30e14` | v0.7.3 已发布基线 | 稳定 |
+| `feat/responsibility-separation` | `f62f85c` | prompt 职责分离 | 未验证，**注意其措辞仍是「每个子节建议 3000–5000 字」，同样有本次的层级错误** |
+| `feat/tool-least-privilege` | `1e502ff` | 角色工具限制 + turn 预算 | **被取代**（回退点） |
+| `feat/ch-level-length` | `e8231e0` | **当前**：ch 级篇幅 + bash 恢复 | 待验证 |
 
 ---
 
-## 6. t3 / LmERP2 项目状态
+## 6. 历史数据（证据基础）
+
+### 6.1 各 ch 实测
+
+| ch | 模型 | turns | tools | bash | edit | 耗时 | 中文字 | 节数 |
+|----|------|-------|-------|------|------|------|--------|------|
+| ch001 | qwen3.7-plus | 34 | 33 | 14 | 13 | 1108.9s | 24495 | 37 |
+| ch002 | qwen3.7-plus | 7 | 8 | 4 | 0 | 61.6s | 21569 | 27 |
+| ch003 | deepseek-v4-flash | 15 | 14 | 0 | 0 | 344.3s | 17917 | 27 |
+| ch004 | deepseek-v4-flash | 7 | 6 | 0 | 0 | 261.3s | 12711 | 23 |
+| ch005 | deepseek-v4-flash | 7 | 6 | 0 | 0 | 234.4s | 9182 | 6 |
+| ch006 | deepseek-v4-flash | 7 | 6 | 0 | 0 | 275.8s | 12731 | 7 |
+
+**按「每 ch ≥5000 字」核对：6 章全部达标（1.8x–4.9x 余量）。**
+
+> ⚠️ 模型在 ch003 中途从 qwen 换成 deepseek，故 turn/tool 数的跨版本对比**不干净**。
+> 所有结论应建立在**定性证据**（bash 调用内容、是否有循环、结构节数）上。
+
+### 6.2 ⚠️ 一条无效测量，勿引用
+
+曾报告「ch002 从 34 turns 降到 7 turns，-79%」——**无效**。
+那次运行**没有调用任何 write/edit**，只是读取上次运行遗留的草稿并校验。
+
+```
+logs/subagent-write-ch002-r1.log
+  第1次: 写入（产生 ch002-v1.md）
+  第2次: 仅校验，无写入 → Turns: 7
+```
+
+**教训**：在非干净初始状态上重跑，模型只做校验不做写作。
+这就是 §4.5 要求先清空 drafts 的原因。
+
+### 6.3 耗时构成（ch001 vs 新构建）
+
+```
+ch001 旧  总 1108.3s │ 写作 534.5s (48%) │ 读取 19.0s │ 循环 554.8s (50%)
+ch003 新  总  343.7s │ 写作 273.2s (79%) │ 读取 52.7s │ 循环  17.8s ( 5%)
+```
+
+「循环」那 50% 就是本次根因造成的浪费。
+
+---
+
+## 7. t3 / LmERP2 项目状态
 
 | 项 | 值 |
 |----|-----|
 | 路径 | `/home/water/Projects/t3/projects/LmERP2` |
 | 阶段 | `4a`（写作） |
 | round | 1 |
-| 章节 | 2 written（ch001/ch002）、13 pending |
-| 草稿 | `drafts/chapters/ch001-v1.md`（89 KB）、`ch002-v1.md`（82 KB） |
-| 停止原因 | 429 限流 |
-| 素材包 | 已重新生成，**含文件路径信息** |
-| herdr 会话 | 已退出（当前只有 confidenceWriter 这个会话） |
+| 章节 | **6 written（ch001–ch006）、9 pending（ch007–ch015）** |
+| 草稿 | `drafts/chapters/ch001-v1.md` … `ch006-v1.md` |
+| herdr | t3 会话已手动停止 |
 
 ---
 
-## 7. 历史基线数据（供比较，含一条无效结论）
+## 8. 其他仍待处理的事
 
-### ch001（writer，旧 prompt）—— 有效
-
-| 指标 | 值 |
-|------|-----|
-| Turns | 34 |
-| Tool calls | 66 |
-| 其中 bash | **28**（27 次是字数统计，仅 1 次 mkdir 必要） |
-| 其中 edit | 26（反复补充） |
-| Duration | 18.5 分钟 |
-| 产出 | 89 KB |
-
-**结论**：53/66（80%）的工具调用属于病理性校验循环。
-
-### ch002「7 turns」—— ⚠️ 此对比无效，勿引用
-
-第 2 次运行（新 prompt）**没有调用任何 write/edit**，只是读取第 1 次运行
-遗留的草稿并校验。7 turns 衡量的是「校验」，不是「写作」。
-
-```
-logs/subagent-write-ch002-r1.log
-  L1  : 14:46:06 Task started   ← 第1次（写入者，ch002-v1.md mtime 22:51）
-  L85 : 14:53:10 Task started   ← 第2次（仅校验，无写入）
-  L127: 14:54:11 Task completed. Turns: 7, Tool calls: 8
-```
-
-**教学价值**：在没有干净初始状态的项目上重跑，模型只做校验。
-这正是 §3 P6 要求「先清空 drafts」的原因。
+| # | 事项 | 说明 |
+|---|------|------|
+| 1 | **`feat/responsibility-separation` 有同样的层级错误** | 该分支写着「每个子节建议 3000–5000 字」，与本次根因同源，合并前必须一并改为 ch 级 |
+| 2 | turn 预算阈值校准 | 当前 40，历史最大 34，从未触发。作为保险丝可以，但需确认是否要收紧 |
+| 3 | `429` 限流 | 并行执行 qwen3.7-plus 会触发；当前 `maxConcurrency: 1` 串行 |
+| 4 | 结构稳定性 | 节数 37→6 波动。本次修复**可能**间接解决（不再需要碎片化迎合要求），待 §4 验证后决定是否要在大纲中固定子节 |
+| 5 | 篇幅下限 8000 是否合适 | 若模型稳定产出 9000+ 则可；若长期贴着 8000 需上调 |
 
 ---
 
-## 8. 附带产出
+## 9. 恢复工作的方法
+
+```bash
+cd /home/water/Projects/confidenceWriter
+git branch --show-current      # 应为 feat/ch-level-length
+git status --short             # 应为空
+
+# 确认 dist 版本（务必！dist/ 不被 git 跟踪，切分支后不 build 会静默跑旧代码）
+grep -c '整个章节（本 ch）正文合计' dist/writing/task-executor.js   # 1 = 新版
+grep -c 'TOOLS_BY_ROLE' dist/scheduler/pi-executor.js              # 0 = 工具限制已移除
+
+npm run build
+npm test                        # 应 640 通过
+```
+
+---
+
+## 10. 附带文档
 
 | 文件 | 内容 |
 |------|------|
-| `PLAN-tool-least-privilege.md` | 完整开发计划 + 进度 + 风险 + 待决策 |
 | `GIT-GUIDE.md` | Git 分支操作指南（面向不熟悉 git 者） |
+| `PLAN-tool-least-privilege.md` | 旧计划（**其前提已被推翻**，见 §2.3） |
 | `ITERATION-PLAN-v0.7.3.md` | 上一轮迭代计划 |
 | `ITERATION-COMPLETE-v0.7.3.md` | 上一轮迭代完成报告 |
