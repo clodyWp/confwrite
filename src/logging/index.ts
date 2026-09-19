@@ -5,14 +5,26 @@
  * 1. 创建 EventBus 和 StatsCollector
  * 2. 订阅所有事件并格式化输出
  * 3. 提供进度报告接口
+ * 4. 可选：持久化日志到文件
  */
 import { EventBus } from './event-bus.js';
 import { StatsCollector } from './stats.js';
 import { Logger } from './logger.js';
 import type { LogEvent } from './types.js';
 import type { NotifyLevel } from '../index.js';
+import { writeFileSync, mkdirSync, existsSync } from 'node:fs';
+import { join } from 'node:path';
 
 export type NotifyFn = (message: string, level: NotifyLevel) => void;
+
+/**
+ * 文件日志配置
+ */
+export interface FileLogConfig {
+  enabled: boolean;
+  projectDir: string;
+  filename?: string;  // 默认: confwrite-log.json
+}
 
 /**
  * 日志系统
@@ -22,11 +34,14 @@ export class LoggingSystem {
   public stats: StatsCollector;
   private notify: NotifyFn;
   private disposed = false;
+  private fileLogConfig?: FileLogConfig;
+  private logEntries: Array<{ timestamp: string; event: LogEvent }> = [];
 
-  constructor(notify: NotifyFn) {
+  constructor(notify: NotifyFn, fileLogConfig?: FileLogConfig) {
     this.notify = notify;
     this.eventBus = new EventBus();
     this.stats = new StatsCollector();
+    this.fileLogConfig = fileLogConfig;
 
     // 订阅所有事件
     this.eventBus.subscribe('*', (event) => this.handleEvent(event));
@@ -44,6 +59,36 @@ export class LoggingSystem {
     // 格式化并输出
     const result = Logger.format(event);
     this.notify(result.message, result.level);
+
+    // 记录到文件日志
+    if (this.fileLogConfig?.enabled) {
+      this.logEntries.push({
+        timestamp: new Date().toISOString(),
+        event,
+      });
+      this.flushLog();
+    }
+  }
+
+  /**
+   * 刷新日志到文件
+   */
+  private flushLog(): void {
+    if (!this.fileLogConfig?.enabled || this.logEntries.length === 0) return;
+
+    const logsDir = join(this.fileLogConfig.projectDir, 'logs');
+    if (!existsSync(logsDir)) {
+      mkdirSync(logsDir, { recursive: true });
+    }
+
+    const filename = this.fileLogConfig.filename || 'confwrite-log.json';
+    const logPath = join(logsDir, filename);
+
+    try {
+      writeFileSync(logPath, JSON.stringify(this.logEntries, null, 2), 'utf-8');
+    } catch {
+      // 静默处理文件写入错误
+    }
   }
 
   /**
@@ -105,6 +150,10 @@ export class LoggingSystem {
    */
   dispose(): void {
     this.disposed = true;
+    // 最终刷新日志
+    if (this.fileLogConfig?.enabled) {
+      this.flushLog();
+    }
     this.eventBus.clear();
   }
 }

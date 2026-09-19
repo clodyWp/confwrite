@@ -12,7 +12,7 @@
  * 
  * 测试环境使用 MockSubagentExecutor。
  */
-import { writeFileSync, existsSync, mkdirSync } from 'node:fs';
+import { writeFileSync, existsSync, mkdirSync, appendFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import type { SubagentExecutor, ExecutorResult } from './executor.js';
 import type { Task } from './types.js';
@@ -25,6 +25,8 @@ export interface PiExecutorOptions {
   timeoutMs?: number;
   /** Tools to enable for the sub-agent */
   tools?: string[];
+  /** 启用详细日志 */
+  verboseLog?: boolean;
 }
 
 const DEFAULT_TOOLS = ['read', 'write', 'edit', 'powershell'];
@@ -85,7 +87,62 @@ export class PiSubagentExecutor implements SubagentExecutor {
       mkdirSync(dirname(taskContextPath), { recursive: true });
       writeFileSync(taskContextPath, task.prompt, 'utf-8');
 
-      // 5. Send prompt — prompt() resolves only after full run finishes
+      // 5. Setup verbose logging
+      const verboseLog = this.options.verboseLog ?? true;
+      const logPath = join(this.options.projectDir, 'logs', `subagent-${task.id}.log`);
+      if (verboseLog) {
+        mkdirSync(dirname(logPath), { recursive: true });
+        this.writeLog(logPath, `[${new Date().toISOString()}] Task started: ${task.id}\n`);
+      }
+
+      // 6. Subscribe to session events for detailed logging
+      let turnCount = 0;
+      let toolCallCount = 0;
+      const unsubscribe = session.subscribe((event: any) => {
+        if (!verboseLog) return;
+        
+        const now = new Date().toISOString();
+        
+        switch (event.type) {
+          case 'turn_start':
+            turnCount++;
+            this.writeLog(logPath, `[${now}] Turn #${turnCount} started\n`);
+            break;
+          case 'turn_end':
+            // 记录 turn 结束时的工具结果
+            if (event.toolResults && Array.isArray(event.toolResults)) {
+              for (const result of event.toolResults) {
+                const status = result.isError ? 'error' : 'success';
+                const errorInfo = result.isError && result.content ? 
+                  ` - ${JSON.stringify(result.content).substring(0, 200)}` : '';
+                this.writeLog(logPath, `[${now}] Turn #${turnCount} tool result: ${result.toolName} (${status}${errorInfo})\n`);
+              }
+            }
+            this.writeLog(logPath, `[${now}] Turn #${turnCount} ended\n`);
+            break;
+          case 'tool_execution_start':
+            toolCallCount++;
+            // 记录工具参数（截断）
+            const args = event.args ? JSON.stringify(event.args).substring(0, 300) : '{}';
+            this.writeLog(logPath, `[${now}] Tool #${toolCallCount}: ${event.toolName} started with args: ${args}\n`);
+            break;
+          case 'tool_execution_end':
+            const endStatus = event.isError ? 'error' : 'success';
+            // 如果是错误，记录错误信息
+            const errorDetail = event.isError && event.result ? 
+              ` - ${JSON.stringify(event.result).substring(0, 300)}` : '';
+            this.writeLog(logPath, `[${now}] Tool #${toolCallCount}: ${event.toolName} ended (${endStatus}${errorDetail})\n`);
+            break;
+          case 'agent_start':
+            this.writeLog(logPath, `[${now}] Agent started processing\n`);
+            break;
+          case 'agent_end':
+            this.writeLog(logPath, `[${now}] Agent finished processing\n`);
+            break;
+        }
+      });
+
+      // 7. Send prompt — prompt() resolves only after full run finishes
       const userPrompt = [
         `Read the task file at: ${taskContextPath}`,
         `Execute the task described in that file.`,
@@ -93,9 +150,20 @@ export class PiSubagentExecutor implements SubagentExecutor {
         `When done, provide a brief summary of what you produced.`,
       ].join('\n');
 
+      if (verboseLog) {
+        this.writeLog(logPath, `[${new Date().toISOString()}] Sending prompt to LLM...\n`);
+      }
+
       await session.prompt(userPrompt);
 
-      // 6. Extract output and check result
+      // 8. Cleanup subscription
+      unsubscribe();
+
+      if (verboseLog) {
+        this.writeLog(logPath, `[${new Date().toISOString()}] Task completed. Turns: ${turnCount}, Tool calls: ${toolCallCount}, Duration: ${Date.now() - start}ms\n`);
+      }
+
+      // 9. Extract output and check result
       const assistantMsg = session.messages.filter(m => m.role === 'assistant').pop();
       
       if (!assistantMsg) {
@@ -125,7 +193,7 @@ export class PiSubagentExecutor implements SubagentExecutor {
       // Extract text output (may be empty if LLM only used tools)
       const output = this.extractOutput(assistantMsg);
 
-      // 7. Cleanup
+      // 10. Cleanup
       session.dispose();
 
       return {
@@ -140,6 +208,17 @@ export class PiSubagentExecutor implements SubagentExecutor {
         output: `Execution failed: ${errorMsg}`,
         durationMs: Date.now() - start,
       };
+    }
+  }
+
+  /**
+   * Write log entry to file
+   */
+  private writeLog(logPath: string, message: string): void {
+    try {
+      appendFileSync(logPath, message, 'utf-8');
+    } catch {
+      // Silently ignore log write errors
     }
   }
 

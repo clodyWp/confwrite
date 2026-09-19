@@ -215,14 +215,36 @@ export class Dispatcher {
 
   /**
    * 读取版本化草稿文件
+   * 查找最高版本号，确保 reviewer/fixer 读到最新版本（保留历史版本）
    * @param chapterId 章节 ID
-   * @param round 轮次（用于定位版本化文件）
+   * @param round 轮次（仅用于 fallback 提示）
    */
   private readChapterDraft(chapterId: string, round: number): string {
-    // 版本化文件: ch001-v1.md
-    const versionedPath = join(this.projectDir, 'drafts', 'chapters', `${chapterId}-v${round}.md`);
-    if (existsSync(versionedPath)) {
-      return readFileSync(versionedPath, 'utf-8');
+    const draftsDir = join(this.projectDir, 'drafts', 'chapters');
+    
+    // 扫描目录找最高版本号: ch001-v1.md, ch001-v2.md, ...
+    try {
+      const { readdirSync } = require('node:fs');
+      const files = readdirSync(draftsDir);
+      const versionPattern = new RegExp(`^${chapterId}-v(\\d+)\\.md$`);
+      let maxVersion = -1;
+      
+      for (const file of files) {
+        const match = file.match(versionPattern);
+        if (match) {
+          const version = parseInt(match[1], 10);
+          if (version > maxVersion) {
+            maxVersion = version;
+          }
+        }
+      }
+      
+      if (maxVersion > 0) {
+        const latestPath = join(draftsDir, `${chapterId}-v${maxVersion}.md`);
+        return readFileSync(latestPath, 'utf-8');
+      }
+    } catch {
+      // Directory doesn't exist or read error, fall through
     }
     
     // Fallback: 非版本化文件（向后兼容）
@@ -231,7 +253,7 @@ export class Dispatcher {
       return readFileSync(legacyPath, 'utf-8');
     }
     
-    return `[草稿缺失] 章节 ${chapterId} 的草稿文件不存在 (round ${round}): ${versionedPath}`;
+    return `[草稿缺失] 章节 ${chapterId} 的草稿文件不存在 (round ${round})`;
   }
 
   private readReviewReport(chapterId: string, round: number): string {

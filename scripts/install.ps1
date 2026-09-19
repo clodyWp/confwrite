@@ -9,11 +9,15 @@ try {
     Write-Host "📦 ConfWrite 安装" -ForegroundColor Cyan
     Write-Host "================="
 
-    # 1. 编译
+    # 1. 安装依赖（确保 shims 为当前平台正确生成）
+    Write-Host "📥 安装依赖..."
+    npm install
+
+    # 2. 编译
     Write-Host "🔨 编译 TypeScript..."
     npm run build
 
-    # 2. 安装到 pi（使用本地目录）
+    # 3. 安装到 pi（使用本地目录）
     Write-Host "🔌 安装到 pi..."
     pi install $ProjectDir
 

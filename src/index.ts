@@ -42,6 +42,8 @@ export interface WriteLoopOptions {
   getContextTokens?: () => number | null;
   /** 触发上下文压缩 */
   triggerCompact?: () => Promise<void>;
+  /** 启用文件日志 */
+  fileLogEnabled?: boolean;
 }
 
 export async function runWriteLoop(
@@ -78,8 +80,12 @@ export async function runWriteLoop(
 
   const config = { ...DEFAULT_SCHEDULER_CONFIG, ...configOverride };
   
-  // 初始化日志系统
-  const loggingSystem = new LoggingSystem(notify);
+  // 初始化日志系统（启用文件日志）
+  const loggingSystem = new LoggingSystem(notify, {
+    enabled: options?.fileLogEnabled ?? true,
+    projectDir,
+    filename: 'confwrite-log.json',
+  });
   
   const scheduler = new SubagentScheduler(config);
   const executor = executorOverride ?? new PiSubagentExecutor({ projectDir });
@@ -264,6 +270,18 @@ export async function runWriteLoop(
   return result;
 }
 
+/**
+ * Herdr 集成：长时间运行时通知 herdr "我在忙"
+ * 防止 herdr 误判为 idle 状态
+ */
+function herdrBlock(pi: ExtensionAPI, active: boolean, label?: string) {
+  try {
+    pi.events.emit('herdr:blocked', { active, label });
+  } catch {
+    // herdr 未安装时忽略
+  }
+}
+
 export default function (pi: ExtensionAPI) {
   // ============ /confwrite:init ============
   pi.registerCommand('confwrite:init', {
@@ -333,21 +351,26 @@ export default function (pi: ExtensionAPI) {
     handler: async (args, ctx) => {
       const projectDir = args ? resolve(ctx.cwd || process.cwd(), args) : ctx.cwd || process.cwd();
       
-      await runWriteLoop(projectDir, (msg, level) => ctx.ui.notify(msg, level), {
-        getContextTokens: () => {
-          const usage = ctx.getContextUsage();
-          return usage?.tokens ?? null;
-        },
-        triggerCompact: async () => {
-          return new Promise<void>((resolve, reject) => {
-            ctx.compact({
-              customInstructions: '保留 ConfWrite 项目状态、章节进度和最近的关键操作',
-              onComplete: () => resolve(),
-              onError: (err) => reject(err),
+      herdrBlock(pi, true, 'ConfWrite 写作中');
+      try {
+        await runWriteLoop(projectDir, (msg, level) => ctx.ui.notify(msg, level), {
+          getContextTokens: () => {
+            const usage = ctx.getContextUsage();
+            return usage?.tokens ?? null;
+          },
+          triggerCompact: async () => {
+            return new Promise<void>((resolve, reject) => {
+              ctx.compact({
+                customInstructions: '保留 ConfWrite 项目状态、章节进度和最近的关键操作',
+                onComplete: () => resolve(),
+                onError: (err) => reject(err),
+              });
             });
-          });
-        },
-      });
+          },
+        });
+      } finally {
+        herdrBlock(pi, false);
+      }
     },
   });
 
@@ -400,21 +423,26 @@ export default function (pi: ExtensionAPI) {
 
       ctx.ui.notify(`恢复项目: ${status.phase} (${status.name})`, 'info');
       
-      await runWriteLoop(projectDir, (msg, level) => ctx.ui.notify(msg, level), {
-        getContextTokens: () => {
-          const usage = ctx.getContextUsage();
-          return usage?.tokens ?? null;
-        },
-        triggerCompact: async () => {
-          return new Promise<void>((resolve, reject) => {
-            ctx.compact({
-              customInstructions: '保留 ConfWrite 项目状态、章节进度和最近的关键操作',
-              onComplete: () => resolve(),
-              onError: (err) => reject(err),
+      herdrBlock(pi, true, 'ConfWrite 写作中');
+      try {
+        await runWriteLoop(projectDir, (msg, level) => ctx.ui.notify(msg, level), {
+          getContextTokens: () => {
+            const usage = ctx.getContextUsage();
+            return usage?.tokens ?? null;
+          },
+          triggerCompact: async () => {
+            return new Promise<void>((resolve, reject) => {
+              ctx.compact({
+                customInstructions: '保留 ConfWrite 项目状态、章节进度和最近的关键操作',
+                onComplete: () => resolve(),
+                onError: (err) => reject(err),
+              });
             });
-          });
-        },
-      });
+          },
+        });
+      } finally {
+        herdrBlock(pi, false);
+      }
     },
   });
 

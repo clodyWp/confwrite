@@ -344,10 +344,18 @@ export const phase4c: PhaseDefinition = {
 export const phase4d: PhaseDefinition = {
   id: '4d',
   name: '修复',
-  validate: () => ({ ok: true }),
+  validate: (ctx) => {
+    const fixable = Object.values(ctx.state.chapters).filter(
+      ch => ch.status === 'reviewed' && ch.lastReviewVerdict === 'revise',
+    );
+    if (fixable.length === 0) {
+      return { ok: false, error: '没有需要修复的章节' };
+    }
+    return { ok: true };
+  },
   async execute(ctx) {
     const fixable = Object.entries(ctx.state.chapters)
-      .filter(([_, ch]) => ch.status === 'reviewed' && needsFix(ctx, ch.id))
+      .filter(([_, ch]) => ch.status === 'reviewed' && ch.lastReviewVerdict === 'revise')
       .map(([id]) => id);
 
     return {
@@ -359,7 +367,13 @@ export const phase4d: PhaseDefinition = {
   exits: [
     {
       target: '4b',
-      condition: (ctx) => !Object.values(ctx.state.chapters).some(ch => ch.status === 'fixing'),
+      condition: (ctx) => {
+        // Exit only when no chapters need fixing anymore
+        // (all reviewed chapters have been processed by fixers)
+        return !Object.values(ctx.state.chapters).some(
+          ch => ch.status === 'reviewed' && ch.lastReviewVerdict === 'revise',
+        );
+      },
     },
   ],
 };

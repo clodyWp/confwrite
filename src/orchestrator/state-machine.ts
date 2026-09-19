@@ -92,49 +92,53 @@ export class StateMachine {
     const ctx: PhaseContext = { state, projectDir: this.projectDir };
 
     // 1. Check exit conditions — advance if met (before validate/execute)
-    for (const exit of definition.exits) {
-      if (exit.condition(ctx)) {
-        // Clear current phase's waitPoint if set
-        if (definition.waitPoint && state.waitPoint && state.waitPoint.phase === phase) {
-          state.waitPoint = undefined;
-        }
+    // NOTE: Previously, exit checks were skipped on first entry (phaseJustEntered)
+    // to prevent phases from being skipped on resume. However, this caused Phase 4b
+    // to block when no 'written' chapters existed. The correct fix is to ensure
+    // each phase's exit condition actually verifies work was done (see Phase 4d fix).
+      for (const exit of definition.exits) {
+        if (exit.condition(ctx)) {
+          // Clear current phase's waitPoint if set
+          if (definition.waitPoint && state.waitPoint && state.waitPoint.phase === phase) {
+            state.waitPoint = undefined;
+          }
 
-        const previousPhase = phase;
-        this.advance(exit.target, state, previousPhase);
-        const targetDef = phases.get(exit.target);
+          const previousPhase = phase;
+          this.advance(exit.target, state, previousPhase);
+          const targetDef = phases.get(exit.target);
 
-        // If target phase has a waitPoint, set it immediately so the loop pauses
-        if (targetDef?.waitPoint) {
-          state.waitPoint = {
-            phase: exit.target,
-            reason: targetDef.waitPoint.reason,
-            instructions: targetDef.waitPoint.instructions,
-            createdAt: new Date().toISOString(),
-          };
-          this.store.save(state);
+          // If target phase has a waitPoint, set it immediately so the loop pauses
+          if (targetDef?.waitPoint) {
+            state.waitPoint = {
+              phase: exit.target,
+              reason: targetDef.waitPoint.reason,
+              instructions: targetDef.waitPoint.instructions,
+              createdAt: new Date().toISOString(),
+            };
+            this.store.save(state);
+            return {
+              phase: exit.target,
+              phaseName: targetDef.name || exit.target,
+              action: 'wait_point',
+              message: targetDef.waitPoint.reason,
+              advanced: true,
+              previousPhase,
+              atWaitPoint: true,
+              waitPointReason: targetDef.waitPoint.reason,
+              waitPointInstructions: targetDef.waitPoint.instructions,
+            };
+          }
+
           return {
             phase: exit.target,
-            phaseName: targetDef.name || exit.target,
-            action: 'wait_point',
-            message: targetDef.waitPoint.reason,
+            phaseName: targetDef?.name || exit.target,
+            action: 'phase_entered',
+            message: `进入 ${targetDef?.name || exit.target}`,
             advanced: true,
             previousPhase,
-            atWaitPoint: true,
-            waitPointReason: targetDef.waitPoint.reason,
-            waitPointInstructions: targetDef.waitPoint.instructions,
           };
         }
-
-        return {
-          phase: exit.target,
-          phaseName: targetDef?.name || exit.target,
-          action: 'phase_entered',
-          message: `进入 ${targetDef?.name || exit.target}`,
-          advanced: true,
-          previousPhase,
-        };
       }
-    }
 
     // 2. Validate prerequisites
     const validation = definition.validate(ctx);

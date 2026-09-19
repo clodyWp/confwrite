@@ -11,11 +11,15 @@ cd "$PROJECT_DIR"
 echo "📦 ConfWrite 安装"
 echo "================="
 
-# 1. 编译
+# 1. 安装依赖（确保 shims 为当前平台正确生成）
+echo "📥 安装依赖..."
+npm install
+
+# 2. 编译
 echo "🔨 编译 TypeScript..."
 npm run build
 
-# 2. 安装到 pi（使用本地目录）
+# 3. 安装到 pi（使用本地目录）
 echo "🔌 安装到 pi..."
 pi install "$PROJECT_DIR"
 
