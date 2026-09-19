@@ -88,7 +88,10 @@ export async function runWriteLoop(
   });
   
   const scheduler = new SubagentScheduler(config);
-  const executor = executorOverride ?? new PiSubagentExecutor({ projectDir });
+  const executor = executorOverride ?? new PiSubagentExecutor({
+    projectDir,
+    maxTurnsPerTask: config.maxTurnsPerTask,
+  });
   const runner = new SchedulerRunner(
     scheduler,
     executor,

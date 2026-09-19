@@ -32,6 +32,8 @@ export interface PiExecutorOptions {
   timeoutMs?: number;
   /** 显式覆盖工具集（优先于角色最小权限表，用作逃生口/测试） */
   tools?: string[];
+  /** 单任务 turn 硬上限。0 / undefined = 不限 */
+  maxTurnsPerTask?: number;
   /** 启用详细日志 */
   verboseLog?: boolean;
 }
@@ -82,6 +84,82 @@ export function resolveToolsForTask(
   const shell = resolveShellTool(options?.platform ?? platform());
   const table = buildToolsByRole(shell);
   return [...(table[taskType] ?? BASE_TOOLS)];
+}
+
+// ============ Turn 硬预算 ============
+
+/**
+ * Turn 预算：与具体病理无关的兜底。
+ * 工具最小权限消除了「字数校验」这一具体循环，但迭代不止这一种形态；
+ * 预算保证无论模型出于什么理由反复折腾，都不会无限进行下去。
+ */
+export class TurnBudget {
+  private count = 0;
+
+  constructor(private readonly max?: number) {}
+
+  /** 记录一次 turn 开始；返回 true 表示已超限、应中止 */
+  tick(): boolean {
+    this.count++;
+    if (!this.max || this.max <= 0) return false;
+    return this.count > this.max;
+  }
+
+  /** 已发生的 turn 数 */
+  get turns(): number {
+    return this.count;
+  }
+
+  /** 生效的上限；不限模式为 0 */
+  get limit(): number {
+    return this.max && this.max > 0 ? this.max : 0;
+  }
+
+  /** 是否已超出上限（不限模式恒为 false） */
+  get exceeded(): boolean {
+    return this.limit > 0 && this.count > this.limit;
+  }
+}
+
+/**
+ * 任务结果判定输入
+ */
+export interface OutcomeInput {
+  hasAssistantMessage: boolean;
+  budgetExhausted: boolean;
+  turnCount: number;
+  maxTurns: number;
+  stopReason?: string;
+  errorMessage?: string;
+  textOutput?: string;
+}
+
+/**
+ * 判定任务成败。
+ *
+ * 判定顺序至关重要：**预算中止必须最先判定**。因为 abort() 之后
+ * stopReason 可能仍是 'stop'，若顺序写错，被中止的任务会被当成成功，
+ * 预算就形同虚设。
+ *
+ * 顺序：预算中止 > 无响应 > LLM 错误 > 成功
+ */
+export function classifyOutcome(input: OutcomeInput): { success: boolean; output: string } {
+  if (!input.hasAssistantMessage) {
+    return { success: false, output: 'No assistant response received' };
+  }
+  if (input.budgetExhausted) {
+    return {
+      success: false,
+      output: `Turn budget exhausted (${input.turnCount} > ${input.maxTurns})`,
+    };
+  }
+  if (input.stopReason === 'error' || input.errorMessage) {
+    return {
+      success: false,
+      output: `LLM error: ${input.errorMessage || 'Unknown error'} (stopReason: ${input.stopReason})`,
+    };
+  }
+  return { success: true, output: input.textOutput ?? '' };
 }
 
 export class PiSubagentExecutor implements SubagentExecutor {
@@ -149,17 +227,37 @@ export class PiSubagentExecutor implements SubagentExecutor {
         this.writeLog(logPath, `[${new Date().toISOString()}] Task started: ${task.id}\n`);
       }
 
-      // 6. Subscribe to session events for detailed logging
+      // 6. Subscribe to session events
+      //    预算与计数位于 verboseLog 早退之前 —— 否则关闭日志时预算会静默失效。
       let turnCount = 0;
       let toolCallCount = 0;
+      const budget = new TurnBudget(this.options.maxTurnsPerTask);
+      let budgetExhausted = false;
+
       const unsubscribe = session.subscribe((event: any) => {
+        // —— 始终生效：turn 计数 + 硬预算 ——
+        if (event.type === 'turn_start') {
+          turnCount++;
+          if (budget.tick()) {
+            budgetExhausted = true;
+            void session.abort();
+            if (verboseLog) {
+              this.writeLog(
+                logPath,
+                `[${new Date().toISOString()}] [budget] turn ${turnCount} 超过上限 ${budget.limit}，中止\n`,
+              );
+            }
+          }
+        } else if (event.type === 'tool_execution_start') {
+          toolCallCount++;
+        }
+
         if (!verboseLog) return;
         
         const now = new Date().toISOString();
         
         switch (event.type) {
           case 'turn_start':
-            turnCount++;
             this.writeLog(logPath, `[${now}] Turn #${turnCount} started\n`);
             break;
           case 'turn_end':
@@ -175,7 +273,6 @@ export class PiSubagentExecutor implements SubagentExecutor {
             this.writeLog(logPath, `[${now}] Turn #${turnCount} ended\n`);
             break;
           case 'tool_execution_start':
-            toolCallCount++;
             // 记录工具参数（截断）
             const args = event.args ? JSON.stringify(event.args).substring(0, 300) : '{}';
             this.writeLog(logPath, `[${now}] Tool #${toolCallCount}: ${event.toolName} started with args: ${args}\n`);
@@ -217,42 +314,26 @@ export class PiSubagentExecutor implements SubagentExecutor {
         this.writeLog(logPath, `[${new Date().toISOString()}] Task completed. Turns: ${turnCount}, Tool calls: ${toolCallCount}, Duration: ${Date.now() - start}ms\n`);
       }
 
-      // 9. Extract output and check result
+      // 9. 提取输出并判定结果
+      //    判定顺序（预算优先）由 classifyOutcome 集中处理并单测覆盖
       const assistantMsg = session.messages.filter(m => m.role === 'assistant').pop();
-      
-      if (!assistantMsg) {
-        session.dispose();
-        return {
-          success: false,
-          output: 'No assistant response received',
-          durationMs: Date.now() - start,
-        };
-      }
 
-      // Check for errors
-      // stopReason: 'stop' = text reply, 'toolUse' = called tools (both OK)
-      // stopReason: 'error' or errorMessage present = failure
-      const stopReason = (assistantMsg as any).stopReason;
-      const errorMessage = (assistantMsg as any).errorMessage;
-      
-      if (stopReason === 'error' || errorMessage) {
-        session.dispose();
-        return {
-          success: false,
-          output: `LLM error: ${errorMessage || 'Unknown error'} (stopReason: ${stopReason})`,
-          durationMs: Date.now() - start,
-        };
-      }
-
-      // Extract text output (may be empty if LLM only used tools)
-      const output = this.extractOutput(assistantMsg);
+      const verdict = classifyOutcome({
+        hasAssistantMessage: !!assistantMsg,
+        budgetExhausted,
+        turnCount,
+        maxTurns: budget.limit,
+        stopReason: assistantMsg ? (assistantMsg as any).stopReason : undefined,
+        errorMessage: assistantMsg ? (assistantMsg as any).errorMessage : undefined,
+        textOutput: assistantMsg ? this.extractOutput(assistantMsg) : undefined,
+      });
 
       // 10. Cleanup
       session.dispose();
 
       return {
-        success: true,
-        output,
+        success: verdict.success,
+        output: verdict.output,
         durationMs: Date.now() - start,
       };
     } catch (error) {

@@ -203,6 +203,7 @@ export interface SchedulerConfig {
   compactThresholdTokens: number; // 上下文压缩阈值（tokens），0 表示不自动压缩
   rateLimitDelayMs: number;      // 429 限流固定等待时间（毫秒）
   maxTaskRetries: number;        // runner 内单任务重试上限
+  maxTurnsPerTask: number;       // 单任务 turn 硬上限（0 表示不限）
 }
 
 export const DEFAULT_SCHEDULER_CONFIG: SchedulerConfig = {
@@ -218,4 +219,5 @@ export const DEFAULT_SCHEDULER_CONFIG: SchedulerConfig = {
   compactThresholdTokens: 0,      // 默认不自动压缩
   rateLimitDelayMs: 60000,        // 429 固定等待 60s
   maxTaskRetries: 1,              // runner 内重试 1 次
+  maxTurnsPerTask: 40,            // 单任务 turn 硬上限（0 不限）—— 防无界迭代
 };
