@@ -14,6 +14,7 @@
  */
 import { writeFileSync, existsSync, mkdirSync, appendFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
+import { platform } from 'node:os';
 import type { SubagentExecutor, ExecutorResult } from './executor.js';
 import type { Task } from './types.js';
 
@@ -29,7 +30,7 @@ export interface PiExecutorOptions {
   verboseLog?: boolean;
 }
 
-const DEFAULT_TOOLS = ['read', 'write', 'edit', 'powershell'];
+const DEFAULT_TOOLS = ['read', 'write', 'edit', platform() === 'win32' ? 'powershell' : 'bash'];
 
 export class PiSubagentExecutor implements SubagentExecutor {
   private options: PiExecutorOptions;
