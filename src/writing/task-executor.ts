@@ -61,6 +61,12 @@ export class TaskExecutor {
 
 你正在撰写文档的章节：**${task.chapterId}**（第 ${round} 轮）
 
+## 素材文件位置
+
+所有素材文件都位于 **reference_material/** 目录下。素材包中列出的文件路径都是相对于这个目录的。
+
+例如，素材包中显示 招标技术要求.md，实际路径是 reference_material/招标技术要求.md。
+
 ## 素材包
 
 ${kitContent}
