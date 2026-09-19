@@ -57,6 +57,9 @@ export class KitGenerator {
       lines.push(`共 ${mapping.relatedFiles.length} 个相关文件：\n`);
       for (const file of mapping.relatedFiles) {
         lines.push(`- **${file.filename}** (${file.category})`);
+        if (file.relativePath) {
+          lines.push(`  - 路径: ${file.relativePath}`);
+        }
         if (file.summary) {
           lines.push(`  - 摘要: ${file.summary.slice(0, 100)}...`);
         }
