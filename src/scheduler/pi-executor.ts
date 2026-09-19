@@ -10,12 +10,6 @@
  * 3. stopReason: 'stop' = 纯文本回复, 'toolUse' = 调用了工具（都算成功）
  * 4. stopReason: 'error' 或 errorMessage 存在 = 失败
  * 
- * 工具最小权限（feat/tool-least-privilege）：
- * writer/fixer 不获得 shell。原因：shell 提供了「统计字数」这一廉价
- * 测量手段，而测量手段是病理性校验循环（measure→adjust→measure→…）
- * 得以自持的必要条件。移除它，循环在物理上无法成立。
- * reviewer 保留 shell —— 度量篇幅本就是它的职责。
- * 
  * 测试环境使用 MockSubagentExecutor。
  */
 import { writeFileSync, existsSync, mkdirSync, appendFileSync } from 'node:fs';
@@ -30,7 +24,7 @@ export interface PiExecutorOptions {
   model?: string;
   thinkingLevel?: 'off' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | 'max';
   timeoutMs?: number;
-  /** 显式覆盖工具集（优先于角色最小权限表，用作逃生口/测试） */
+  /** Tools to enable for the sub-agent */
   tools?: string[];
   /** 单任务 turn 硬上限。0 / undefined = 不限 */
   maxTurnsPerTask?: number;
@@ -38,53 +32,7 @@ export interface PiExecutorOptions {
   verboseLog?: boolean;
 }
 
-// ============ 工具最小权限 ============
-
-/**
- * 所有角色的基础能力。
- * 不含 shell —— 这是刻意的：任何需要 shell 的角色必须显式声明。
- */
-export const BASE_TOOLS: string[] = ['read', 'write', 'edit'];
-
-/** 按操作系统解析 shell 工具名 */
-export function resolveShellTool(plat: string = platform()): 'bash' | 'powershell' {
-  return plat === 'win32' ? 'powershell' : 'bash';
-}
-
-/**
- * 角色 → 工具集。
- * 仅 reviewer 拥有 shell；researcher/planner/diagram 尚未实现，
- * 先按最小权限给出，避免默认获得测量手段。
- */
-function buildToolsByRole(shell: string): Record<string, string[]> {
-  return {
-    writer: [...BASE_TOOLS],
-    fixer: [...BASE_TOOLS],
-    reviewer: ['read', 'write', shell],
-    researcher: [...BASE_TOOLS],
-    planner: [...BASE_TOOLS],
-    diagram: [...BASE_TOOLS],
-  };
-}
-
-/**
- * 解析某任务类型应获得的工具集。
- *
- * 优先级：override > 角色表 > BASE_TOOLS（fail-safe 最小权限）
- * 未识别类型回退到 BASE_TOOLS 而非含 shell 的集合 —— 默认可失败
- * 但要失败在「权限更小」一侧。
- */
-export function resolveToolsForTask(
-  taskType: string,
-  options?: { platform?: string; override?: string[] },
-): string[] {
-  if (options?.override && options.override.length > 0) {
-    return [...options.override];
-  }
-  const shell = resolveShellTool(options?.platform ?? platform());
-  const table = buildToolsByRole(shell);
-  return [...(table[taskType] ?? BASE_TOOLS)];
-}
+const DEFAULT_TOOLS = ['read', 'write', 'edit', platform() === 'win32' ? 'powershell' : 'bash'];
 
 // ============ Turn 硬预算 ============
 
@@ -178,8 +126,7 @@ export class PiSubagentExecutor implements SubagentExecutor {
         await import('@earendil-works/pi-coding-agent');
 
       // 1. Build session options
-      //    工具按角色最小权限解析（writer/fixer 无 shell，reviewer 有）
-      const tools = resolveToolsForTask(task.type, { override: this.options.tools });
+      const tools = this.options.tools ?? DEFAULT_TOOLS;
       const sessionOpts: any = {
         sessionManager: SessionManager.inMemory(),
         cwd: this.options.projectDir,
