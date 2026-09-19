@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { TaskExecutor } from '../../src/writing/task-executor.js';
+import { TaskExecutor, MIN_CHAPTER_CHARS } from '../../src/writing/task-executor.js';
 import type { Task } from '../../src/scheduler/types.js';
 
 describe('TaskExecutor', () => {
@@ -68,8 +68,8 @@ describe('TaskExecutor', () => {
 
       expect(prompt).toContain('深度要求');
       expect(prompt).toContain('输出格式');
-      // 验证新的深度要求
-      expect(prompt).toContain('5000 字');
+      // 验证深度要求（篇幅为 ch 级，见 prompt-length-level.test.ts）
+      expect(prompt).toContain(`${MIN_CHAPTER_CHARS} 字`);
       expect(prompt).toContain('300 字');
       expect(prompt).toContain('描述→画图→总结');
     });
