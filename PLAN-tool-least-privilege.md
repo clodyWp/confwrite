@@ -1,8 +1,46 @@
 # 开发计划：工具最小权限 + Turn 硬预算
 
 - **分支**：`feat/tool-least-privilege`（基点为 `master` @ `4d30e14`）
-- **状态**：⏳ 待审阅
+- **状态**：🔄 实施中（P1–P5 完成，P6–P8 待办）
 - **前置依赖**：`feat/responsibility-separation` 的 prompt 改动（本分支**不含**，见 §7 Q1）
+
+---
+
+## 实施进度
+
+| 阶段 | 内容 | 状态 | 提交 |
+|------|------|------|------|
+| P0 | 等 t3 任务结束 | ✅ 已停（429） | — |
+| P1 | 写工具权限测试（Red） | ✅ 20 例 | `f4208e4` |
+| P2 | 实现角色工具表（Green） | ✅ | `f4208e4` |
+| P3 | 输出目录预创建 | ✅ **无需代码**（见下） | — |
+| P4 | turn 硬预算 | ✅ 23 例 | `2fb533c` |
+| P5 | 全量回归 | ✅ 641 通过 | — |
+| P6 | 真机验证 + 采基线 | ⏳ 待办 | — |
+| P7 | 对抗性验证 | ⏳ 待办 | — |
+| P8 | 汇总报告 | ⏳ 待办 | — |
+
+### P3 结论：无需代码变更
+
+原计划要求在 executor 中预创建 `drafts/chapters` 与 `review`，因为移除
+writer 的 shell 会同时移除其 `mkdir` 能力。
+
+查证 pi 的 write 工具实现后确认**此担忧不成立**：
+
+```javascript
+// pi/dist/core/tools/write.js
+description: "Write content to a file. ... Automatically creates parent directories."
+// Create parent directories if needed.
+await ops.mkdir(dir);
+```
+
+故 `drafts/chapters` 与 `review` 在写入时会被自动创建，预创建属冗余，不实施。
+（`src/commands/init.ts:44-60` 也已声明这两个目录。）
+
+### P6 必须优先验证的风险
+
+`void session.abort()` 之后，`await session.prompt()` 是否**确实会 resolve**。
+若不会，任务将挂死而非失败。这是本分支唯一无法靠单测覆盖的假设。
 
 ---
 
