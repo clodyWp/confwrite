@@ -127,6 +127,26 @@ describe('跨平台中文字体（Bug 18）', () => {
     }
   });
 
+  it('带标签的连接线也用跨平台字体（回归守卫）', () => {
+    // 实测漏网：generator.ts 的 generateConnection 曾单独硬编码
+    // 'Microsoft YaHei, SimHei, sans-serif'，仅覆盖节点不覆盖边标签。
+    const withLabel: SVGConnection[] = [{ from: 'n0', to: 'n1', label: 'HTTPS' }];
+    const r = generateSVG(nodes(0, 1), withLabel, style);
+
+    const fams = fontFamilies(r.svg);
+    expect(fams.length).toBeGreaterThan(0);
+    for (const ff of fams) {
+      expect(ff).toContain('Noto Sans CJK');
+      expect(ff).not.toBe('Microsoft YaHei, SimHei, sans-serif');
+    }
+  });
+
+  it('SVG 中不得出现任何硬编码的 Windows 字体串', () => {
+    const withLabel: SVGConnection[] = [{ from: 'n0', to: 'n1', label: 'gRPC' }];
+    const r = generateSVG(nodes(0, 1), withLabel, style);
+    expect(r.svg).not.toContain('font-family="Microsoft YaHei');
+  });
+
   it('字体族本身不自带引号（避免 Windows/字体匹配问题）', () => {
     expect(CJK_FONT_FAMILY).not.toMatch(/["']/);
   });

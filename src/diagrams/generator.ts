@@ -289,7 +289,8 @@ function generateConnection(
   if (conn.label) {
     const midX = (x1 + x2) / 2;
     const midY = (y1 + y2) / 2;
-    const fontFamily = 'Microsoft YaHei, SimHei, sans-serif';
+    // 字体族：与节点一致，用跨平台回退链（Bug 18 漏网处）
+    const fontFamily = CJK_FONT_FAMILY;
     parts.push(`<text x="${midX}" y="${midY - 8}" text-anchor="middle" fill="${colors.text}" font-size="11" font-family="${fontFamily}">${escapeXml(conn.label)}</text>`);
   }
 
