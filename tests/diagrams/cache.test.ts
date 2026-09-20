@@ -236,6 +236,20 @@ describe('DiagramCache.shouldRegenerate —— 产物缺失时（Bug 29）', () 
     expect(reloaded.shouldRegenerate('ch001-fig1', CONTENT)).toBe(true);
   });
 
+  it('记录里的文件名为空（从未真正生成）→ 必须重新生成', () => {
+    const cache = new DiagramCache(TEST_DIR);
+    cache.setEntry('ch001-fig1', {
+      sourceHash: cache.computeHash(CONTENT),
+      svgFile: '', // 旧版本在 mmdc 不可用时写下的记录
+      pngFile: '',
+      generatedAt: new Date().toISOString(),
+    });
+    cache.save();
+
+    const reloaded = new DiagramCache(TEST_DIR);
+    expect(reloaded.shouldRegenerate('ch001-fig1', CONTENT)).toBe(true);
+  });
+
   it('源已变更 → 仍按哈希判定需要重新生成', () => {
     const cache = new DiagramCache(TEST_DIR);
     seed(cache, true, true);

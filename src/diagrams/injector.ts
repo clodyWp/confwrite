@@ -16,15 +16,7 @@
  */
 import { existsSync } from 'node:fs';
 import { join, relative } from 'node:path';
-
-/**
- * diagram-start/end 标记正则
- *
- * 必须与 extractor.ts 的 DIAGRAM_BLOCK_RE 保持一致 ——
- * 本模块按出现顺序计数推导 diagramId（`${chapterId}-fig${index+1}`），
- * 与图表生成阶段（pipeline.ts）使用同一套编号规则，否则会对不上图。
- */
-const DIAGRAM_BLOCK_RE = /<!--\s*diagram-start\s*\n([\s\S]*?)\n\s*diagram-end\s*-->/g;
+import { extractDiagrams } from './extractor.js';
 
 /** 注入选项 */
 export interface InjectDiagramsOptions {
@@ -87,28 +79,36 @@ export function injectDiagrams(
 
   const missing: string[] = [];
   let injected = 0;
-  let index = 0;
 
-  // 直接在替换回调里处理，不依赖 extractor 的返回顺序：
-  // diagramId 与生成阶段（pipeline.ts）使用同一规则 `${chapterId}-fig${index+1}`
-  const replaced = content.replace(
-    DIAGRAM_BLOCK_RE,
-    (match: string, markerContent: string) => {
-      const diagramId = `${chapterId}-fig${index + 1}`;
-      index++;
+  // 用提取器定位块（Bug 33）
+  //
+  // 原实现自己在本地维护一份 DIAGRAM_BLOCK_RE，只认 diagram-start ——
+  // 而提取器两种格式都认（diagram-start + ```mermaid 向后兼容）。
+  // 结果是：mermaid 格式的图能被提取、能被生成，却**永远注入不进来**。
+  // 真机事故：fixer 按审阅意见把 ch001 的图表改写成 mermaid 后，
+  // 该章 3 张图全部丢失，文档里只剩 3 个 mermaid 代码块。
+  //
+  // 现在两端共用同一套块定位与编号（文档顺序），不可能再错位。
+  const blocks = extractDiagrams(content, chapterId);
 
-      const absPath = join(figuresDir, `${diagramId}.${format}`);
-      if (!existsSync(absPath)) {
-        missing.push(diagramId);
-        return match; // 图不存在 → 原样保留，便于排查
-      }
+  let out = content;
+  for (const block of blocks) {
+    const diagramId = `${chapterId}-fig${block.index + 1}`;
+    const absPath = join(figuresDir, `${diagramId}.${format}`);
 
-      const title = extractMarkerTitle(markerContent) || diagramId;
-      const relPath = toPosix(relative(options.documentDir, absPath));
-      injected++;
-      return `![${sanitizeAlt(title)}](${relPath})`;
-    },
-  );
+    if (!existsSync(absPath)) {
+      missing.push(diagramId);
+      continue; // 图不存在 → 原样保留，便于排查
+    }
 
-  return { content: replaced, injected, missing };
+    const relPath = toPosix(relative(options.documentDir, absPath));
+    const alt = sanitizeAlt(block.title) || diagramId;
+    const markdown = `![${alt}](${relPath})`;
+
+    // 用函数式替换，避免 alt/路径里的 $ 被当作替换模式
+    out = out.replace(block.rawBlock, () => markdown);
+    injected++;
+  }
+
+  return { content: out, injected, missing };
 }

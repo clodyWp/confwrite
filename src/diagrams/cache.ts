@@ -72,7 +72,10 @@ export class DiagramCache {
     // 已完成，后续组装拿不到任何图片。
     const figuresDir = join(this.projectDir, 'figures');
     for (const f of [entry.svgFile, entry.pngFile]) {
-      if (f && !existsSync(join(figuresDir, f))) {
+      // 空文件名 = 从未生成过（旧版本在 mmdc 不可用时写过 svgFile='' 的记录），
+      // 必须视为需要重新生成 —— 否则这类记录会永远冒充「已缓存」，
+      // 即使之后装好了 mmdc 也不会重试（Bug 35）。
+      if (!f || !existsSync(join(figuresDir, f))) {
         return true;
       }
     }

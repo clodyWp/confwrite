@@ -26,6 +26,13 @@ export interface PipelineOptions {
   skipValidation?: boolean;
   /** 是否跳过 PNG 转换 */
   skipPng?: boolean;
+  /**
+   * 覆盖 mmdc 可用性探测（测试/CI 用）
+   *
+   * 不传则实际探测。mmdc 不可用时 mermaid 块原样保留为代码块 ——
+   * 这是可接受的降级，但**必须如实报告**（见 mermaidKeptAsCode）。
+   */
+  mmdcAvailable?: boolean;
 }
 
 /**
@@ -40,6 +47,13 @@ export interface PipelineResult {
   skipped: number;
   /** 失败的数量 */
   failed: number;
+  /**
+   * mermaid 块因缺少 mmdc 而**原样保留为代码块**的数量（Bug 35）
+   *
+   * 这些图**没有生成**，不能计入 generated。单独计数以便如实报告：
+   * 「N 个 mermaid 图表未渲染（需要 mmdc）」。与 Bug 16（缺 pandoc）同类。
+   */
+  mermaidKeptAsCode: number;
   /** 错误列表 */
   errors: Array<{ diagramId: string; error: string }>;
   /** 验证警告 */
@@ -69,14 +83,33 @@ export class DiagramPipeline {
       return [];
     }
 
-    const files = readdirSync(chaptersDir).filter(f => f.endsWith('.md'));
-    const allBlocks: DiagramBlock[] = [];
-
-    for (const file of files) {
-      const content = readFileSync(join(chaptersDir, file), 'utf-8');
+    // 每章只取**最新版本**（Bug 34）
+    //
+    // 原实现 readdirSync 扫描所有 chXXX-v*.md。而注入只针对最新版本
+    // （dispatcher.readChapterDraft / assembler 都取最高版本号）——
+    // 于是从旧版本提取出来的图永远注入不了，成为孤儿。真机事故里
+    // ch001-fig1/fig2 由 v1 的 diagram-start 提取，但 v2 已改成 mermaid，
+    // 文档里 0 处引用，22 张图只注入了 20 张。
+    //
+    // 旧版本还可能与新版本争夺同一个 diagramId（同章同序号），
+    // 结果是「内容来自 v1、位置在 v2」，更难排查。
+    const latestByChapter = new Map<string, { file: string; version: number }>();
+    for (const file of readdirSync(chaptersDir)) {
+      if (!file.endsWith('.md')) continue;
       const chapterId = this.extractChapterId(file);
-      const blocks = extractDiagrams(content, chapterId);
-      allBlocks.push(...blocks);
+      const m = file.match(/-v(\d+)\.md$/);
+      const version = m ? parseInt(m[1], 10) : 0; // 无版本号视为 v0（向后兼容）
+
+      const current = latestByChapter.get(chapterId);
+      if (!current || version > current.version) {
+        latestByChapter.set(chapterId, { file, version });
+      }
+    }
+
+    const allBlocks: DiagramBlock[] = [];
+    for (const [chapterId, { file }] of latestByChapter) {
+      const content = readFileSync(join(chaptersDir, file), 'utf-8');
+      allBlocks.push(...extractDiagrams(content, chapterId));
     }
 
     return allBlocks;
@@ -91,6 +124,7 @@ export class DiagramPipeline {
       generated: 0,
       skipped: 0,
       failed: 0,
+      mermaidKeptAsCode: 0,
       errors: [],
       warnings: [],
     };
@@ -122,16 +156,33 @@ export class DiagramPipeline {
 
         // 处理 mermaid 格式（向后兼容）
         if (block.format === 'mermaid') {
-          const mermaidResult = await this.processMermaidBlock(block, diagramId, figuresDir, options);
-          if (mermaidResult.success) {
+          // 原实现把「mermaid 渲染失败」也算进 generated（注释写着
+          // 「仍然算成功，因为保留了原始内容」）—— 于是阶段汇报
+          // 「图表生成完成 (N 个图表)」里混着根本没生成的图（Bug 35）。
+          // 真机事故：mmdc 未安装，ch001 的 3 张 mermaid 图全部没生成，
+          // 流程却报成功，最终文档里这 3 处只有 mermaid 代码块。
+          const mermaidResult = await this.processMermaidBlock(
+            block, diagramId, figuresDir, options,
+          );
+
+          if (mermaidResult.rendered) {
             result.generated++;
-          } else {
-            // mermaid 处理失败，保留原始代码块，不阻塞流程
+          } else if (mermaidResult.success) {
+            // 缺 mmdc：保留代码块是允许的降级，但如实计入并告警
+            result.mermaidKeptAsCode++;
             result.warnings.push({
               diagramId,
-              warnings: [`mermaid 渲染失败，保留原始代码块: ${mermaidResult.error}`],
+              warnings: [
+                '未渲染为图片（mmdc 不可用），已原样保留 mermaid 代码块。' +
+                '如需生成图片请安装 mmdc：npm install -g @mermaid-js/mermaid-cli',
+              ],
             });
-            result.generated++; // 仍然算成功，因为保留了原始内容
+          } else {
+            result.failed++;
+            result.errors.push({
+              diagramId,
+              error: `mermaid 渲染失败: ${mermaidResult.error ?? '未知错误'}`,
+            });
           }
           continue;
         }
@@ -220,54 +271,56 @@ export class DiagramPipeline {
     diagramId: string,
     figuresDir: string,
     options: PipelineOptions
-  ): Promise<{ success: boolean; error?: string }> {
+  ): Promise<{ success: boolean; rendered: boolean; error?: string }> {
     const mmdPath = join(figuresDir, `${diagramId}.mmd`);
     const svgPath = join(figuresDir, `${diagramId}.svg`);
     const pngPath = join(figuresDir, `${diagramId}.png`);
 
-    // 写入 mermaid 文件
+    // 写入 mermaid 文件（即使不渲染也保留，便于人工排查/后续补渲染）
     writeFileSync(mmdPath, block.description, 'utf-8');
 
-    // 尝试用 mmdc 渲染
-    const mmdcAvailable = this.checkMmdc();
-    
-    if (mmdcAvailable) {
-      try {
-        const { execFileSync } = await import('node:child_process');
-        execFileSync('mmdc', ['-i', mmdPath, '-o', svgPath], { stdio: 'pipe' });
+    // options.mmdcAvailable 可覆盖探测结果（测试/CI 用）
+    const mmdcAvailable = options.mmdcAvailable ?? this.checkMmdc();
 
-        // 生成 PNG
-        if (!options.skipPng) {
-          await convertToPng(svgPath, pngPath);
-        }
+    if (!mmdcAvailable) {
+      // mmdc 不可用：保留原始 mermaid 代码块，**但不写 manifest 记录**。
+      //
+      // 原实现会写一条 svgFile=''/pngFile='' 的记录并返回 success ——
+      // 两个问题（Bug 35）：
+      //   1. 计入 generated，阶段汇报「图表生成完成」而图并不存在；
+      //   2. 空文件名字段是 falsy，会绕过 Bug 29 加上的产物存在性检查，
+      //      导致 shouldRegenerate 永远认为「已缓存」，之后再也不会重试。
+      // 所以正确做法是：不记录（下次进来仍然需要生成），并让调用方
+      // 通过 rendered:false 得知实情。
+      // 同时清掉可能存在的旧记录（历史上写过空文件名的条目）
+      this.cache.removeEntry(diagramId);
+      return { success: true, rendered: false, error: 'mmdc 不可用' };
+    }
 
-        // 更新缓存
-        this.cache.setEntry(diagramId, {
-          sourceHash: this.cache.computeHash(block.rawContent),
-          svgFile: `${diagramId}.svg`,
-          pngFile: `${diagramId}.png`,
-          generatedAt: new Date().toISOString(),
-        });
+    try {
+      const { execFileSync } = await import('node:child_process');
+      execFileSync('mmdc', ['-i', mmdPath, '-o', svgPath], { stdio: 'pipe' });
 
-        return { success: true };
-      } catch (error) {
-        // mmdc 渲染失败，保留原始 mermaid 代码块
-        return {
-          success: false,
-          error: error instanceof Error ? error.message : String(error),
-        };
+      // 生成 PNG
+      if (!options.skipPng) {
+        await convertToPng(svgPath, pngPath);
       }
-    } else {
-      // mmdc 不可用，保留原始 mermaid 代码块
-      // 不生成 SVG/PNG，Markdown 渲染器可以处理 mermaid 代码块
+
+      // 更新缓存
       this.cache.setEntry(diagramId, {
         sourceHash: this.cache.computeHash(block.rawContent),
-        svgFile: '', // 空表示未生成
-        pngFile: '',
+        svgFile: `${diagramId}.svg`,
+        pngFile: `${diagramId}.png`,
         generatedAt: new Date().toISOString(),
       });
 
-      return { success: true };
+      return { success: true, rendered: true };
+    } catch (error) {
+      return {
+        success: false,
+        rendered: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
     }
   }
 

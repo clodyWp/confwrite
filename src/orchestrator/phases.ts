@@ -471,15 +471,27 @@ export const phase5: PhaseDefinition = {
     const pipeline = new DiagramPipeline(ctx.projectDir);
     const result = await pipeline.run();
 
+    // 如实汇报（Bug 35）：未渲染的 mermaid 图不能算「生成完成」。
+    // 缺 mmdc 时给出可执行的修复指引，而不是一句笼统的完成。
+    const parts = [`生成 ${result.generated} 个图表`];
+    if (result.skipped > 0) parts.push(`跳过 ${result.skipped} 个（缓存）`);
+    if (result.mermaidKeptAsCode > 0) {
+      parts.push(`⚠️ ${result.mermaidKeptAsCode} 个 mermaid 未渲染（缺 mmdc，保留为代码块）`);
+    }
+    if (result.failed > 0) parts.push(`❌ ${result.failed} 个失败`);
+
     return {
       action: 'generate_diagrams',
-      message: `Phase 5: 图表生成完成 (${result.generated} 个图表)`,
+      message: `Phase 5: 图表处理完成 — ${parts.join('，')}`,
       params: {
         projectDir: ctx.projectDir,
         diagramCount: result.total,
         generated: result.generated,
         skipped: result.skipped,
+        mermaidKeptAsCode: result.mermaidKeptAsCode,
+        failed: result.failed,
         errors: result.errors,
+        warnings: result.warnings,
       },
     };
   },
