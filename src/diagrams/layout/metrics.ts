@@ -175,8 +175,13 @@ export interface SolveInput {
   layers: number[][][];
   nodeWidths: number[];
   nodeHeights: number[];
-  /** 横切容器（右侧竖条）；没有则 null */
-  crosscut: { width: number; nodeCount: number } | null;
+  /**
+   * 横切容器（右侧竖条）；没有则 null
+   *
+   * height 是竖条**自己需要的**最小高度（标签 + 留白 + 节点）。
+   * 不够时它会把画布撑高 —— 否则内部的节点会被挤到重叠。
+   */
+  crosscut: { width: number; nodeCount: number; height?: number } | null;
   /** 标题占用的高度 */
   titleHeight: number;
   metrics: LayoutMetrics;
@@ -224,10 +229,12 @@ export function solveCanvas(input: SolveInput): CanvasSize {
     });
 
     const crosscutWidth = input.crosscut ? metrics.rowGap + input.crosscut.width : 0;
+    // 竖条按自己所需高度参与画布高度计算
+    const effectiveHeight = Math.max(contentHeight, input.crosscut?.height ?? 0);
 
     return {
       width: metrics.margin * 2 + contentWidth + crosscutWidth,
-      height: metrics.margin * 2 + input.titleHeight + contentHeight,
+      height: metrics.margin * 2 + input.titleHeight + effectiveHeight,
     };
   };
 
