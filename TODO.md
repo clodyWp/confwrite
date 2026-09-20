@@ -1,16 +1,38 @@
 # 待办与交接（ConfWrite）
 
-> 最后更新：2026-09-20（第二轮：bug 修复与导出打通）
-> 当前分支：`fix/diagram-and-export` @ `ef0c34f`
+> 最后更新：2026-09-20（第三轮：重跑打通，收尾干净）
+> 当前分支：`fix/diagram-and-export` @ `89153fd`
 > 基线：`feat/ch-level-length` @ `39fdf88`
-> 测试：**722 通过**（82 文件）
-> Bug 详情见 **`BUGS.md`**（27 个，19 已修）——本文档只记「现在在哪 / 下一步做什么」
+> 测试：**735 通过**（84 文件）
+> Bug 详情见 **`BUGS.md`**（30 个，22 已修）——本文档只记「现在在哪 / 下一步做什么」
 
 ---
 
 ## 1. 一句话现状
 
-**「沿用现有 15 章产物 → 图表准确 → 导出完整 Word」这条路径已经走通。**
+**「沿用现有 15 章产物 → 图表准确 → 导出完整 Word」已端到端走通，
+而且是自动化流程自己走完的（不是我手工调代码生成的）。**
+
+```
+Phase 5 → 6     14:07:53   29 张图（分层配色）+ 组装 → 停在人工确认点
+Phase 6 → 7     14:09:43   定稿
+Phase 7 → 8     14:09:43   导出
+Phase 8 → done  14:09:44   ✓ 收尾干净，无报错
+```
+
+**产物**：`output/final.docx` = 1,472,671 B，29 张内嵌图片 + TOC 域 +
+Heading1 × 1 / Heading2 × 16 / Heading3 × 67。
+
+**共修 22 个 bug**（分三轮）：
+
+| 轮次 | 修了什么 | 数量 |
+|---|---|---|
+| 一轮 | 图表准确 + 图表进文档 + 阶段/导出接线 | 14 |
+| 二轮 | 导出质量（分隔符、图片、标题、层级、锚点） | 5 |
+| 三轮 | 重跑暴露的静默错误（28/29/30） | 3 |
+
+**未做**：第 4 阶段（写作/审阅/修复）的收敛性问题（7 个 bug）。
+本次刻意不碰 —— 目标是复用已有草稿，不重做第 4 阶段。
 
 - 图表从「全部单色、29 张一张没进文档」修到「5 层配色、29/29 全部内嵌」
 - 导出从「pandoc 直接报错、流程永不到达」修到「`output/final.docx` = 1,470,199 B，29 张图 + TOC + 正确标题层级」
@@ -78,11 +100,18 @@ final.docx 结构
 | 25 | 分隔符 `---` 被 pandoc 当 YAML 块 → **导出失败** | 分隔符改 `***` |
 | 26 | pandoc 按进程 cwd 找图 → **29 张图全未嵌入** | `execFileSync` 传 `cwd` |
 | 27 | 导出未解析 title → 缺标题、未降级 | `?? assembler.resolveDocumentTitle(projectDir)` |
+| **28** | **残留产物让阶段跳过自己的工作**（pandoc 报错却报 done） | **新增 `onEnter` 钩子；phase 6/7/8 进入时清自己的残件** |
+| **29** | **图表缓存只比哈希、不查产物是否存在**（29 张图全 skip） | **`shouldRegenerate` 先查 svg/png 是否存在** |
+| **30** | **`done` 未注册进 phases 表 → 收尾报错** | **注册终态阶段 + 循环顶部 tick 前判终态** |
+
+> Bug 28/29/30 都是**把 5→8 真正跑通**才暴露的静默错误，
+> 详见 `BUGS.md` §1b。其中 28 的真相比我最初描述的更严重：
+> 不只是「失败被掩盖」，而是出口检查在前、**阶段根本不会执行导出**。
 
 ### 3.4 测试
 
 ```
-全量 722 通过（82 文件），新增 57 个
+全量 735 通过（84 文件），新增 70 个
 
 关键：三组测试验证过「未修复时会失败」，避免写出无意义的测试
   tests/orchestrator/circuit-breaker-stop.test.ts   expected 2000 to be less than 50
@@ -96,7 +125,8 @@ final.docx 结构
 
 ### 4.1 P0：无
 
-本轮目标已达成。**没有阻断性待办。**
+本轮目标已达成 —— **完整 Word 文件已由自动化流程产出**（§1）。
+**没有阻断性待办。**
 
 ### 4.2 P1：第 4 阶段收敛性（未做，需用户决策）
 
@@ -130,7 +160,7 @@ final.docx 结构
 | # | 事项 | 说明 |
 |---|------|------|
 | 1 | Bug 11：`finalization.json` 字段命名 | `chapters: 67` 实际是 `## ` 计数，真实 15 章；`images: 0` |
-| 2 | 让流程自己走完 `5→6→7→8` | 需重启 t3 的 pi 加载新 dist，然后重发命令 |
+| ~~2~~ | ~~让流程自己走完 `5→6→7→8`~~ | ✅ **已完成**（14:07→14:09，见 §1） |
 | 3 | 篇幅下限 8000 是否合适 | 实测 ch003–ch015 产出 12,067–17,917 字，均在 8000 以上 |
 | 4 | turn 预算阈值校准 | 当前 40；历史最大 34，ch002/ch011 的 fixer 触发过 41 次 |
 | 5 | 结构稳定性（节数 37→6 波动） | 上次修复**可能**已间接解决（不再需要碎片化迎合要求），待新数据 |
@@ -156,7 +186,7 @@ master ──── 4d30e14 (v0.7.3 已发布基线)
   └── 1e502ff (tag: before-ch-level-fix)
         └── feat/tool-least-privilege              （回退点，已被取代）
               └── feat/ch-level-length @ 39fdf88    （ch 级篇幅 + bash 恢复，已验证）
-                    └── fix/diagram-and-export @ ef0c34f  ← 当前，19 个修复
+                    └── fix/diagram-and-export @ 89153fd  ← 当前，22 个修复
 ```
 
 `fix/diagram-and-export` **线性包含** `feat/ch-level-length` 的全部提交。
@@ -347,7 +377,7 @@ grep -c 'injectDiagrams'          dist/assemble/assembler.js       # >0
 grep -c 'exportDocument'          dist/orchestrator/phases.js      # >0
 
 # ② 构建与测试
-npm run build && npm test      # 722 通过
+npm run build && npm test      # 735 通过
 
 # ③ 直接复现导出（不跑整个流程）
 node -e "
@@ -381,13 +411,17 @@ npm run build     # ← 必须，dist/ 不被 git 跟踪
 | 项 | 值 |
 |----|-----|
 | 路径 | `/home/water/Projects/t3/projects/LmERP2` |
-| 阶段 | **`6`（组装完成，停在「请审阅初稿」等待点，属设计行为）** |
+| 阶段 | **`done` ✓（流程自行走完，收尾无报错）** |
 | 章节 | **15 章全部 completed** |
 | 草稿 | `drafts/chapters/ch001-v1.md` … `ch015-v1.md` |
-| 图表 | `figures/` 29 张（png+svg，分层配色） |
+| 图表 | `figures/` 29 张（png+svg，分层配色 7~8 色） |
 | 产物 | `assembly/merged-v1.md`、`output/final.md`、`output/final.docx` |
-| herdr | t3 会话 `wD:p1`，idle |
-| 手工改动 | ch002/ch006/ch007/ch010/ch011 由 `pending` 改为 `completed`（绕开 Bug 3）。备份：`project-state.json.bak-115911`、`project-state.json.bak-rerun-*` |
+| 阶段轨迹 | `5 → 6`（14:07:53）→ `6 → 7`（14:09:43）→ `7 → 8` → `8 → done`（14:09:44） |
+| herdr | t3 会话 `wD:p1`，idle（已加载 14:12 构建的 dist） |
+| 手工改动 | ① ch002/ch006/ch007/ch010/ch011 由 `pending` 改为 `completed`（绕开 Bug 3）<br>② 重跑前清空 `figures/`、`assembly/`、`output/`（保留 `drafts/`）<br>备份：`project-state.json.bak-115911` / `.bak-rerun-*` / `.bak-prerun-*` |
+
+> 所有产物都是**第二次重跑真实产出的** —— 不是我手工调代码生成的。
+> 从用户「确认」到出 Word 文件约 20 秒。
 
 ---
 
