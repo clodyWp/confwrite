@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { layoutDiagram, type LayoutResult } from '../../src/diagrams/layout/index.js';
-import { isOrthogonal } from '../../src/diagrams/layout/route.js';
+import { isOrthogonal, saneStart } from '../../src/diagrams/layout/route.js';
 import { textWidth } from '../../src/diagrams/layout/metrics.js';
 import { parseStructuredDiagram, type DiagramSpec } from '../../src/diagrams/structured-parser.js';
 import { getDefaultDiagramStyle } from '../../src/diagrams/style.js';
@@ -322,6 +322,50 @@ edges:
     });
   });
 
+  describe('连线起点必须朝向目标（用户反馈：黏在图形边上）', () => {
+    // 真机问题：s3_dispatch 的右邻居就是目标，起点却落在**左边**中点，
+    // 首段还往上走 —— 线从背向的一侧出发再绕整个节点兜回来，
+    // 视觉上就像黏在节点边框上。根因是绕行时把四条边全枚举、只按总长择优。
+
+    it('交叉流程图：每条边的出口都朝向目标', () => {
+      const r = layoutDiagram(CROSSCUT, style, '故障处置全流程');
+      const box = new Map(r.nodes.map(n => [n.id, n]));
+      for (const e of r.edges) {
+        const from = box.get(e.from)!;
+        const to = box.get(e.to)!;
+        expect(saneStart(e.points, from, to), `${e.from}→${e.to} 的起点背向目标`).toBe(true);
+      }
+    });
+
+    it('密集图：每条边的出口都朝向目标', () => {
+      const r = layoutDiagram(DENSE, style, '密集流程');
+      const box = new Map(r.nodes.map(n => [n.id, n]));
+      const bad: string[] = [];
+      for (const e of r.edges) {
+        const from = box.get(e.from)!;
+        const to = box.get(e.to)!;
+        if (!saneStart(e.points, from, to)) bad.push(`${e.from}→${e.to}`);
+      }
+      // 允许极少数（拥挤到只能让步时），但不能成片
+      expect(bad.length, bad.join(', ')).toBeLessThanOrEqual(1);
+    });
+
+    it('起点落在源节点边框上（不是内部、也不悬空）', () => {
+      const r = layoutDiagram(CROSSCUT, style, '故障处置全流程');
+      const box = new Map(r.nodes.map(n => [n.id, n]));
+      for (const e of r.edges) {
+        const b = box.get(e.from)!;
+        const p = e.points[0];
+        const onBorder =
+          Math.abs(p.x - b.x) <= 1.5 ||
+          Math.abs(p.x - (b.x + b.w)) <= 1.5 ||
+          Math.abs(p.y - b.y) <= 1.5 ||
+          Math.abs(p.y - (b.y + b.h)) <= 1.5;
+        expect(onBorder, `${e.from}→${e.to} 起点 (${p.x},${p.y}) 不在边框上`).toBe(true);
+      }
+    });
+  });
+
   describe('真实数据（LmERP2）', () => {
     const specs = loadRealSpecs();
 
@@ -329,11 +373,26 @@ edges:
       if (specs.length === 0) return;
 
       const failures: string[] = [];
+      let saneViolations = 0;
+      let edgeTotal = 0;
+
       for (const { name, spec } of specs) {
         const r = layoutDiagram(spec, style);
         for (const problem of auditLayout(r)) {
           failures.push(`${name}: ${problem}`);
         }
+        const box = new Map(r.nodes.map(n => [n.id, n]));
+        for (const e of r.edges) {
+          edgeTotal++;
+          const from = box.get(e.from);
+          const to = box.get(e.to);
+          if (from && to && !saneStart(e.points, from, to)) saneViolations++;
+        }
+      }
+
+      // 起点朝向：208 条边里最多允许 2 条为"通畅优先"让步
+      if (saneViolations > 2) {
+        failures.push(`起点朝向：${saneViolations}/${edgeTotal} 条背向目标（上限 2）`);
       }
       expect(failures, `\n${failures.join('\n')}`).toEqual([]);
     });

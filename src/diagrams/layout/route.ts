@@ -321,6 +321,56 @@ function staircaseRoute(
   return deduped.length >= 2 ? deduped : null;
 }
 
+/**
+ * 连线首段是否"朝向目标"
+ *
+ * 真机问题：s3_dispatch 的右邻居就是目标，但起点却落在**左边**中点、
+ * 首段还往**上**走 —— 线从背向目标的一侧出发，再绕着整个节点兜回来，
+ * 视觉上就像黏在节点边框上。
+ *
+ * 起因是 routeAround 把四条边全枚举、只按总长度择优。加这条硬约束后，
+ * 出口/入口必须朝着对方，绕行只在"朝向目标的那一侧"展开。
+ */
+export function saneStart(points: Point[], from: Box, to: Box): boolean {
+  const origin = points[0];
+  const next = points[1];
+  if (!next) return true;
+
+  const towardX = to.x + to.w / 2 - (from.x + from.w / 2);
+  const towardY = to.y + to.h / 2 - (from.y + from.h / 2);
+
+  // 以**目标相对源的主方向**为准：同一行的邻居（Δy 只有零点几像素）
+  // 应当按水平判断，否则"从下方绕过去"会被误判成背向目标。
+  const horizontalDominant = Math.abs(towardX) >= Math.abs(towardY);
+  const eps = 1.5;
+
+  // ① 起点所在的边必须朝向目标
+  //    真机问题：目标的右邻居就在旁边，起点却落在**左边**中点，
+  //    线从背向的一侧出发再绕整个节点回来，看起来像黏在边框上。
+  if (horizontalDominant) {
+    const onLeft = Math.abs(origin.x - from.x) <= eps;
+    const onRight = Math.abs(origin.x - (from.x + from.w)) <= eps;
+    if (towardX > 0 && onLeft) return false;
+    if (towardX < 0 && onRight) return false;
+  } else {
+    const onTop = Math.abs(origin.y - from.y) <= eps;
+    const onBottom = Math.abs(origin.y - (from.y + from.h)) <= eps;
+    if (towardY > 0 && onTop) return false;
+    if (towardY < 0 && onBottom) return false;
+  }
+
+  // ② 首段不能朝远离目标的方向走
+  const dx = next.x - origin.x;
+  const dy = next.y - origin.y;
+
+  if (horizontalDominant) {
+    if (Math.abs(dx) > 0.5 && Math.abs(dy) <= 0.5) return towardX * dx >= 0;
+    return true; // 首段竖直：允许（先绕到自由通道再横移）
+  }
+  if (Math.abs(dy) > 0.5 && Math.abs(dx) <= 0.5) return towardY * dy >= 0;
+  return true;
+}
+
 /** 折线总长（用于在通畅候选里挑最短的） */
 function polylineLength(points: Point[]): number {
   let total = 0;
@@ -422,8 +472,14 @@ function routeAround(
   const sides: Side[] = ['right', 'left', 'bottom', 'top'];
   const channels = channelCandidates(boxes, bounds, from, to, clearance);
 
+  // 候选分两批：先只考虑"出口/入口朝向对方"的组合，实在无解再放宽
+  const combos: Array<[Side, Side]> = [];
   for (const aSide of sides) {
-    for (const bSide of sides) {
+    for (const bSide of sides) combos.push([aSide, bSide]);
+  }
+
+  for (const [aSide, bSide] of combos) {
+    {
       const a = anchorOn(from, aSide);
       const b = anchorOn(to, bSide);
       const aVertical = aSide === 'top' || aSide === 'bottom';
@@ -443,8 +499,14 @@ function routeAround(
 
   const clear = candidates.filter(p => routeIsClear(p, boxes, [from, to]));
   if (clear.length === 0) return null;
-  clear.sort((p, q) => polylineLength(p) - polylineLength(q));
-  return clear[0];
+
+  // 用**真实折线**判断首段朝向（不能用 anchor 之间的方向 ——
+  // 折线的第一段未必就是 a→b 那一段），否则会挑出一条从背向的一侧
+  // 出发、再绕整个节点回来的线（视觉上像黏在边框上）
+  const sane = clear.filter(p => saneStart(p, from, to));
+  const pool = sane.length > 0 ? sane : clear;
+  pool.sort((p, q) => polylineLength(p) - polylineLength(q));
+  return pool[0];
 }
 
 /**
@@ -541,8 +603,11 @@ export function routeEdges(
   const best = (from: Box, to: Box, candidates: Point[][]): Point[] => {
     const clear = candidates.filter(p => routeIsClear(p, allBoxes, [from, to]));
     if (clear.length > 0) {
-      clear.sort((a, b) => polylineLength(a) - polylineLength(b));
-      return clear[0];
+      // 先挑"首段朝向目标"的，避免线从背向的一侧出发绕一圈
+      const sane = clear.filter(p => saneStart(p, from, to));
+      const pool = sane.length > 0 ? sane : clear;
+      pool.sort((a, b) => polylineLength(a) - polylineLength(b));
+      return pool[0];
     }
     // 兜底顺序：通用绕行 → 多段阶梯 → 实在不行才用第一个候选
     const around = routeAround(from, to, allBoxes, bounds, clearance);
