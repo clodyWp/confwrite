@@ -95,14 +95,41 @@ ${longPara('架构设计还考虑了多租户隔离、数据分片、缓存策�
 
 ${longPara('系统架构图如下所示，展示了各层之间的交互关系和数据流向。这个架构图清晰地呈现了系统的核心组件和它们之间的通信方式，帮助读者理解系统的整体结构。架构图采用分层展示的方式，从客户端到数据库，每一层都有明确的职责和接口定义。')}
 
-\`\`\`mermaid
-graph TD
-    A[客户端] --> B[API网关]
-    B --> C[业务服务]
-    C --> D[数据库]
-    C --> E[消息队列]
-    E --> F[异步处理器]
-\`\`\`
+<!-- diagram-start
+type: architecture
+title: 系统架构
+description: |
+  展示客户端、网关、服务与数据层之间的调用关系。
+containers:
+  - id: client
+    label: 客户端
+    nodes: [web]
+  - id: backend
+    label: 服务端
+    nodes: [gw, svc, db]
+nodes:
+  - id: web
+    label: 客户端
+    container: client
+  - id: gw
+    label: API 网关
+    container: backend
+    high_weight: true
+  - id: svc
+    label: 业务服务
+    container: backend
+  - id: db
+    label: 数据库
+    container: backend
+edges:
+  - from: web
+    to: gw
+    label: HTTPS
+  - from: gw
+    to: svc
+  - from: svc
+    to: db
+diagram-end -->
 
 ${longPara('从架构图可以看出，API 网关作为统一入口，负责请求路由、认证鉴权和限流控制。业务服务处理核心逻辑，通过数据库进行数据持久化，同时通过消息队列与异步处理器通信，实现耗时任务的异步处理。这种设计使得系统既能保证响应速度，又能处理复杂的业务流程。架构图展示了系统的核心设计思想，即通过分层和异步化来提高系统的可扩展性和可靠性。这种架构模式在现代分布式系统中被广泛采用，能够有效应对高并发场景。')}
 

@@ -202,14 +202,35 @@ export class KnowledgeLoader {
     }
 
     // 添加格式说明
+    // 这里曾经教写手「请直接使用 mermaid 代码块」—— 而写手提示词里写着
+    // 「严禁使用 mermaid」，两处注入互相矛盾，真机事故里 fixer 就是据此
+    // 把 ch001 的图改写成 mermaid，导致该章 3 张图全部丢失。
+    // 现在统一为项目自己的结构化格式（containers / nodes / edges）。
     parts.push('## 图表格式\n');
-    parts.push('请直接使用 mermaid 代码块：\n');
-    parts.push('```mermaid');
-    parts.push('graph TD');
-    parts.push('    A[模块A] --> B[模块B]');
-    parts.push('    B --> C[模块C]');
+    parts.push('使用 diagram-start 标记，内部是 containers / nodes / edges 三段：\n');
+    parts.push('```');
+    parts.push('<!-- diagram-start');
+    parts.push('type: flow');
+    parts.push('title: 图表标题');
+    parts.push('description: |');
+    parts.push('  一段话说明这张图表达什么（不画进图里）');
+    parts.push('containers:');
+    parts.push('  - id: c1');
+    parts.push('    label: 分组名');
+    parts.push('    nodes: [a, b]');
+    parts.push('nodes:');
+    parts.push('  - id: a');
+    parts.push('    label: 节点文字（≤12 字）');
+    parts.push('    container: c1');
+    parts.push('    high_weight: true   # 全图最多 3 个');
+    parts.push('edges:');
+    parts.push('  - from: a');
+    parts.push('    to: b');
+    parts.push('    label: 短标签');
+    parts.push('diagram-end -->');
     parts.push('```\n');
-    parts.push('Phase 5 会自动渲染为 SVG/PNG 图片。');
+    parts.push('硬性要求：**一张图装下全部内容**（引擎会压缩到 ≤1 页，');
+    parts.push('节点 ≤24、连线 ≤28），不要拆成多张；**严禁 mermaid 代码块**。');
 
     return parts.join('\n');
   }

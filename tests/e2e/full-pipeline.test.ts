@@ -418,6 +418,6 @@ describe('Full E2E Pipeline', () => {
     const finalContent = readFileSync(outputPath, 'utf-8');
     expect(finalContent.length).toBeGreaterThan(500);
     expect(finalContent).toContain('系统架构设计'); // from mock writer content
-    expect(finalContent).toContain('mermaid'); // mock writer includes mermaid diagram
+    expect(finalContent).toContain('diagram-start'); // mock writer includes a structured diagram
   });
 });

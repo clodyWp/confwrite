@@ -32,13 +32,6 @@ export interface PipelineOptions {
   skipValidation?: boolean;
   /** 是否跳过 PNG 转换 */
   skipPng?: boolean;
-  /**
-   * 覆盖 mmdc 可用性探测（测试/CI 用）
-   *
-   * 不传则实际探测。mmdc 不可用时 mermaid 块原样保留为代码块 ——
-   * 这是可接受的降级，但**必须如实报告**（见 mermaidKeptAsCode）。
-   */
-  mmdcAvailable?: boolean;
 }
 
 /**
@@ -54,12 +47,13 @@ export interface PipelineResult {
   /** 失败的数量 */
   failed: number;
   /**
-   * mermaid 块因缺少 mmdc 而**原样保留为代码块**的数量（Bug 35）
+   * 格式不受支持、无法渲染的图表数量（当前 = mermaid 块）
    *
-   * 这些图**没有生成**，不能计入 generated。单独计数以便如实报告：
-   * 「N 个 mermaid 图表未渲染（需要 mmdc）」。与 Bug 16（缺 pandoc）同类。
+   * 这些图**没有生成**，不能计入 generated。项目已废弃 mermaid，
+   * 只支持结构化格式（containers / nodes / edges）。如实计数是为了
+   * 让写手/fixer 知道该改哪里，而不是静默少一张图（Bug 35 的教训）。
    */
-  mermaidKeptAsCode: number;
+  unsupportedFormat: number;
   /** 错误列表 */
   errors: Array<{ diagramId: string; error: string }>;
   /** 验证警告 */
@@ -130,7 +124,7 @@ export class DiagramPipeline {
       generated: 0,
       skipped: 0,
       failed: 0,
-      mermaidKeptAsCode: 0,
+      unsupportedFormat: 0,
       errors: [],
       warnings: [],
     };
@@ -160,38 +154,22 @@ export class DiagramPipeline {
           continue;
         }
 
-        // 处理 mermaid 格式（向后兼容）
+        // mermaid 已废弃：不渲染，但**明确报错**而不是静默跳过。
+        //
+        // 项目已统一到结构化格式（containers / nodes / edges）。写手提示词和
+        // 知识注入都写着「严禁 mermaid」，如果这里静默少一张图，就会出现
+        // 「文档里没有图，也没人知道为什么」——Bug 33/35 都是这么来的。
         if (block.format === 'mermaid') {
-          // 原实现把「mermaid 渲染失败」也算进 generated（注释写着
-          // 「仍然算成功，因为保留了原始内容」）—— 于是阶段汇报
-          // 「图表生成完成 (N 个图表)」里混着根本没生成的图（Bug 35）。
-          // 真机事故：mmdc 未安装，ch001 的 3 张 mermaid 图全部没生成，
-          // 流程却报成功，最终文档里这 3 处只有 mermaid 代码块。
-          const mermaidResult = await this.processMermaidBlock(
-            block, diagramId, figuresDir, options,
-          );
-
-          if (mermaidResult.rendered) {
-            result.generated++;
-          } else if (mermaidResult.success) {
-            // 缺 mmdc：保留代码块是允许的降级，但如实计入并告警
-            result.mermaidKeptAsCode++;
-            result.warnings.push({
-              diagramId,
-              warnings: [
-                '未渲染为图片（mmdc 不可用），已原样保留 mermaid 代码块。' +
-                '如需生成图片请安装 mmdc：npm install -g @mermaid-js/mermaid-cli',
-              ],
-            });
-          } else {
-            result.failed++;
-            result.errors.push({
-              diagramId,
-              error: `mermaid 渲染失败: ${mermaidResult.error ?? '未知错误'}`,
-            });
-          }
+          result.unsupportedFormat++;
+          result.errors.push({
+            diagramId,
+            error:
+              '图表使用了 mermaid 代码块，已废弃不再渲染。' +
+              '请改写为 diagram-start 结构化格式（containers / nodes / edges）',
+          });
           continue;
         }
+
 
         // 解析为节点与连接
         //
@@ -296,79 +274,5 @@ export class DiagramPipeline {
     return match ? match[1] : 'unknown';
   }
 
-  /**
-   * 处理 mermaid 格式的图表（向后兼容）
-   * 
-   * 尝试用 mmdc 渲染，如果不可用则保留原始 mermaid 代码块
-   */
-  private async processMermaidBlock(
-    block: DiagramBlock,
-    diagramId: string,
-    figuresDir: string,
-    options: PipelineOptions
-  ): Promise<{ success: boolean; rendered: boolean; error?: string }> {
-    const mmdPath = join(figuresDir, `${diagramId}.mmd`);
-    const svgPath = join(figuresDir, `${diagramId}.svg`);
-    const pngPath = join(figuresDir, `${diagramId}.png`);
 
-    // 写入 mermaid 文件（即使不渲染也保留，便于人工排查/后续补渲染）
-    writeFileSync(mmdPath, block.description, 'utf-8');
-
-    // options.mmdcAvailable 可覆盖探测结果（测试/CI 用）
-    const mmdcAvailable = options.mmdcAvailable ?? this.checkMmdc();
-
-    if (!mmdcAvailable) {
-      // mmdc 不可用：保留原始 mermaid 代码块，**但不写 manifest 记录**。
-      //
-      // 原实现会写一条 svgFile=''/pngFile='' 的记录并返回 success ——
-      // 两个问题（Bug 35）：
-      //   1. 计入 generated，阶段汇报「图表生成完成」而图并不存在；
-      //   2. 空文件名字段是 falsy，会绕过 Bug 29 加上的产物存在性检查，
-      //      导致 shouldRegenerate 永远认为「已缓存」，之后再也不会重试。
-      // 所以正确做法是：不记录（下次进来仍然需要生成），并让调用方
-      // 通过 rendered:false 得知实情。
-      // 同时清掉可能存在的旧记录（历史上写过空文件名的条目）
-      this.cache.removeEntry(diagramId);
-      return { success: true, rendered: false, error: 'mmdc 不可用' };
-    }
-
-    try {
-      const { execFileSync } = await import('node:child_process');
-      execFileSync('mmdc', ['-i', mmdPath, '-o', svgPath], { stdio: 'pipe' });
-
-      // 生成 PNG
-      if (!options.skipPng) {
-        await convertToPng(svgPath, pngPath);
-      }
-
-      // 更新缓存
-      this.cache.setEntry(diagramId, {
-        sourceHash: this.cache.computeHash(block.rawContent),
-        svgFile: `${diagramId}.svg`,
-        pngFile: `${diagramId}.png`,
-        generatedAt: new Date().toISOString(),
-      });
-
-      return { success: true, rendered: true };
-    } catch (error) {
-      return {
-        success: false,
-        rendered: false,
-        error: error instanceof Error ? error.message : String(error),
-      };
-    }
-  }
-
-  /**
-   * 检查 mmdc 是否可用
-   */
-  private checkMmdc(): boolean {
-    try {
-      const { execFileSync } = require('node:child_process');
-      execFileSync('mmdc', ['--version'], { stdio: 'pipe' });
-      return true;
-    } catch {
-      return false;
-    }
-  }
 }

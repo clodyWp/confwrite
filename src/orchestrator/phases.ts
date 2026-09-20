@@ -462,6 +462,34 @@ export const phase4d: PhaseDefinition = {
   ],
 };
 
+/**
+ * 图表健康检查（阻塞规则的数据来源）
+ *
+ * 读 Phase 5 落盘的诊断记录（logs/diagram-pipeline.json）：
+ *   · failed > 0            → 有图生成失败
+ *   · unsupportedFormat > 0 → 有图格式不受支持
+ *   · warnings.length > 0   → 有图渲染后校验未通过
+ * 任一为真则阻塞，不放行到组装阶段（知识库 layout.md 的阻塞规则）。
+ *
+ * 读不到记录时**不阻塞** —— 那是"没跑过"，不是"跑坏了"。
+ */
+function diagramHealthBlocked(projectDir: string): boolean {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { readFileSync } = require('node:fs') as typeof import('node:fs');
+    const { join } = require('node:path') as typeof import('node:path');
+    const raw = readFileSync(join(projectDir, 'logs', 'diagram-pipeline.json'), 'utf-8');
+    const data = JSON.parse(raw) as {
+      failed?: number;
+      unsupportedFormat?: number;
+      warnings?: unknown[];
+    };
+    return (data.failed ?? 0) > 0 || (data.unsupportedFormat ?? 0) > 0 || (data.warnings?.length ?? 0) > 0;
+  } catch {
+    return false;
+  }
+}
+
 export const phase5: PhaseDefinition = {
   id: '5',
   name: '图表生成',
@@ -490,12 +518,13 @@ export const phase5: PhaseDefinition = {
       // 诊断日志失败不应影响流程
     }
 
-    // 如实汇报（Bug 35）：未渲染的 mermaid 图不能算「生成完成」。
-    // 缺 mmdc 时给出可执行的修复指引，而不是一句笼统的完成。
+    // 如实汇报（Bug 35）：没渲染出来的图不能算「生成完成」。
     const parts = [`生成 ${result.generated} 个图表`];
     if (result.skipped > 0) parts.push(`跳过 ${result.skipped} 个（缓存）`);
-    if (result.mermaidKeptAsCode > 0) {
-      parts.push(`⚠️ ${result.mermaidKeptAsCode} 个 mermaid 未渲染（缺 mmdc，保留为代码块）`);
+    if (result.unsupportedFormat > 0) {
+      parts.push(
+        `❌ ${result.unsupportedFormat} 个图表格式不受支持（mermaid 已废弃，需改为结构化格式）`,
+      );
     }
     if (result.failed > 0) {
       const firstReason = result.errors[0]?.error ?? '未知原因';
@@ -510,7 +539,7 @@ export const phase5: PhaseDefinition = {
         diagramCount: result.total,
         generated: result.generated,
         skipped: result.skipped,
-        mermaidKeptAsCode: result.mermaidKeptAsCode,
+        unsupportedFormat: result.unsupportedFormat,
         failed: result.failed,
         errors: result.errors,
         warnings: result.warnings,
@@ -520,7 +549,16 @@ export const phase5: PhaseDefinition = {
   exits: [
     {
       target: '6',
-      condition: (ctx) => ctx.state.status === 'assembling' || hasFile(ctx, 'figures/manifest.json'),
+      // 阻塞规则（知识库 layout.md）：渲染后校验未通过 → 禁止进入组装。
+      //
+      // 此前校验失败只推 result.warnings，坏图照常流到组装，最终 Word 里
+      // 的图是坏的而没人拦。这里按知识库的规定做成硬闸门。
+      condition: (ctx) => {
+        const produced =
+          ctx.state.status === 'assembling' || hasFile(ctx, 'figures/manifest.json');
+        if (!produced) return false;
+        return !diagramHealthBlocked(ctx.projectDir);
+      },
     },
   ],
 };

@@ -213,7 +213,7 @@ describe('图表块格式：提取 / 注入 / 运行 三段一致', () => {
 
   // ── Bug 35：缺 mmdc 不得谎报成功 ─────────────────────────────
 
-  describe('Bug 35：mermaid 无法渲染时不得计入「已生成」', () => {
+  describe('Bug 35：无法渲染的图表不得计入「已生成」', () => {
     const TEST_DIR = join(process.cwd(), '.test-pipeline-mermaid');
     let pipeline: DiagramPipeline;
 
@@ -233,44 +233,48 @@ describe('图表块格式：提取 / 注入 / 运行 三段一致', () => {
       rmSync(TEST_DIR, { recursive: true, force: true });
     });
 
-    it('mmdc 不可用：不计入 generated，且结果里明确报告', async () => {
+    it('mermaid 已废弃：不计入 generated，且明确报告原因', async () => {
       writeFileSync(join(TEST_DIR, 'drafts', 'chapters', 'ch001-v1.md'), `# a\n\n${MERMAID_BLOCK}\n`);
 
-      const r = await pipeline.run({ mmdcAvailable: false });
+      const r = await pipeline.run();
 
+      // Bug 35 的不变量：没生成出来的图不能算「已生成」。
+      // 现在 mermaid 不再渲染，所以它既不计入 generated，也不能静默消失 ——
+      // 必须进 errors 并说清该怎么办。
       expect(r.total).toBe(1);
       expect(r.generated).toBe(0);
-      expect(r.mermaidKeptAsCode).toBe(1);
-      expect(r.warnings.some(w => w.diagramId === 'ch001-fig1')).toBe(true);
+      expect(r.unsupportedFormat).toBe(1);
+      expect(r.errors.some(e => e.diagramId === 'ch001-fig1')).toBe(true);
+      expect(r.errors[0].error).toContain('mermaid');
+      expect(r.errors[0].error).toContain('containers');
     });
 
-    it('mmdc 不可用：不写入 manifest 记录（否则会被当成已缓存）', async () => {
+    it('mermaid 块不写入 manifest（否则会被当成已缓存）', async () => {
       writeFileSync(join(TEST_DIR, 'drafts', 'chapters', 'ch001-v1.md'), `# a\n\n${MERMAID_BLOCK}\n`);
 
-      await pipeline.run({ mmdcAvailable: false });
+      await pipeline.run();
 
       const manifestPath = join(TEST_DIR, 'figures', 'manifest.json');
       const manifest = existsSync(manifestPath) ? JSON.parse(readFileSync(manifestPath, 'utf-8')) : {};
       expect(manifest['ch001-fig1']).toBeUndefined();
     });
 
-    it('mmdc 可用且渲染成功：计入 generated', async () => {
+    it('每张图都被归入某一类：generated + failed + skipped + unsupportedFormat == total', async () => {
       writeFileSync(join(TEST_DIR, 'drafts', 'chapters', 'ch001-v1.md'), `# a\n\n${MERMAID_BLOCK}\n`);
 
-      const r = await pipeline.run({ mmdcAvailable: true });
+      const r = await pipeline.run();
 
-      // 本机没有 mmdc，用注入的假实现可能失败 —— 关键是不得谎报成功
-      expect(r.generated + r.failed + r.skipped).toBe(r.total);
-      expect(r.mermaidKeptAsCode).toBe(0);
+      // 不得谎报成功：四类计数必须覆盖全部图表，不留"消失的图"
+      expect(r.generated + r.failed + r.skipped + r.unsupportedFormat).toBe(r.total);
     });
 
-    it('diagram-start 图表不受 mmdc 影响，正常生成', async () => {
+    it('diagram-start 图表正常生成（不受 mermaid 废弃影响）', async () => {
       writeFileSync(join(TEST_DIR, 'drafts', 'chapters', 'ch001-v1.md'), `# a\n\n${DIAGRAM_START_BLOCK}\n`);
 
-      const r = await pipeline.run({ mmdcAvailable: false });
+      const r = await pipeline.run();
 
       expect(r.generated).toBe(1);
-      expect(r.mermaidKeptAsCode).toBe(0);
+      expect(r.unsupportedFormat).toBe(0);
       expect(existsSync(join(TEST_DIR, 'figures', 'ch001-fig1.png'))).toBe(true);
     });
   });

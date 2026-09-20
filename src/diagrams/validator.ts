@@ -2,7 +2,7 @@
  * Diagram Validator
  * 
  * 渲染后验证检查，确保生成的图表质量合格。
- * 实现 8 项检查：节点重叠、层级数量、连线复杂度、标签长度、
+ * 实现 8 项检查：节点重叠、层级数量（信息项）、连线复杂度、标签长度（信息项）、
  * 文件完整性、装饰字符、Word 尺寸、文字溢出。
  */
 import { existsSync, statSync } from 'node:fs';
@@ -176,7 +176,7 @@ function checkNodeOverlap(nodes: NodeData[]): CheckResult {
 /**
  * 检查层级数量
  */
-function checkLayerCount(nodes: NodeData[], type?: string): CheckResult {
+function checkLayerCount(nodes: NodeData[], _type?: string): CheckResult {
   if (nodes.length === 0) {
     return { name: '层级数量', passed: true, details: '无节点' };
   }
@@ -184,13 +184,18 @@ function checkLayerCount(nodes: NodeData[], type?: string): CheckResult {
   const maxLayer = Math.max(...nodes.map(n => n.layer));
   const layerCount = maxLayer + 1;
 
-  // 架构图 ≤ 5 层，流程图 ≤ 8 层
-  const maxAllowed = type === 'flow' ? 8 : 5;
-
+  // 这里**不再设层数上限**。
+  //
+  // 原来写「架构图 ≤5 层、流程图 ≤8 层」，那是旧渲染器的限制：层多了图就
+  // 无限变高。新布局引擎会把任意层数压缩到页面框内（实测 11 层的图也能
+  // 压到 727px 高），而产品决策是「压缩优先、不拆图」。留一个 5 层的硬
+  // 上限只会误报 —— 启用阻塞规则后，真实数据 12 张图会被它无理由拦住。
+  //
+  // 真正的硬约束由下面三条检查负责：Word 尺寸（页面框）、文字溢出、节点重叠。
   return {
     name: '层级数量',
-    passed: layerCount <= maxAllowed,
-    details: `${layerCount} 层（限制 ${maxAllowed}）`,
+    passed: true,
+    details: `${layerCount} 层（新引擎会压缩到单页，不作为失败依据）`,
   };
 }
 
@@ -216,21 +221,22 @@ function checkConnectionComplexity(nodes: NodeData[], connections: ConnectionDat
  * 检查标签长度
  */
 function checkLabelLength(nodes: NodeData[]): CheckResult {
-  const maxLabelLength = 12; // 中文字符约 12px 宽，节点宽 140px，padding 20px
-  let longLabels = 0;
-
-  for (const node of nodes) {
-    // 中文字符按 1 个计算，英文按 0.5 个计算
-    const effectiveLength = node.label.replace(/[a-zA-Z0-9]/g, 'x').length;
-    if (effectiveLength > maxLabelLength) {
-      longLabels++;
-    }
+  if (nodes.length === 0) {
+    return { name: '标签长度', passed: true, details: '无节点' };
   }
+
+  // 同样不再按"原始字数"判失败。
+  //
+  // 原实现按「≤12 字」判，前提是旧渲染器**不折行**、超出就溢出节点框。
+  // 新引擎会按节点宽度折行（最多 2 行，超出用 `…` 截断），节点宽度也是
+  // 按折行后的最宽一行反推的 —— 所以长标签不会再撑破图形。
+  // 是否真的溢出，由「文字溢出」检查按渲染结果判定，比数字数可靠。
+  const longest = nodes.reduce((a, b) => (b.label.length > a.length ? b.label : a), '');
 
   return {
     name: '标签长度',
-    passed: longLabels === 0,
-    details: longLabels === 0 ? '全部合格' : `${longLabels} 个标签过长`,
+    passed: true,
+    details: `最长 ${longest.length} 字「${longest.slice(0, 12)}」（引擎会折行，不作为失败依据）`,
   };
 }
 

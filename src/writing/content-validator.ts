@@ -108,8 +108,22 @@ export class ContentValidator {
   private validateDiagramFormat(content: string): Array<{ diagramIndex: number; issue: string }> {
     const issues: Array<{ diagramIndex: number; issue: string }> = [];
     
-    // 查找所有 mermaid 代码块
-    const diagramRegex = /```mermaid[\s\S]*?```/g;
+    // ① mermaid 代码块已废弃 —— 直接报硬错误
+    //
+    // 此前这里只检查 mermaid 块前后的说明段落，对**真实使用的**
+    // diagram-start 结构化格式什么都不查，等于这条规则形同虚设。
+    const mermaidRegex = /```mermaid[\s\S]*?```/g;
+    let mermaidIndex = 0;
+    while (mermaidRegex.exec(content) !== null) {
+      mermaidIndex++;
+      issues.push({
+        diagramIndex: mermaidIndex,
+        issue: '使用了已废弃的 mermaid 代码块，必须改写为 diagram-start 结构化格式（containers / nodes / edges）',
+      });
+    }
+
+    // ② 结构化图表块前后必须有描述 / 总结段落
+    const diagramRegex = /<!--\s*diagram-start[\s\S]*?diagram-end\s*-->/g;
     let match;
     let diagramIndex = 0;
     
