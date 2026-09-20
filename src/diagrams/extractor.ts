@@ -155,24 +155,47 @@ function parseDiagramBlock(rawContent: string): {
   for (const line of lines) {
     const trimmed = line.trim();
 
-    if (trimmed.startsWith('type:')) {
-      const value = trimmed.slice(5).trim();
-      if (isValidDiagramType(value)) {
-        type = value;
+    // 顶层键：**不缩进**且形如 `key:`
+    //
+    // 事故（8 章重跑，23 张图全是垃圾）：此前这里是 `trimmed.startsWith('type:')`
+    // 这样的关键词判断，而 description 分支进来后**永不设回 false** ——
+    // 于是 description 把后面的 containers: / nodes: / edges: 整块 YAML 全吞掉，
+    // 散文解析器看到 `- id: xxx` 就当「层定义」，节点名直接变成字段名 id / from。
+    //
+    // 不能靠「是不是已知字段名」来判断边界（散文里也可能提到 nodes:），
+    // 必须用 YAML 自己的规则：块标量在**缩进回落到顶层**时结束。
+    const keyMatch = /^([A-Za-z_][A-Za-z0-9_-]*):(?:\s|$)/.exec(line);
+    const isTopLevelKey = !/^\s/.test(line) && keyMatch !== null;
+
+    if (isTopLevelKey) {
+      const key = keyMatch![1];
+
+      // 任何顶层键都结束描述块
+      inDescription = false;
+
+      if (key === 'type') {
+        const value = line.slice(line.indexOf(':') + 1).trim();
+        if (isValidDiagramType(value)) {
+          type = value;
+        }
+      } else if (key === 'title') {
+        title = line.slice(line.indexOf(':') + 1).trim() || '图表';
+      } else if (key === 'description') {
+        // 内联值（`description: 一句话`）vs 块标量（`description: |`）
+        const inlineValue = line.slice(line.indexOf(':') + 1).trim();
+        if (inlineValue && !['|', '|-', '|+', '>', '>-', '>+'].includes(inlineValue)) {
+          description = inlineValue;
+        } else {
+          inDescription = true;
+        }
       }
-    } else if (trimmed.startsWith('title:')) {
-      title = trimmed.slice(6).trim() || '图表';
-    } else if (trimmed.startsWith('description:')) {
-      inDescription = true;
-      // 检查是否有内联值（非 | 多行格式）
-      const inlineValue = trimmed.slice(12).trim();
-      if (inlineValue && inlineValue !== '|') {
-        description = inlineValue;
-        inDescription = false;
-      }
-    } else if (inDescription) {
-      // 多行描述内容
-      if (trimmed === '|') continue; // 跳过 | 标记
+
+      continue;
+    }
+
+    // 缩进行：属于 description 的块标量内容
+    if (inDescription) {
+      if (trimmed === '|') continue; // 防御：某些写法把 | 单独放一行
       descLines.push(trimmed);
     }
   }
