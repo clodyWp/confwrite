@@ -14,7 +14,7 @@
  */
 
 import { CJK_FONT_FAMILY, getColorScheme, getLayerPalette, type DiagramStyle } from '../style.js';
-import type { LayoutMetrics } from './metrics.js';
+import { textWidth, type LayoutMetrics } from './metrics.js';
 import type { Point, RoutedEdge } from './route.js';
 
 export interface PlacedNode {
@@ -132,10 +132,24 @@ export function renderSvg(input: RenderInput): string {
         `rx="8" fill="${fill}" fill-opacity="0.07" stroke="${fill}" stroke-opacity="0.45" ` +
         `stroke-width="1.2" stroke-dasharray="5 4"/>`,
     );
+    // 标签宽度兜底：超出容器宽度就截断，绝不伸出画布
+    const labelFontSize = metrics.fontSize - 1;
+    const labelBudget = container.w - 16;
+    let label = container.label;
+    if (textWidth(label, labelFontSize) > labelBudget) {
+      const budget = labelBudget - textWidth('…', labelFontSize);
+      let cut = '';
+      for (const ch of label) {
+        if (textWidth(cut + ch, labelFontSize) > budget) break;
+        cut += ch;
+      }
+      label = cut ? `${cut}…` : '…';
+    }
+
     parts.push(
       `<text x="${container.x + 8}" y="${container.y + metrics.fontSize + 4}" fill="${textColor}" ` +
-        `font-size="${metrics.fontSize - 1}" font-weight="600" font-family="${CJK_FONT_FAMILY}">` +
-        `${escapeXml(container.label)}</text>`,
+        `font-size="${labelFontSize}" font-weight="600" font-family="${CJK_FONT_FAMILY}">` +
+        `${escapeXml(label)}</text>`,
     );
   }
 
@@ -150,9 +164,11 @@ export function renderSvg(input: RenderInput): string {
     );
 
     if (edge.label && edge.labelAt) {
-      // 白描边做底，避免标签压在连线上看不清
+      // 白描边做底，避免标签压在连线上看不清。
+      // 竖直段旁的标签用 start 对齐（贴着线的右侧），水平段上的居中。
+      const anchor = edge.labelAnchor ?? 'middle';
       parts.push(
-        `<text x="${edge.labelAt.x}" y="${edge.labelAt.y - 4}" text-anchor="middle" fill="${textColor}" ` +
+        `<text x="${edge.labelAt.x}" y="${edge.labelAt.y - 4}" text-anchor="${anchor}" fill="${textColor}" ` +
           `font-size="${Math.max(9, metrics.fontSize - 2)}" font-family="${CJK_FONT_FAMILY}" ` +
           `stroke="#ffffff" stroke-width="3" paint-order="stroke">${escapeXml(edge.label)}</text>`,
       );

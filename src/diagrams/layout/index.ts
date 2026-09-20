@@ -71,7 +71,12 @@ function orderByBarycenter(ids: number[], barycenter: Map<number, number>): numb
 export function layoutDiagram(spec: DiagramSpec, style: DiagramStyle, title?: string): LayoutResult {
   const warnings: string[] = [];
   const base = DEFAULT_METRICS;
-  const titleHeight = title ? base.fontSize + 14 : 0;
+  // BUG：标题只留了字号+行距，没给容器的"标签区 + 上边距"留位，
+  // 于是第一个容器的框会向上罩住标题（实测容器 y=23、标题基线 y=49）
+  const hasFlowContainer = spec.containers.some(c => !c.crosscut);
+  const titleHeight = title
+    ? base.fontSize + 14 + (hasFlowContainer ? base.containerLabelHeight + base.containerPad : 0)
+    : 0;
 
   const layerOf = assignLayers(spec);
 
@@ -172,10 +177,15 @@ export function layoutDiagram(spec: DiagramSpec, style: DiagramStyle, title?: st
   }
 
   // ---- 4. 横切竖条宽度 ----
+  // 竖条宽度要同时容下「最宽节点」和「它自己的标签」——
+  // 只按节点算会让标签伸出画布（实测 ch008-fig1 的贯穿性追溯链标签）
+  const crosscutLabel = spec.containers.find(c => c.crosscut)?.label ?? '';
+  const crosscutLabelWidth = textWidth(crosscutLabel, base.fontSize - 1) + 16;
   const crosscutWidth = crosscutDrafts.length
-    ? Math.min(
-        base.maxNodeWidth,
-        Math.max(120, Math.max(...crosscutDrafts.map(d => d.w)) + base.containerPad * 2),
+    ? Math.max(
+        120,
+        Math.min(base.maxNodeWidth, Math.max(...crosscutDrafts.map(d => d.w)) + base.containerPad * 2),
+        crosscutLabelWidth,
       )
     : 0;
 
@@ -199,6 +209,11 @@ export function layoutDiagram(spec: DiagramSpec, style: DiagramStyle, title?: st
     ? base.containerLabelHeight + base.containerPad * 2 + crosscutStep * crosscutDrafts.length
     : 0;
 
+  // 相邻层都有容器时，层间距必须装得下容器标签区 + 两侧边距
+  const minLayerGap = hasFlowContainer
+    ? base.containerPad * 2 + base.containerLabelHeight + 8
+    : undefined;
+
   const size = solveCanvas({
     layers: rowsPerLayer,
     nodeWidths: drafts.map(d => d.w),
@@ -207,7 +222,12 @@ export function layoutDiagram(spec: DiagramSpec, style: DiagramStyle, title?: st
       ? { width: crosscutWidth, nodeCount: crosscutDrafts.length, height: crosscutNeededHeight }
       : null,
     titleHeight,
-    metrics: base,
+    minLayerGap,
+    // 初始层间距就要满足下限 —— 只设"压缩下限"是不够的：
+    // 初始值 40 本来就低于所需的 58，永远不会被抬高
+    metrics: minLayerGap
+      ? { ...base, layerGap: Math.max(base.layerGap, minLayerGap) }
+      : base,
   });
 
   const metrics = size.metrics;
@@ -341,6 +361,8 @@ export function layoutDiagram(spec: DiagramSpec, style: DiagramStyle, title?: st
       bottom: metrics.margin + titleHeight + contentHeight,
     },
     clearance: 6,
+    // 传最终字号，保证标签的截断宽度与渲染一致
+    labelFontSize: Math.max(9, metrics.fontSize - 2),
   });
 
   // ---- 10. 自检：让问题可见，而不是悄悄产出畸形图 ----

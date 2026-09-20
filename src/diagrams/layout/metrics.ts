@@ -184,6 +184,13 @@ export interface SolveInput {
   crosscut: { width: number; nodeCount: number; height?: number } | null;
   /** 标题占用的高度 */
   titleHeight: number;
+  /**
+   * 层间距的压缩下限
+   *
+   * 相邻两层都有容器时，中间的留白必须同时容下"上个容器的下边距 +
+   * 下个容器的标签区 + 上边距"，否则两个容器框会叠在一起（实测叠 10px）。
+   */
+  minLayerGap?: number;
   metrics: LayoutMetrics;
 }
 
@@ -252,10 +259,11 @@ export function solveCanvas(input: SolveInput): CanvasSize {
     adjustments.push(`压缩画布边距 ${margin0}→${metrics.margin}px（先压边距）`);
   }
 
-  // ② 压层间距
+  // ② 压层间距（不得低于容器布局所需的下限）
+  const gapFloor = Math.max(MIN_LAYER_GAP, input.minLayerGap ?? 0);
   const gap0 = metrics.layerGap;
-  while (overRatio() && metrics.layerGap > MIN_LAYER_GAP) {
-    metrics.layerGap = Math.max(MIN_LAYER_GAP, metrics.layerGap - 4);
+  while (overRatio() && metrics.layerGap > gapFloor) {
+    metrics.layerGap = Math.max(gapFloor, metrics.layerGap - 4);
   }
   if (metrics.layerGap < gap0) {
     adjustments.push(`压缩层间距 ${gap0}→${metrics.layerGap}px`);
