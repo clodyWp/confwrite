@@ -12,6 +12,11 @@ import { convertToPng } from './png-converter.js';
 import { validateDiagram, type DiagramData } from './validator.js';
 import { DiagramCache, type CacheEntry } from './cache.js';
 import { loadDiagramStyle, type DiagramStyle } from './style.js';
+import {
+  parseDiagramDescription,
+  type ParsedNode,
+  type ParsedConnection,
+} from './description-parser.js';
 
 /**
  * 管线选项
@@ -39,24 +44,6 @@ export interface PipelineResult {
   errors: Array<{ diagramId: string; error: string }>;
   /** 验证警告 */
   warnings: Array<{ diagramId: string; warnings: string[] }>;
-}
-
-/**
- * 解析后的节点
- */
-interface ParsedNode {
-  id: string;
-  label: string;
-  layer: number;
-}
-
-/**
- * 解析后的连接
- */
-interface ParsedConnection {
-  from: string;
-  to: string;
-  label?: string;
 }
 
 /**
@@ -150,7 +137,12 @@ export class DiagramPipeline {
         }
 
         // 标准格式：解析描述为节点和连接
-        const { nodes, connections } = this.parseDescription(block);
+        // （解析逻辑已抽到 description-parser.ts 便于单测；
+        //   修复了全角冒号、列表前缀、多跳链三个 bug）
+        const { nodes, connections } = parseDiagramDescription({
+          description: block.description,
+          title: block.title,
+        });
 
         // 生成 SVG
         const svgResult = generateSVG(nodes, connections, this.style);
@@ -216,92 +208,6 @@ export class DiagramPipeline {
   private extractChapterId(filename: string): string {
     const match = filename.match(/^(ch\d+)/);
     return match ? match[1] : 'unknown';
-  }
-
-  /**
-   * 解析描述为节点和连接
-   * 
-   * 简单的解析器，从描述文本中提取节点和连接关系。
-   */
-  private parseDescription(block: DiagramBlock): {
-    nodes: ParsedNode[];
-    connections: ParsedConnection[];
-  } {
-    const nodes: ParsedNode[] = [];
-    const connections: ParsedConnection[] = [];
-    const nodeMap = new Map<string, string>();
-
-    const description = block.description;
-    const lines = description.split('\n');
-
-    let layer = 0;
-
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (!trimmed || trimmed === '|') continue;
-
-      // 检测连接关系 (A → B 或 A -> B)
-      const connMatch = trimmed.match(/(.+?)\s*(?:→|->)\s*(.+)/);
-      if (connMatch) {
-        const fromLabel = connMatch[1].trim();
-        const toLabel = connMatch[2].trim();
-
-        const fromId = this.getOrCreateNode(fromLabel, layer, nodes, nodeMap);
-        const toId = this.getOrCreateNode(toLabel, layer + 1, nodes, nodeMap);
-
-        connections.push({ from: fromId, to: toId });
-        continue;
-      }
-
-      // 检测列表项 (- 模块名)
-      const listMatch = trimmed.match(/^[-*]\s*(.+)/);
-      if (listMatch) {
-        const label = listMatch[1].trim();
-        this.getOrCreateNode(label, layer, nodes, nodeMap);
-        continue;
-      }
-
-      // 检测分层标记 (层名:)
-      const layerMatch = trimmed.match(/^(.+?):\s*$/);
-      if (layerMatch) {
-        layer++;
-        continue;
-      }
-    }
-
-    // 如果没有解析出节点，创建一个默认节点
-    if (nodes.length === 0) {
-      nodes.push({
-        id: 'node-1',
-        label: block.title || '图表',
-        layer: 0,
-      });
-    }
-
-    return { nodes, connections };
-  }
-
-  /**
-   * 获取或创建节点
-   */
-  private getOrCreateNode(
-    label: string,
-    layer: number,
-    nodes: ParsedNode[],
-    nodeMap: Map<string, string>
-  ): string {
-    // 检查是否已存在
-    const existingId = nodeMap.get(label);
-    if (existingId !== undefined) {
-      return existingId;
-    }
-
-    // 创建新节点
-    const id = `node-${nodes.length + 1}`;
-    nodes.push({ id, label, layer });
-    nodeMap.set(label, id);
-
-    return id;
   }
 
   /**
