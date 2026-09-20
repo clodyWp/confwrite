@@ -1,4 +1,5 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync } from 'node:fs';
+import { injectDiagrams } from '../diagrams/injector.js';
 import { join, dirname, basename } from 'node:path';
 
 /**
@@ -59,8 +60,22 @@ export class ChapterAssembler {
         continue;
       }
 
-      const content = readFileSync(chapterInfo.path, 'utf-8');
-      const title = this.extractTitle(content, chapterId);
+      const rawContent = readFileSync(chapterInfo.path, 'utf-8');
+      const title = this.extractTitle(rawContent, chapterId);
+
+      // 把 diagram-start 标记替换为图片引用（Bug 12）
+      // 组装后文档位于 <projectDir>/assembly/，故图片路径形如 ../figures/ch001-fig1.png
+      const injection = injectDiagrams(rawContent, chapterId, {
+        projectDir,
+        documentDir: join(projectDir, 'assembly'),
+      });
+      if (injection.missing.length > 0) {
+        warnings.push(
+          `Chapter ${chapterId}: ${injection.missing.length} 个图表缺少图片文件，标记未替换 (${injection.missing.join(', ')})`,
+        );
+      }
+
+      const content = injection.content;
 
       chapters.push({ 
         id: chapterId, 
