@@ -112,7 +112,7 @@ ch003 技术选型
 | 5 | 图表生成 | 提取 mermaid → SVG → PNG |
 | 6 | 组装 | 合并章节 → final.md |
 | 7 | 定稿 | 统计文档 + 基线一致性检查 |
-| 8 | 导出 | convert-to-docx → final.docx |
+| 8 | 导出 | pandoc → `output/final.docx`（含 TOC） |
 
 ### 6. 查看进度 / 恢复 / 上下文管理
 
@@ -234,7 +234,11 @@ src/
 │   └── finalizer.ts          # 定稿处理 (统计+一致性)
 ├── diagrams/                 # 图表管线
 │   ├── extractor.ts          # mermaid 提取
-│   ├── generator.ts          # mermaid → SVG/PNG
+│   ├── description-parser.ts # 图表描述解析（分层/节点/连接）
+│   ├── generator.ts          # mermaid → SVG/PNG（分层配色 + 跨平台字体）
+│   ├── style.ts              # 配色/字体/尺寸风格（可配置，支持项目覆盖）
+│   ├── cache.ts              # 源哈希缓存（含产物存在性校验）
+│   ├── injector.ts           # 把生成的图表注入组装产物
 │   └── pipeline.ts           # 渲染管线
 ├── knowledge/                # 知识库加载
 │   └── loader.ts             # 知识库加载+注入
@@ -244,8 +248,8 @@ src/
 └── utils/
     └── paths.ts              # 路径安全
 
-knowledge/diagrams/           # 内置图表知识库 (15 个 MD 文件)
-tests/                        # 433 个测试用例
+knowledge/diagrams/           # 内置图表知识库 (16 个 MD 文件)
+tests/                        # 735 个测试用例
 ```
 
 ### 设计原则
