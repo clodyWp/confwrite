@@ -9,6 +9,7 @@
 import { existsSync, statSync, readFileSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import { FormatConverter } from '../assemble/converter.js';
+import { validateChapterKitsAgainstOutline } from '../organize/kit-validator.js';
 import type { Phase, ProjectState } from '../state/schema.js';
 
 export interface PhaseContext {
@@ -96,6 +97,24 @@ function hasDir(ctx: PhaseContext, relativePath: string): boolean {
 function hasOrganizedMaterials(ctx: PhaseContext): boolean {
   return hasFile(ctx, 'assets/data-baseline.json') &&
     (hasFile(ctx, 'assets/references-index.md') || hasDir(ctx, 'assets/indexes'));
+}
+
+/**
+ * 素材包是否与当前大纲逐章对应（Bug 31）
+ *
+ * 只看 hasOrganizedMaterials 是不够的：它只验证「整理过」，不验证
+ * 「素材包属于当前这一版大纲」。大纲增删/重编号后旧素材包仍在，
+ * 而 dispatcher 是按 id 直接取文件的 —— 于是静默拿到别的章节的素材。
+ *
+ * 实测：上一次运行时 `0b → 2 → 4a`，phase 3 被跳过，写作用的是
+ * 更早 48 章大纲留下的素材包（当时恰好标题未变才没出事）。
+ */
+function kitsMatchOutline(ctx: PhaseContext): boolean {
+  try {
+    return validateChapterKitsAgainstOutline(ctx.projectDir).ok;
+  } catch {
+    return false;
+  }
 }
 
 function needsFix(ctx: PhaseContext, chapterId: string): boolean {
@@ -186,11 +205,14 @@ export const phase2: PhaseDefinition = {
   exits: [
     {
       target: '4a',
-      condition: (ctx) => hasFile(ctx, 'outline.md') && hasOrganizedMaterials(ctx),
+      // 必须同时满足「整理过」与「素材包与大纲逐章对应」（Bug 31）
+      condition: (ctx) =>
+        hasFile(ctx, 'outline.md') && hasOrganizedMaterials(ctx) && kitsMatchOutline(ctx),
     },
     {
       target: '3',
-      condition: (ctx) => hasFile(ctx, 'outline.md') && !hasOrganizedMaterials(ctx),
+      condition: (ctx) =>
+        hasFile(ctx, 'outline.md') && !(hasOrganizedMaterials(ctx) && kitsMatchOutline(ctx)),
     },
   ],
   waitPoint: {
@@ -228,15 +250,48 @@ export const phase3: PhaseDefinition = {
     }
     return { ok: true };
   },
+  // 真正重建素材（Bug 31）
+  //
+  // 原实现只返回一个 action: 'prepare_materials' 描述，而它不在
+  // EXECUTABLE_ACTIONS 里、dispatcher 也不处理 —— 于是**流程永远不会重建
+  // 素材包**，素材包只由手动命令 /confwrite:organize 生成。
+  // 大纲改过之后就会静默用上旧素材包（见 kitsMatchOutline 注释）。
+  // 阶段名叫「素材准备」，本来就该做这件事。
   async execute(ctx) {
+    const { organizeMaterials } = await import('../commands/organize.js');
+    const { ProjectStore } = await import('../state/store.js');
+
+    const r = await organizeMaterials(ctx.projectDir);
+
+    // 把「大纲 → 章节列表」的同步结果合并回内存中的 state。
+    //
+    // organizeMaterials 会把同步结果写进磁盘上的 project-state.json，
+    // 但状态机在 execute 之后会用**它自己内存里的** state 覆盖保存
+    // （state-machine.ts: `this.store.save(state)`）—— 不同步回来的话，
+    // 磁盘上的章节列表会被回滚，新大纲的章节永远不会变成 pending，
+    // 于是 phase 4a 看不到任何待写章节。
+    const fresh = new ProjectStore(ctx.projectDir).load();
+    if (fresh?.chapters) {
+      ctx.state.chapters = fresh.chapters;
+      if (fresh.totalChapters !== undefined) {
+        ctx.state.totalChapters = fresh.totalChapters;
+      }
+    }
+
     return {
       action: 'prepare_materials',
-      message: 'Phase 3: 素材准备',
-      params: { projectDir: ctx.projectDir },
+      message:
+        `Phase 3: 素材准备完成 —— 素材包 ${r.kitStats.success}/${r.kitStats.total}，` +
+        `章节映射 ${r.chapterMappings.length} 个`,
+      params: { projectDir: ctx.projectDir, kitStats: r.kitStats },
     };
   },
   exits: [
-    { target: '4a', condition: (ctx) => hasOrganizedMaterials(ctx) },
+    // 重建后才允许出口；重建失败则留在此阶段重试
+    {
+      target: '4a',
+      condition: (ctx) => hasOrganizedMaterials(ctx) && kitsMatchOutline(ctx),
+    },
   ],
 };
 
