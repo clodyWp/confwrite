@@ -113,6 +113,20 @@ export async function runWriteLoop(
   while (result.ticks < MAX_TICKS) {
     result.ticks++;
 
+    // 已到达终态：正常收尾（Bug 30）
+    //
+    // `done` 是 phase 8 的跳转目标，但不是需要执行的阶段。
+    // 以前没有这个检查，循环会再 tick 一次，而对 'done' 没有
+    // 可执行的阶段定义（历史行为是返回 blocked），index.ts 于是把它
+    // 当失败：控制台打印「⛔ 未知: 未知 Phase: done」，
+    // stoppedReason 被记为 'blocked' —— 成功的运行看起来像失败。
+    //
+    // 检查必须在 tick 之前：终态不需要任何推进。
+    if (machine.status()?.phase === 'done') {
+      result.stoppedReason = 'completed';
+      break;
+    }
+
     // 检查上下文大小，超过阈值时触发压缩
     if (getContextTokens && triggerCompact && config.compactThresholdTokens > 0) {
       const currentTokens = getContextTokens();

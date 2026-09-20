@@ -565,6 +565,28 @@ export const phase8: PhaseDefinition = {
 
 // ============ Phase Registry ============
 
+// 终态阶段（Bug 30）
+//
+// `done` 一直是 phase 8 的跳转目标，也是合法的 PhaseEnum 成员，
+// 但从未注册进 phases 表。后果：推进到 done 之后的下一次 tick
+// 走 `phases.get('done')` → undefined → 返回
+//   { phaseName: '未知', blocked: true, error: '未知 Phase: done' }
+// 而 index.ts 把 blocked 一律当失败，于是**一次成功的运行**在收尾时
+// 打印红色 Error 并把 stoppedReason 记成 'blocked'。
+//
+// 注册后至少让 `phases.get('done')` 有定义、名字显示正常；
+// 真正的「不再 tick」由 index.ts 循环顶部的终态检查负责。
+const phaseDone: PhaseDefinition = {
+  id: 'done',
+  name: '完成',
+  validate: () => ({ ok: true }),
+  // 不会被调用：index.ts 在 tick 之前就判定终态并退出
+  async execute() {
+    return { action: 'complete', message: '文档已完成' };
+  },
+  exits: [],
+};
+
 export const phases: Map<Phase, PhaseDefinition> = new Map([
   ['0a', phase0a],
   ['0b', phase0b],
@@ -579,4 +601,5 @@ export const phases: Map<Phase, PhaseDefinition> = new Map([
   ['6', phase6],
   ['7', phase7],
   ['8', phase8],
+  ['done', phaseDone],
 ]);
