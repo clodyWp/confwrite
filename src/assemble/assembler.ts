@@ -145,6 +145,31 @@ export class ChapterAssembler {
   /**
    * List available chapters in project (returns latest version of each)
    */
+  /**
+   * 解析文档标题
+   *
+   * 取自 outline.md 的第一个一级标题（`# xxx`）。
+   *
+   * 历史事故（Bug 22）：phase6 组装时未传 title，而 finalizer 会把
+   * assembly/merged-v1.md 原样写入 output/final.md，导致最终文档
+   * 以 `# 目录` 开头、没有文档标题。
+   *
+   * @returns 标题文本；无 outline.md 或无一级标题时返回 undefined
+   */
+  resolveDocumentTitle(projectDir: string): string | undefined {
+    const outlinePath = join(projectDir, 'outline.md');
+    if (!existsSync(outlinePath)) return undefined;
+
+    try {
+      const content = readFileSync(outlinePath, 'utf-8');
+      const m = content.match(/^#\s+(.+)$/m);
+      const title = m?.[1]?.trim();
+      return title || undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
   listChapters(projectDir: string): string[] {
     const chaptersDir = join(projectDir, 'drafts/chapters');
 

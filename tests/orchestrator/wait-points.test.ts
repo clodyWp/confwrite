@@ -7,7 +7,7 @@
  * - waitPoint 状态正确设置和清除
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdirSync, writeFileSync, rmSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { StateMachine } from '../../src/orchestrator/state-machine.js';
 import { ProjectStore } from '../../src/state/store.js';
@@ -96,6 +96,12 @@ describe('Wait Points', () => {
       writeFileSync(join(tmpDir, 'outline.md'), '# Outline\nch001 Chapter 1');
       writeFileSync(join(tmpDir, 'assets', 'data-baseline.json'), '{}');
       writeFileSync(join(tmpDir, 'assets', 'references-index.md'), '# Index');
+
+      // 模拟「用户已确认并续跑」：index.ts 在 runWriteLoop 开头会先清空 waitPoint
+      const store0 = new ProjectStore(tmpDir);
+      const s0 = store0.load()!;
+      s0.waitPoint = undefined;
+      store0.save(s0);
       
       const machine = new StateMachine(tmpDir);
       const result = await machine.tick();
@@ -108,6 +114,30 @@ describe('Wait Points', () => {
       const store = new ProjectStore(tmpDir);
       const state = store.load();
       expect(state?.waitPoint).toBeUndefined();
+    });
+
+    it('waitPoint 未确认时不得仅因出口条件满足就推进（Bug 10）', async () => {
+      // 与上一个测试相同的前置条件，但 **不** 清空 waitPoint
+      createTestProject(tmpDir, {
+        currentPhase: '2',
+        status: 'outlining',
+        waitPoint: {
+          phase: '2',
+          reason: '大纲规划需要用户确认',
+          instructions: '请编辑 outline.md',
+          createdAt: new Date().toISOString(),
+        },
+      });
+      writeFileSync(join(tmpDir, 'outline.md'), '# Outline\nch001 Chapter 1');
+      writeFileSync(join(tmpDir, 'assets', 'data-baseline.json'), '{}');
+      writeFileSync(join(tmpDir, 'assets', 'references-index.md'), '# Index');
+
+      const machine = new StateMachine(tmpDir);
+      const result = await machine.tick();
+
+      // 出口条件虽已满足，但用户尚未确认 → 必须继续暂停
+      expect('atWaitPoint' in result && result.atWaitPoint).toBe(true);
+      expect('phase' in result && result.phase).toBe('2');
     });
 
     it('should stay at wait point when exit condition not met', async () => {
@@ -133,33 +163,73 @@ describe('Wait Points', () => {
   });
 
   describe('Phase 6 (组装) wait point', () => {
-    it('should set waitPoint when reaching phase 6', async () => {
-      // Setup: project at phase 5 with conditions to advance to 6
-      createTestProject(tmpDir, { 
-        currentPhase: '5', 
-        status: 'writing',
-      });
-      
-      // Create chapters
-      const chapters: Record<string, any> = {
-        ch001: { id: 'ch001', title: 'Chapter 1', status: 'completed', round: 1, attempt: 0 },
-      };
+    /** phase 5 → 6 的公共 setup（章節草稿 + outline + figures/manifest） */
+    function setupPhase5Ready(): void {
+      createTestProject(tmpDir, { currentPhase: '5', status: 'writing' });
+      writeFileSync(
+        join(tmpDir, 'drafts', 'chapters', 'ch001-v1.md'),
+        '# 1.1 测试章节\n\n正文内容。\n'
+      );
+      writeFileSync(join(tmpDir, 'outline.md'), '# 文档\nch001 1.1 测试章节');
       const store = new ProjectStore(tmpDir);
       const state = store.load()!;
-      state.chapters = chapters;
+      state.chapters = {
+        ch001: { id: 'ch001', title: '1.1 测试章节', status: 'completed', round: 1, attempt: 0 },
+      } as never;
       store.save(state);
-      
-      // Phase 5 exit condition: status === 'assembling' or has figures/manifest.json
       mkdirSync(join(tmpDir, 'figures'), { recursive: true });
-      writeFileSync(join(tmpDir, 'figures', 'manifest.json'), '{"diagrams":[]}');
-      
+      writeFileSync(join(tmpDir, 'figures', 'manifest.json'), '[]');
+    }
+
+    it('到达 phase 6 后应完成组装，再暂停（Bug 10）', async () => {
+      setupPhase5Ready();
+      const machine = new StateMachine(tmpDir);
+
+      await machine.tick(); // 5 → 6（阶段跳转本身消耗一个 tick）
+      await machine.tick(); // 执行组装
+
+      // 关键：组装产物必须已生成 —— 否则用户会被要求审阅一个不存在的文件
+      expect(existsSync(join(tmpDir, 'assembly', 'merged-v1.md'))).toBe(true);
+    });
+
+    it('组装完成后才返回 wait_point', async () => {
+      setupPhase5Ready();
+      const machine = new StateMachine(tmpDir);
+
+      await machine.tick(); // 5 → 6（触发器）
+      const r2 = await machine.tick(); // 执行组装
+      const r3 = await machine.tick(); // 现在才暂停
+
+      expect(existsSync(join(tmpDir, 'assembly', 'merged-v1.md'))).toBe(true);
+      expect('atWaitPoint' in r3 && r3.atWaitPoint).toBe(true);
+      expect('action' in r3 && r3.action).toBe('wait_point');
+      // r2 是执行结果，不应是等待点
+      expect('atWaitPoint' in r2 && r2.atWaitPoint).toBeFalsy();
+    });
+
+    it('waitPoint 已设置时不得因出口条件满足而跳过暂停', async () => {
+      setupPhase5Ready();
+      const machine = new StateMachine(tmpDir);
+
+      await machine.tick(); // 5 → 6
+      await machine.tick(); // 执行组装，设置 waitPoint
+      // 此时 assembly/merged-v1.md 已存在（出口条件已满足）
+      expect(existsSync(join(tmpDir, 'assembly', 'merged-v1.md'))).toBe(true);
+
+      // 仍应暂停，而不是直接推进到定稿
+      const r3 = await machine.tick();
+      expect('atWaitPoint' in r3 && r3.atWaitPoint).toBe(true);
+      expect('phase' in r3 && r3.phase).toBe('6');
+    });
+
+    it('should set waitPoint when reaching phase 6', async () => {
+      setupPhase5Ready();
       const machine = new StateMachine(tmpDir);
       const result = await machine.tick();
-      
-      // Should advance to phase 6 and set wait point
+
+      // 跳转本身仍返回 advanced + phase 6（暂停在下一步发生）
       expect('advanced' in result && result.advanced).toBe(true);
       expect('phase' in result && result.phase).toBe('6');
-      expect('atWaitPoint' in result && result.atWaitPoint).toBe(true);
     });
   });
 

@@ -41,6 +41,19 @@ export interface PhaseDefinition {
   waitPoint?: {
     reason: string;
     instructions: string;
+    /**
+     * 暂停时机：
+     *
+     * - `entry`（默认）：进入本阶段即暂停，不执行 execute。
+     *   用于「纯人工确认点」——阶段自身不产生任何产物，
+     *   如 phase2 大纲规划（等用户编写/确认 outline.md）。
+     *
+     * - `after-execute`：先完成本阶段工作，再暂停。
+     *   用于「机器先干活、再请人审阅」——如 phase6 组装：
+     *   必须先生成 assembly/merged-v1.md，否则会让用户
+     *   审阅一个不存在的文件（Bug 10）。
+     */
+    timing?: 'entry' | 'after-execute';
   };
 }
 
@@ -415,7 +428,11 @@ export const phase6: PhaseDefinition = {
     const { ChapterAssembler } = await import('../assemble/assembler.js');
     const assembler = new ChapterAssembler();
     const chapters = assembler.listChapters(ctx.projectDir);
-    const result = assembler.assemble(ctx.projectDir, chapters, { generateTOC: true });
+    // 传入文档标题（取自 outline.md 的一级标题），否则最终文档没有标题（Bug 22）
+    const result = assembler.assemble(ctx.projectDir, chapters, {
+      title: assembler.resolveDocumentTitle(ctx.projectDir),
+      generateTOC: true,
+    });
     const outputPath = join(ctx.projectDir, 'assembly', 'merged-v1.md');
     assembler.save(result, outputPath);
     return {
@@ -430,6 +447,8 @@ export const phase6: PhaseDefinition = {
   waitPoint: {
     reason: '初稿组装完成，需要用户审阅确认',
     instructions: '请审阅 assembly/merged-v1.md 初稿。确认无误后再次运行 /confwrite:write 继续定稿。',
+    // 组装必须先生成产物，否则用户会被要求审阅一个不存在的文件（Bug 10）
+    timing: 'after-execute',
   },
 };
 

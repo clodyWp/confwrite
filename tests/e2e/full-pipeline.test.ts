@@ -164,14 +164,23 @@ describe('Full E2E Pipeline', () => {
     // Advance to phase 4a (writing)
     const machine = new StateMachine(projectDir);
     
-    // Tick until we reach 4a or it's already there
+    // Tick until we reach 4a or it's already there.
+    // 途中遇到等待点（如 phase2 大纲规划）时模拟用户确认：
+    // 真实交互中用户会再次运行 /confwrite:write，
+    // 而 index.ts 会在 runWriteLoop 开头清空 waitPoint。
     let ticks = 0;
-    while (ticks < 10) {
+    while (ticks < 20) {
       const currentState = store.load()!;
       if (currentState.currentPhase === '4a') break;
       
       const tick = await machine.tick();
       if ('blocked' in tick && tick.blocked) break;
+
+      if ('atWaitPoint' in tick && tick.atWaitPoint) {
+        const s = store.load()!;
+        s.waitPoint = undefined;
+        store.save(s);
+      }
       ticks++;
     }
 

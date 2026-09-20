@@ -91,6 +91,26 @@ export class StateMachine {
 
     const ctx: PhaseContext = { state, projectDir: this.projectDir };
 
+    // 0. waitPoint 优先于出口判定（Bug 10）
+    //
+    // 必须放在 exits 之前：否则「先干活再暂停」的阶段（如组装）一旦产物
+    // 生成就满足出口条件，会直接跳走而永不暂停，用户看不到审阅提示。
+    //
+    // 恢复路径：用户再次运行 /confwrite:write 时 index.ts 先清空 waitPoint，
+    // 于是本分支不触发，流程继续走到 exits 判定。
+    if (definition.waitPoint && state.waitPoint && state.waitPoint.phase === phase) {
+      return {
+        phase,
+        phaseName: definition.name,
+        action: 'wait_point',
+        message: state.waitPoint.reason,
+        atWaitPoint: true,
+        waitPointReason: state.waitPoint.reason,
+        waitPointInstructions: state.waitPoint.instructions,
+        advanced: false,
+      };
+    }
+
     // 1. Check exit conditions — advance if met (before validate/execute)
     // NOTE: Previously, exit checks were skipped on first entry (phaseJustEntered)
     // to prevent phases from being skipped on resume. However, this caused Phase 4b
@@ -107,8 +127,10 @@ export class StateMachine {
           this.advance(exit.target, state, previousPhase);
           const targetDef = phases.get(exit.target);
 
-          // If target phase has a waitPoint, set it immediately so the loop pauses
-          if (targetDef?.waitPoint) {
+          // 仅「entry」时机的阶段在跳转时立即暂停（不等 execute）。
+          // 「after-execute」阶段（如组装）需先执行工作，由第 5 步在执行后设置。
+          const waitTiming = targetDef?.waitPoint?.timing ?? 'entry';
+          if (targetDef?.waitPoint && waitTiming === 'entry') {
             state.waitPoint = {
               phase: exit.target,
               reason: targetDef.waitPoint.reason,
@@ -151,21 +173,7 @@ export class StateMachine {
       };
     }
 
-    // 3. If waitPoint is active AND already acknowledged (execute ran before), return wait
-    //    The waitPoint is set AFTER execute (see below), so if it's set here,
-    //    it means execute already ran and we're waiting for user to resume.
-    if (definition.waitPoint && state.waitPoint && state.waitPoint.phase === phase) {
-      return {
-        phase,
-        phaseName: definition.name,
-        action: 'wait_point',
-        message: state.waitPoint.reason,
-        atWaitPoint: true,
-        waitPointReason: state.waitPoint.reason,
-        waitPointInstructions: state.waitPoint.instructions,
-        advanced: false,
-      };
-    }
+    // 3. waitPoint 分支已上移至函数开头（优先于出口判定）
 
     // 4. Execute current phase
     const result = await definition.execute(ctx);
