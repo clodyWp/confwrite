@@ -291,10 +291,13 @@ tests/orchestrator/stale-artifacts.test.ts
 
 ## 9. 已知风险
 
-### 9.1 ⚠️ `feat/responsibility-separation` 合并前必须处理
+### 9.1 ✅ `feat/responsibility-separation` 已合入并修正
 
 该分支含**与本次根因同源的层级错误**（「每个子节建议 3000–5000 字」）。
-实测两边都改过 `src/writing/task-executor.ts`：
+已于 `e6e6fe6` 合入本分支，处理方式是「保留职责分离、丢弃错误口径」。
+该分支现已是本分支的祖先，可安全删除。
+
+合入时的原始冲突分析（实测两边都改过 `src/writing/task-executor.ts`）：
 
 ```
 vs feat/responsibility-separation: 双方都改过 → src/writing/task-executor.ts
@@ -326,7 +329,7 @@ pacman / apt / pandoc.org 三种安装指引（不再是一句难懂的 `execFil
 | 优先级 | 事项 |
 |---|---|
 | **P1** | 决定是否重做第 4 阶段（清掉那 7 个收敛性 bug） |
-| **P1** | 处理 `feat/responsibility-separation` 的层级笔误后再合并 |
+| **P1** | ~~处理 `feat/responsibility-separation` 的层级笔误后再合并~~ ✅ 已完成（`e6e6fe6`） |
 | **P2** | 方案 B：图表生成器接知识库 |
 | **P3** | Bug 11 统计口径；turn 预算阈值校准（当前 40，历史最大 34） |
 | **P3** | 结构稳定性观察（节数曾 37→6 波动，`ch` 级度量修正后**可能**已间接解决） |

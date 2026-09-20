@@ -47,25 +47,26 @@ dist/ 实际：feat/responsibility-separation 编译产物
 ```
 master ──── 4d30e14 (v0.7.3 已发布基线)
   │
-  ├── feat/responsibility-separation @ f62f85c   （从 master 分出，未验证）
+  ├── feat/responsibility-separation @ f62f85c   （已合入下方分支，已是祖先）
   │
   └── 1e502ff (tag: before-ch-level-fix)
         └── feat/tool-least-privilege           （回退点，已被取代）
               └── feat/ch-level-length @ 39fdf88 （ch 级篇幅 + bash 恢复，已验证）
-                    └── fix/diagram-and-export @ ef0c34f  ← 当前
+                    └── a2414e0 (tag: v0.8.0)   22 个修复 + 发布
+                          └── e6e6fe6           merge: 合入职责分离  ← 当前
 ```
 
 | 分支 | 内容 | 状态 |
 |------|------|------|
 | `master` | 已发布基线（v0.7.3） | 稳定 |
-| `feat/responsibility-separation` | prompt 职责分离 | ⚠️ 未验证；**含与本次根因同源的层级错误**，合并前须修 |
+| `feat/responsibility-separation` | prompt 职责分离 | ✅ **已合入**（合并时修正了其层级笔误，见 `e6e6fe6`）；已是祖先，可删除 |
 | `feat/tool-least-privilege` | 工具最小权限 + turn 预算 | 被取代（回退点） |
 | `feat/ch-level-length` | ch 级篇幅修正 + bash 恢复 | 已验证 |
-| **`fix/diagram-and-export`** | **19 个 bug 修复：图表准确 + 图表注入 + 导出打通** | **当前，产物已验证** |
+| **`fix/diagram-and-export`** | **22 个修复 + 职责分离**（图表准确 + 图表注入 + 导出打通） | **当前**（`v0.8.0` 标签在 `a2414e0`） |
 
 `feat/` = 功能开发，`fix/` = 缺陷修复。
-**注意**：`fix/diagram-and-export` **线性包含** `feat/ch-level-length` 的全部提交，
-所以合回它是快进合并；但 `feat/responsibility-separation` 是另一条独立的线。
+**注意**：`fix/diagram-and-export` **线性包含** `feat/ch-level-length` 的全部提交；
+`feat/responsibility-separation` 曾是一条独立的线，已于 `e6e6fe6` 合入并修正。
 
 ---
 

@@ -1169,7 +1169,7 @@ dist: 构建于 09-20 14:12，含本次全部 22 个修复
 | `master` | v0.7.3 基线 | 稳定 |
 | `feat/ch-level-length` | ch 级篇幅 + bash 恢复 | 已验证 |
 | **`fix/diagram-and-export`** | **本轮 22 个修复** | **当前，已端到端跑通** |
-| `feat/responsibility-separation` | prompt 职责分离 | ⚠️ **含同样的「每个子节 3000-5000 字」层级错误**，合并前必须一并修正 |
+| `feat/responsibility-separation` | prompt 职责分离 | ✅ **已合入并修正**（`e6e6fe6`）：保留职责分离，层级笔误改为 ch 级 |
 | `feat/tool-least-privilege` | 角色工具限制 | 被取代（回退点） |
 
 ---
