@@ -12,7 +12,7 @@
  * - Reviewer: review/${chapterId}-r${round}.json
  * - Fixer: 读取上一版本，输出新版本
  */
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import type { ProjectStore } from '../state/store.js';
 import type { SubagentScheduler } from '../scheduler/index.js';
@@ -250,7 +250,6 @@ export class Dispatcher {
     
     // 扫描目录找最高版本号: ch001-v1.md, ch001-v2.md, ...
     try {
-      const { readdirSync } = require('node:fs');
       const files = readdirSync(draftsDir);
       const versionPattern = new RegExp(`^${chapterId}-v(\\d+)\\.md$`);
       let maxVersion = -1;
