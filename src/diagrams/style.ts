@@ -33,7 +33,43 @@ export interface DiagramStyle {
   fontSize: 'compact' | 'normal' | 'spacious';
   /** 自定义颜色（当 colorScheme 为 custom 时使用） */
   customColors: ColorScheme | null;
+  /**
+   * 层级配色板：按 node.layer 索引取色，超出长度时循环。
+   *
+   * 从知识库 knowledge/diagrams/architecture-style.md 提取：
+   *   接入层=蓝 / 业务应用层=绿 / 业务支撑层=橙 / 数据层=紫 / 基础设施层=灰
+   *
+   * 做成可配置数据而非硬编码，便于后续（方案 B）改为直接读知识库。
+   * 缺省/为空时回退到 DEFAULT_LAYER_PALETTE。
+   */
+  layerPalette?: string[];
 }
+
+/**
+ * 默认层级配色板（低饱和度企业色调，与实际层级顺序对应）
+ *
+ * 顺序即 layer 索引：0=接入层 1=应用层 2=支撑层 3=数据层 4=基础设施层
+ */
+export const DEFAULT_LAYER_PALETTE: string[] = [
+  '#2563eb', // 蓝 —— 接入层
+  '#16a34a', // 绿 —— 业务应用层
+  '#ea580c', // 橙 —— 业务支撑层
+  '#7c3aed', // 紫 —— 数据层
+  '#64748b', // 灰 —— 基础设施层
+];
+
+/**
+ * 跨平台中文字体回退链
+ *
+ * 历史事故：曾硬编码 'Microsoft YaHei, SimHei, sans-serif'，
+ * 但这两个字体在 Linux 上不存在（fc-list 0 匹配），导致声明失效。
+ * 本机有 80 个中文字体（Noto Sans CJK 等）却用不上。
+ *
+ * 顺序：Linux 可用 → macOS → Windows → 通用兜底。
+ * 不带引号（避免 Windows 下的字体匹配问题）。
+ */
+export const CJK_FONT_FAMILY =
+  'Noto Sans CJK SC, Source Han Sans SC, PingFang SC, Microsoft YaHei, SimHei, sans-serif';
 
 /**
  * 预定义配色方案
@@ -78,7 +114,22 @@ export function getDefaultDiagramStyle(): DiagramStyle {
     layoutDirection: 'top-to-bottom',
     fontSize: 'normal',
     customColors: null,
+    layerPalette: [...DEFAULT_LAYER_PALETTE],
   };
+}
+
+/**
+ * 解析层级配色板
+ *
+ * @param style 风格配置
+ * @returns 非空配色板；未配置或为空时返回默认值
+ */
+export function getLayerPalette(style: DiagramStyle): string[] {
+  const palette = style.layerPalette;
+  if (!palette || palette.length === 0) {
+    return DEFAULT_LAYER_PALETTE;
+  }
+  return palette;
 }
 
 /**
@@ -117,6 +168,11 @@ export function loadDiagramStyle(projectDir: string): DiagramStyle {
       layoutDirection: parsed.layoutDirection || defaults.layoutDirection,
       fontSize: parsed.fontSize || defaults.fontSize,
       customColors: parsed.customColors || defaults.customColors,
+      // 旧项目文件没有 layerPalette 字段 → 回退默认（避免升级后图表变单色）
+      layerPalette:
+        Array.isArray(parsed.layerPalette) && parsed.layerPalette.length > 0
+          ? parsed.layerPalette
+          : defaults.layerPalette,
     };
   } catch {
     return getDefaultDiagramStyle();

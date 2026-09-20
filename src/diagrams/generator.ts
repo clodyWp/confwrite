@@ -4,7 +4,7 @@
  * 将解析后的节点和连接关系渲染为 SVG。
  * 支持多种风格配置：配色方案、节点形状、布局方向。
  */
-import { getColorScheme, type DiagramStyle, type ColorScheme } from './style.js';
+import { getColorScheme, getLayerPalette, CJK_FONT_FAMILY, type DiagramStyle, type ColorScheme } from './style.js';
 
 /**
  * SVG 节点
@@ -68,6 +68,7 @@ export function generateSVG(
   }
 
   const colors = style.customColors || getColorScheme(style.colorScheme) || getColorScheme('warm')!;
+  const palette = getLayerPalette(style);
   const positions = calculatePositions(nodes, style);
   const { width, height } = calculateCanvasSize(positions, style);
 
@@ -95,7 +96,7 @@ export function generateSVG(
   for (const node of nodes) {
     const pos = positions[node.id];
     if (pos) {
-      svgParts.push(generateNode(node, pos, style, colors));
+      svgParts.push(generateNode(node, pos, style, colors, palette));
     }
   }
 
@@ -202,11 +203,28 @@ function generateArrowMarker(colors: ColorScheme): string {
 /**
  * 生成节点 SVG
  */
+/**
+ * 按层级取填充色
+ *
+ * 历史事故：曾对所有节点统一使用 colors.primary，导致 29 张图每张只有
+ * 1 个填充色（全部同一个橙 #d97706），完全无层级区分。
+ *
+ * @param layer 节点层级（可为任意整数，超出配色板长度时循环）
+ * @param palette 层级配色板（非空）
+ */
+function fillForLayer(layer: number, palette: string[]): string {
+  const n = palette.length;
+  // 兼容负数与超长 layer，避免取到 undefined
+  const idx = ((Math.trunc(layer) % n) + n) % n;
+  return palette[idx];
+}
+
 function generateNode(
   node: SVGNode,
   pos: { x: number; y: number },
   style: DiagramStyle,
-  colors: ColorScheme
+  colors: ColorScheme,
+  palette: string[]
 ): string {
   const { x, y } = pos;
   const w = LAYOUT.nodeWidth;
@@ -225,11 +243,13 @@ function generateNode(
       break;
   }
 
-  // 字体族不使用引号（解决 Windows 中文字体问题）
-  const fontFamily = 'Microsoft YaHei, SimHei, sans-serif';
+  // 字体族：跨平台回退链（Linux 的 Noto Sans CJK 优先，见 Bug 18）
+  const fontFamily = CJK_FONT_FAMILY;
+  // 按层级取色（见 Bug 17）
+  const fill = fillForLayer(node.layer, palette);
 
   return `<g id="node-${node.id}">
-  <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}" fill="${colors.primary}" stroke="${colors.line}" stroke-width="1.5"/>
+  <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}" fill="${fill}" stroke="${colors.line}" stroke-width="1.5"/>
   <text x="${x + w / 2}" y="${y + h / 2 + 5}" text-anchor="middle" fill="${colors.bg}" font-size="${LAYOUT.fontSize}" font-family="${fontFamily}">${escapeXml(node.label)}</text>
 </g>`;
 }

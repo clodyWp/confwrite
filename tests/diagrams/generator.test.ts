@@ -10,7 +10,7 @@ import {
   type SVGConnection,
   type SVGResult,
 } from '../../src/diagrams/generator.js';
-import { getDefaultDiagramStyle, getColorScheme, type DiagramStyle } from '../../src/diagrams/style.js';
+import { getDefaultDiagramStyle, getColorScheme, DEFAULT_LAYER_PALETTE, type DiagramStyle } from '../../src/diagrams/style.js';
 
 describe('SVGGenerator', () => {
   const defaultStyle = getDefaultDiagramStyle();
@@ -61,7 +61,9 @@ describe('SVGGenerator', () => {
       expect(result.svg).toContain('HTTP'); // 连接标签
     });
 
-    it('applies warm color scheme', () => {
+    // 语义变更（Bug 17）：节点填充色由分层配色板（layerPalette）决定，
+    // 而 colorScheme 现在只负责线条/箭头/背景/文字。
+    it('applies warm color scheme to lines and background', () => {
       const nodes: SVGNode[] = [
         { id: 'A', label: '模块', layer: 0 },
       ];
@@ -69,13 +71,14 @@ describe('SVGGenerator', () => {
 
       const result = generateSVG(nodes, connections, defaultStyle);
 
-      expect(result.svg).toContain(colors.primary);
+      expect(result.svg).toContain(colors.line); // 箭头描边
+      expect(result.svg).toContain(colors.bg);   // 背景
     });
 
-    it('applies cool color scheme', () => {
+    it('applies cool color scheme to lines and background', () => {
       const coolStyle: DiagramStyle = { ...defaultStyle, colorScheme: 'cool' };
       const coolColors = getColorScheme('cool')!;
-      
+
       const nodes: SVGNode[] = [
         { id: 'A', label: '模块', layer: 0 },
       ];
@@ -83,7 +86,21 @@ describe('SVGGenerator', () => {
 
       const result = generateSVG(nodes, connections, coolStyle);
 
-      expect(result.svg).toContain(coolColors.primary);
+      expect(result.svg).toContain(coolColors.line);
+      expect(result.svg).toContain(coolColors.bg);
+    });
+
+    it('node fill comes from layerPalette, not from colorScheme.primary', () => {
+      const nodes: SVGNode[] = [
+        { id: 'A', label: '模块', layer: 0 },
+      ];
+
+      const result = generateSVG(nodes, [], defaultStyle);
+
+      // layer 0 → 配色板第 1 色
+      expect(result.svg.toLowerCase()).toContain(DEFAULT_LAYER_PALETTE[0].toLowerCase());
+      // warm 主色不再用于节点
+      expect(result.svg).not.toContain(colors.primary);
     });
 
     it('handles top-to-bottom layout', () => {
