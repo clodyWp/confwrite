@@ -242,13 +242,20 @@ export async function runWriteLoop(
           await dispatcher.processTask(taskResult.id, outcome as 'success' | 'failed', output);
         }
         
-        // 熔断器触发时退出循环
+        // 熔断器触发时退出批次循环
         if (result.stoppedReason === 'circuit_breaker') break;
       }
-      
-      if (result.stoppedReason !== 'circuit_breaker') {
-        notify(`✅ 所有任务执行完成: ${result.tasksSucceeded} 成功, ${result.tasksFailed} 失败`, 'info');
+
+      // 熔断后必须终止外层推进循环（Bug 1）
+      //
+      // 原实现只 break 了内层批次循环，外层 while 继续跑：
+      // 派发任务 → 熔断立即失败 → 0 执行 → 再派发 → … 空转到 MAX_TICKS。
+      // 实测：29 个任务竟消耗 2000 次 tick（约 1970 次空转）。
+      if (result.stoppedReason === 'circuit_breaker') {
+        break;
       }
+
+      notify(`✅ 所有任务执行完成: ${result.tasksSucceeded} 成功, ${result.tasksFailed} 失败`, 'info');
     } else if (step.action === 'advance' || step.action === 'phase_entered') {
       continue;
     } else {
@@ -259,8 +266,15 @@ export async function runWriteLoop(
   }
 
   if (result.ticks >= MAX_TICKS) {
+    // 仅在尚无终止原因时才归因于 tick 上限（Bug 2）
+    //
+    // 原实现无条件赋值，把 circuit_breaker 等真实原因覆盖成 'max_ticks'，
+    // 导致调用方看到「推进次数用完」而实际是限流熔断或状态机死锁，
+    // 完全误导排查方向。
     notify(`⚠️ 达到最大推进次数 (${MAX_TICKS})，请检查状态`, 'info');
-    result.stoppedReason = 'max_ticks';
+    if (!result.stoppedReason) {
+      result.stoppedReason = 'max_ticks';
+    }
   }
 
   if (!result.stoppedReason) {
