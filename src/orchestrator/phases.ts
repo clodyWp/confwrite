@@ -8,6 +8,7 @@
  */
 import { existsSync, statSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { FormatConverter } from '../assemble/converter.js';
 import type { Phase, ProjectState } from '../state/schema.js';
 
 export interface PhaseContext {
@@ -479,12 +480,45 @@ export const phase7: PhaseDefinition = {
 export const phase8: PhaseDefinition = {
   id: '8',
   name: '导出',
-  validate: () => ({ ok: true }),
+  // 依赖预检（Bug 16）：docx 导出需要 pandoc。
+  // 以前 checkDependencies() 是死代码，缺依赖时只会抛出难懂的
+  // execFileSync 报错，用户不知道该怎么办。
+  validate: () => {
+    const deps = new FormatConverter().checkDependencies();
+    if (!deps.pandoc.installed) {
+      return {
+        ok: false,
+        error:
+          '导出 Word 需要 pandoc，但未检测到。请先安装：\n' +
+          '  Arch:    sudo pacman -S pandoc\n' +
+          '  Debian:  sudo apt install pandoc\n' +
+          '  其他:    https://pandoc.org/installing.html\n' +
+          '安装后再次运行 /confwrite:write 继续。',
+      };
+    }
+    return { ok: true };
+  },
+  // 真正执行导出（Bug 9）
+  // 原实现只返回一个 action: 'export_docx' 描述，而 dispatcher 与
+  // EXECUTABLE_ACTIONS 都不处理它 —— 导出从未发生，出口条件永不满足，
+  // 流程空转到 MAX_TICKS（实测：29 个任务消耗 2000 次 tick）。
+  // 改为与 phase5/6/7 一致：在本阶段 execute 内直接完成工作。
   async execute(ctx) {
+    const { exportDocument } = await import('../commands/export.js');
+    const outputPath = join(ctx.projectDir, 'output', 'final.docx');
+
+    const result = await exportDocument(ctx.projectDir, {
+      format: 'docx',
+      outputPath,
+      toc: true,
+    });
+
     return {
       action: 'export_docx',
-      message: 'Phase 8: 导出 Word 文档',
-      params: { projectDir: ctx.projectDir },
+      message: result.success
+        ? `Phase 8: 导出完成 → ${outputPath}`
+        : `Phase 8: 导出失败 — ${result.error ?? '未知错误'}`,
+      params: { projectDir: ctx.projectDir, outputPath, success: result.success },
     };
   },
   exits: [
