@@ -217,6 +217,15 @@ export class StateMachine {
       action: `Phase ${fromPhase} → ${target}`,
     });
 
+    // 进入新阶段时清理「本阶段自己产物」的残留（Bug 28）
+    //
+    // 必须在保存状态**之前**、且只在真正跳转时执行：
+    // 出口条件都是 hasFile，残件会让阶段跳过自己的工作直接流下去。
+    const targetDef = phases.get(target);
+    if (targetDef?.onEnter) {
+      targetDef.onEnter({ state, projectDir: this.projectDir });
+    }
+
     this.store.save(state);
   }
 

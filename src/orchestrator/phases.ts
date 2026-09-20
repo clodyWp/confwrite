@@ -6,7 +6,7 @@
  * - execute: what to do in this phase
  * - exits: possible transitions to other phases
  */
-import { existsSync, statSync, readFileSync } from 'node:fs';
+import { existsSync, statSync, readFileSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import { FormatConverter } from '../assemble/converter.js';
 import type { Phase, ProjectState } from '../state/schema.js';
@@ -38,6 +38,21 @@ export interface PhaseDefinition {
   validate: (ctx: PhaseContext) => ValidationResult;
   execute: (ctx: PhaseContext) => Promise<PhaseResult>;
   exits: Transition[];
+  /**
+   * 进入本阶段时调用（由状态机在 advance 时触发）。
+   *
+   * 用途：清掉**本阶段自己产物**的残留文件（Bug 28）。
+   *
+   * 为什么必需：状态机的 tick 顺序是「先查出口条件 → 再 validate/execute」，
+   * 而 phase 6/7/8 的出口条件就是「某个文件存在」，那个文件又正是本阶段
+   * 要产出的。于是上次运行留下的残件会让出口条件直接成立，**阶段根本不
+   * 执行就跳到下一阶段** —— 真机事故：残留的 output/final.docx 使
+   * phase 8 跳过导出，pandoc 报错的情况下仍然进入 done。
+   *
+   * 注意：只清「工作产物」，不清「缓存」（如 figures/manifest.json）。
+   * 缓存命中时跳过重算是正确行为。
+   */
+  onEnter?: (ctx: PhaseContext) => void;
   /** 是否为等待点（暂停等待用户确认后才继续） */
   waitPoint?: {
     reason: string;
@@ -445,6 +460,12 @@ export const phase6: PhaseDefinition = {
   exits: [
     { target: '7', condition: (ctx) => hasFile(ctx, 'assembly/merged-v1.md') },
   ],
+  // 清掉上次组装的残件（Bug 28）：否则出口条件立刻成立，
+  // phase 6 会跳过组装，连「请审阅初稿」的人工确认点也一并跳过。
+  onEnter(ctx) {
+    const p = join(ctx.projectDir, 'assembly', 'merged-v1.md');
+    if (existsSync(p)) unlinkSync(p);
+  },
   waitPoint: {
     reason: '初稿组装完成，需要用户审阅确认',
     instructions: '请审阅 assembly/merged-v1.md 初稿。确认无误后再次运行 /confwrite:write 继续定稿。',
@@ -475,6 +496,11 @@ export const phase7: PhaseDefinition = {
   exits: [
     { target: '8', condition: (ctx) => hasFile(ctx, 'output/finalization.json') },
   ],
+  // 清掉上次定稿的残件（Bug 28）
+  onEnter(ctx) {
+    const p = join(ctx.projectDir, 'output', 'finalization.json');
+    if (existsSync(p)) unlinkSync(p);
+  },
 };
 
 export const phase8: PhaseDefinition = {
@@ -524,6 +550,17 @@ export const phase8: PhaseDefinition = {
   exits: [
     { target: 'done', condition: (ctx) => hasFile(ctx, 'output/final.docx') },
   ],
+  // 清掉上次导出的残件（Bug 28）
+  //
+  // 实测事故：pandoc 报 YAML 解析错误（分隔符 --- 被当元数据块），
+  // 流程却仍进入 done —— 因为出口条件只有「final.docx 是否存在」，
+  // 而上次运行留了一份 552 KB 的坏文件（29 张图全变成 alt 文字）。
+  // 更隐蔽的是：出口检查在 execute **之前**，所以残件存在时
+  // phase 8 连导出都不会尝试，直接跳过。
+  onEnter(ctx) {
+    const p = join(ctx.projectDir, 'output', 'final.docx');
+    if (existsSync(p)) unlinkSync(p);
+  },
 };
 
 // ============ Phase Registry ============

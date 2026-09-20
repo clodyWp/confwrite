@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdtempSync, rmSync, mkdirSync, writeFileSync, existsSync, chmodSync } from 'node:fs';
+import { mkdtempSync, rmSync, mkdirSync, writeFileSync, readFileSync, existsSync, chmodSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { StateMachine } from '../../src/orchestrator/state-machine.js';
@@ -46,6 +46,13 @@ describe('Phase 8 导出（Bug 9、16）', () => {
   let projectDir: string;
   let stubDir: string;
   let originalPath: string | undefined;
+  let state: ProjectState;
+
+  /** 把状态文件的 currentPhase 设为指定阶段（用于测试阶段跳转） */
+  function setPhase(phase: ProjectState['currentPhase']): void {
+    state.currentPhase = phase;
+    writeFileSync(join(projectDir, 'project-state.json'), JSON.stringify(state, null, 2));
+  }
 
   beforeEach(() => {
     projectDir = mkdtempSync(join(tmpdir(), 'confwrite-phase8-'));
@@ -62,7 +69,7 @@ describe('Phase 8 导出（Bug 9、16）', () => {
     writeFileSync(join(projectDir, 'drafts', 'chapters', 'ch001-v1.md'), '# 1.1 章节\n\n正文内容。\n');
     writeFileSync(join(projectDir, 'outline.md'), '# 测试文档标题\n\n## 1. 第一部分\nch001 1.1 章节\n');
 
-    const state: ProjectState = {
+    state = {
       version: 1,
       project: 'test',
       projectDir,
@@ -150,5 +157,57 @@ describe('Phase 8 导出（Bug 9、16）', () => {
     // 未生成 docx，且不应推进
     expect(existsSync(join(projectDir, 'output', 'final.docx'))).toBe(false);
     expect('phase' in r && r.phase).toBe('8');
+  });
+
+  // ── Bug 28 ──────────────────────────────────────────────
+  // phase 8 的出口条件只有 hasFile('output/final.docx')，不看导出是否成功。
+  // 上次运行留下的残件会让失败的导出仍然满足出口条件 → 假成功。
+  // 实测事故：pandoc 报 YAML 解析错误，流程仍然推进到 done，
+  // 而那份 final.docx 是 552 KB 的坏文件（图全变 alt 文字）。
+
+  it('残留的旧产物不能掩盖导出失败（Bug 28）', async () => {
+    const docx = join(projectDir, 'output', 'final.docx');
+    writeFileSync(docx, 'STALE-DOCX-FROM-PREVIOUS-RUN');
+    // 满足 phase 7 的出口条件 → 下一次 tick 会「进入」phase 8
+    writeFileSync(join(projectDir, 'output', 'finalization.json'), '{"stats":{}}');
+    setPhase('7');
+
+    // 让 pandoc 失败
+    const st = join(stubDir, 'pandoc');
+    writeFileSync(st, '#!/bin/sh\nif [ "$1" = "--version" ]; then echo "pandoc 3.99.0"; exit 0; fi\nexit 1\n', 'utf-8');
+    chmodSync(st, 0o755);
+    process.env.PATH = `${stubDir}:${originalPath}`;
+
+    const machine = new StateMachine(projectDir);
+    await machine.tick(); // 进入 phase 8，onEnter 清掉残件
+
+    // 残件必须被清掉，否则出口条件就只靠「文件存在」而假成功
+    expect(existsSync(docx)).toBe(false);
+
+    await machine.tick(); // execute：导出失败
+    await machine.tick(); // 再来一次：出口条件仍不应满足
+
+    const store = new ProjectStore(projectDir);
+    expect(store.load()!.currentPhase).toBe('8');
+    expect(existsSync(docx)).toBe(false);
+  });
+
+  it('残留旧产物时，成功导出会覆盖它并正常推进', async () => {
+    const docx = join(projectDir, 'output', 'final.docx');
+    writeFileSync(docx, 'STALE-DOCX-FROM-PREVIOUS-RUN');
+    writeFileSync(join(projectDir, 'output', 'finalization.json'), '{"stats":{}}');
+    setPhase('7');
+
+    process.env.PATH = `${stubDir}:${originalPath}`;
+    const machine = new StateMachine(projectDir);
+    await machine.tick(); // 进入 phase 8（清残件）
+    expect(existsSync(docx)).toBe(false);
+
+    await machine.tick(); // execute：导出成功
+    expect(existsSync(docx)).toBe(true);
+    expect(readFileSync(docx, 'utf-8')).toBe('STUB-DOCX'); // 是本次的新产物
+
+    await machine.tick(); // 出口条件满足
+    expect(new ProjectStore(projectDir).load()!.currentPhase).toBe('done');
   });
 });
