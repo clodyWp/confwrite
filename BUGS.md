@@ -1,6 +1,6 @@
 # ConfWrite Bug 清单（全流程实测）
 
-> 记录时间：2026-09-20（2026-09-20 晚更新：补充 Bug 19–27，并标注修复状态）
+> 记录时间：2026-09-20（第三轮更新：补充 Bug 28、29、30 —— 均来自真机重跑）
 > 来源：LmERP2 项目一次完整的端到端运行（写作 → 审阅 → 修复 → 图表 → 组装 → 定稿 → 导出）
 > 所有 bug **均有实测证据**，非静态分析推测
 > 代码基线：`feat/ch-level-length` @ `b6fadf6`（dist 构建于 09-20 07:53）
@@ -44,7 +44,28 @@ final.docx 结构
   └─ Heading3    67 个（章节内小节）
 ```
 
-### 0.3 修复状态总览
+### 0.3 第二轮：重跑（彻底走通）
+
+修复 19 个 bug 后，从阶段 5 重跑（**不重做阶段 4**，沿用现有 15 章草稿）：
+
+```
+Phase 5 → 6     14:07:53   29 张图 + 组装（停下等人工确认）
+Phase 6 → 7     14:09:43   定稿
+Phase 7 → 8     14:09:43   导出
+Phase 8 → done  14:09:44   ✓
+```
+
+| 产物 | 大小 |
+|---|---|
+| `figures/` 29 SVG + 29 PNG + manifest | — |
+| `assembly/merged-v1.md` | 1,127,292 B |
+| `output/final.md` | 1,127,292 B |
+| `output/finalization.json` | 463 B |
+| **`output/final.docx`** | **1,472,671 B，29 张内嵌图片 + TOC + Heading1 × 1** |
+
+**这次重跑又暴露了 3 个 bug（28/29/30，均已修）**，见 §1 末尾。
+
+### 0.4 修复状态总览
 
 | # | 标题 | 严重度 | 状态 | 提交 |
 |---|---|---|---|---|
@@ -75,9 +96,13 @@ final.docx 结构
 | 25 | 分隔符被 pandoc 当 YAML 块 | P0 | ✅ 已修 | `d449a45` |
 | 26 | pandoc 按进程 cwd 找图 → 图未嵌入 | P0 | ✅ 已修 | `17db496` |
 | 27 | 导出未传 title → 缺标题/未降级 | P2 | ✅ 已修 | `17db496` |
+| 28 | 残留产物让阶段跳过自己的工作 | P0 | ✅ 已修 | `b9b119f` |
+| 29 | 图表缓存不检查产物是否存在 | P0 | ✅ 已修 | `637e8b9` |
+| 30 | 到达 `done` 后收尾报错 | P2 | ✅ 已修 | `1f1a17c` |
 
-> 已修 19 个 / 共 27 个。未修的集中在第 4 阶段（写作与审阅收敛性），
-> 不影响「拿去现有产物 → 图表 → 导出 Word」这条路径。
+> 已修 **22** 个 / 共 **30** 个。
+> 未修的 7 个集中在第 4 阶段（写作与审阅收敛性），
+> 不影响「沿用现有产物 → 图表 → 导出 Word」这条路径 —— 该路径已端到端走通。
 
 ---
 
@@ -849,11 +874,147 @@ const assemblyOptions = { title: options.title, … };   // undefined
 
 ---
 
+## 1b. 第二轮重跑发现的 bug（28、29、30）
+
+这三个都是**把阶段 5→8 真正跑通**才暴露的，而且都是「静默错误」——
+不报错、或者把失败报成成功。
+
+### 🔴 Bug 28 — 残留产物让阶段跳过自己的工作
+
+**现象**：13:36 那次重跑，pandoc 明确报错：
+
+```
+Error parsing YAML metadata at output/final.tmp.md:
+  did not find expected <document start>
+```
+
+流程却仍然推进到 `done`，而那份 `final.docx` 是 **552 KB 的坏文件**
+（29 张图全被替换成 alt 文字，正确应为 1.47 MB）。
+
+**根因**：状态机 tick 的顺序是
+
+```
+1. 检查出口条件 → 满足就跳转（**在 validate / execute 之前**）
+2. validate    3. waitPoint    4. execute
+```
+
+而 phase 6/7/8 的出口条件都是「某个文件存在」，那个文件又正是
+本阶段自己要产出的。于是上次运行留下的残件让出口条件**直接成立**：
+
+| 残留文件 | 后果 |
+|---|---|
+| `assembly/merged-v1.md` | phase 6 跳过组装，**连人工确认点也跳过** |
+| `output/finalization.json` | phase 7 跳过定稿 |
+| `output/final.docx` | phase 8 **跳过导出**并报 done |
+
+> 修这个 bug 时发现真相比最初描述更严重：不只是「失败被掩盖」，
+> 而是**出口检查在前，阶段根本不会执行导出**。
+
+**修法**：`PhaseDefinition` 新增 `onEnter` 钩子（状态机在 `advance()` 时
+调用），phase 6/7/8 各自清掉自己产物的残件。
+
+只清「工作产物」，不清「缓存」：`figures/manifest.json` 属缓存，
+命中时跳过重算是正确行为，故 phase 5 不加 `onEnter`。
+
+**状态**：✅ 已修复（`b9b119f`）
+
+---
+
+### 🔴 Bug 29 — 图表缓存只比对源哈希，不检查产物是否存在
+
+**发现场景**：规划重跑时确认「清空 figures/ 能否强制重生」。
+
+```ts
+shouldRegenerate(diagramId, sourceContent) {
+  const entry = this.manifest[diagramId];
+  if (!entry) return true;
+  const currentHash = this.computeHash(sourceContent);
+  return currentHash !== entry.sourceHash;   // ← 只看哈希
+}
+```
+
+**后果**：清空 `figures/*.svg` 与 `*.png` 但保留 `manifest.json` 时，
+pipeline 认为 29 张图「未变更」而**全部 skip** —— 一张图都没生成；
+而 phase 5 的出口条件正是 `hasFile('figures/manifest.json')`，
+于是流程认为图表阶段已完成，后续组装拿不到任何图片。
+
+表现与 Bug 26 相似（导出的 Word 里图变成 alt 文字），但成因完全不同。
+
+**修法**：哈希比对之前先检查 `entry.svgFile` / `entry.pngFile` 是否存在，
+缺失即返回 `true`。两项都查 —— PNG 才是最终嵌入 docx 的产物。
+
+**状态**：✅ 已修复（`637e8b9`）
+
+---
+
+### 🟡 Bug 30 — 到达 `done` 之后收尾报错，成功运行看起来像失败
+
+**现象**（真机收尾）：
+
+```
+⏩ 8 → done (done)
+📝 [done] done: 进入 done
+Error: ⛔ 未知: 未知 Phase: done      ← 这里
+```
+
+**根因**：`'done'` 一直是 phase 8 的跳转目标，也在 `PhaseEnum` 里，
+但**从未注册进 `phases` 表**：
+
+```ts
+phases = new Map([['0a',…], … ['8', phase8]]);   // 没有 'done'
+
+const definition = phases.get(phase);            // undefined
+return { phaseName: '未知', blocked: true, error: `未知 Phase: ${phase}` };
+```
+
+而 `index.ts:150` 把 `blocked` 一律当失败处理：
+
+```ts
+if ('blocked' in tickResult && tickResult.blocked) {
+  notify(`⛔ ${tickResult.phaseName}: ${tickResult.error}`, 'error');
+  result.stoppedReason = 'blocked';
+  break;
+}
+```
+
+**影响**：产物完整、`completed` 仍为 `true`，但 `stoppedReason` 变成
+`'blocked'` 并打印红色 Error —— 用户会以为失败了。
+
+**修法**（两处）：
+
+1. `phases.ts` 注册终态阶段 `phaseDone`（name='完成'，无出口）
+2. `index.ts` 循环顶部、**tick 之前**判定终态：
+
+```ts
+if (machine.status()?.phase === 'done') {
+  result.stoppedReason = 'completed';
+  break;
+}
+```
+
+必须在 tick 之前 —— 终态无需任何推进，若放在身后又会走到 blocked 分支。
+
+**真机验证**（重启 pi 加载新 dist，状态置 phase 8 后运行）：
+
+```
+修复前： 📝 [done] done: 进入 done   + Error: ⛔ 未知: 未知 Phase: done
+修复后： 📝 [done] 完成: 进入 完成    （无 Error，stoppedReason=completed）
+```
+
+**状态**：✅ 已修复（`1f1a17c`）
+
+> 附：这个 bug 上午那次「假成功」里也出现过，被当时的会话记为发现 #1，
+> 但没进本文档。另那个会话还把 phase 8 空转 **222 个 tick** 也列为发现，
+> 那是 Bug 25 + 28 合并造成的。
+
+---
+
 ## 2. 修法优先级与执行情况
 
-### 2.1 已在 `fix/diagram-and-export` 分支完成（19 个）
+### 2.1 已在 `fix/diagram-and-export` 分支完成（22 个）
 
 目标：**不重做第 4 阶段，沿用现有 15 章产物 → 图表准确 → 导出完整 Word**。
+**已端到端走通。**
 
 | 优先级 | Bug | 提交 |
 |---|---|---|
@@ -863,6 +1024,8 @@ const assemblyOptions = { title: options.title, … };   // undefined
 | **P0** | 10（waitPoint 跳过 execute） | `1c438a8` |
 | **P0** | 1 + 2（熔断空转 + 原因被掩盖） | `a43dece` |
 | **P0** | 12（图表未插入） | `ed05a4d` |
+| **P0** | **28（残留产物让阶段跳过自己的工作）** | `b9b119f` |
+| **P0** | **29（图表缓存不检查产物是否存在）** | `637e8b9` |
 | **P2** | 17（无分层配色） | `beccb97` |
 | **P2** | 18（字体硬编码，含连接标签漏网） | `beccb97` + `54897b3` |
 | **P2** | 19 + 20 + 21（描述解析） | `32a6238` |
@@ -870,6 +1033,7 @@ const assemblyOptions = { title: options.title, … };   // undefined
 | **P2** | 22（组装缺文档标题） | `1c438a8` |
 | **P2** | 23 + 24（TOC 锚点 + 标题层级） | `d449a45` |
 | **P2** | 27（导出未解析标题） | `17db496` |
+| **P2** | **30（done 后收尾报错）** | `1f1a17c` |
 | **P2** | 16（依赖预检） | `8e06fcf` |
 | **P2** | 15（path-adjuster 死代码） | `ed05a4d`（不再依赖它） |
 
@@ -963,22 +1127,30 @@ subagent  ~/Projects/t3/projects/LmERP2/.pi/settings.json  deepseek / deepseek-f
 | 项 | 值 |
 |---|---|
 | 路径 | `/home/water/Projects/t3/projects/LmERP2` |
-| 阶段 | `8`（导出）— 卡死 |
+| 阶段 | **`done` ✓（流程自行走完）** |
 | 章节 | 15 章全部 `completed`（其中 5 章为手工标记，见下方说明） |
 | 产出 | `assembly/merged-v1.md`（1,127,292 B，14 个安全分隔符 + 29 处图片引用） |
-| 图表 | `figures/` 29 张（png+svg，**分层配色**，已插入文档） |
+| 图表 | `figures/` 29 张（png+svg，**分层配色 7~8 色**，已插入文档） |
 | 定稿 | `output/final.md` + `finalization.json` |
-| **导出** | ✅ **`output/final.docx`（1,470,199 B，29 张图 + TOC）** |
-| 流程阶段 | `6`（停在「请审阅初稿」等待点，属设计行为） |
+| **导出** | ✅ **`output/final.docx`（1,472,671 B，29 张图 + TOC + Heading1 × 1）** |
+| 流程轨迹 | `Phase 5 → 6` → `6 → 7` → `7 → 8` → `8 → done`（全部由流程自行推进） |
 
-> ⚠️ **状态被手工修改过**：为解决 4c 死锁（Bug 3），
+**阶段轨迹（executionLog）**
+
+```
+Phase 5 → 6     14:07:53   29 张图 + 组装（停在人工确认点）
+Phase 6 → 7     14:09:43   定稿
+Phase 7 → 8     14:09:43   导出
+Phase 8 → done  14:09:44   ✓
+```
+
+> ⚠️ **状态被手工修过**：为解决 4c 死锁（Bug 3），
 > ch002/ch006/ch007/ch010/ch011 被手工从 `pending` 改为 `completed`/`accept`。
-> 备份：`project-state.json.bak-115911`、`project-state.json.bak-rerun-*`。
+> 备份：`project-state.json.bak-115911`、`.bak-rerun-*`、`.bak-prerun-*`。
 > 这 5 章的质量**未经最终确认**，其中 ch007/ch010 只有 v1（未修复）。
 >
-> 另：导出产物我直接用与 phase8 相同的代码路径（`exportDocument`）生成，
-> 未让自动化流程自己走完 5→6→7→8。若要让流程自行产出，重启 t3 的 pi
-> 加载新 dist 后重跑即可。
+> 另外，重跑前清理了 `figures/`、`assembly/`、`output/`（保留 `drafts/`），
+> 所以上面所有产物都是**第二次重跑真实产出的**。
 
 ### 仓库
 
@@ -986,8 +1158,8 @@ subagent  ~/Projects/t3/projects/LmERP2/.pi/settings.json  deepseek / deepseek-f
 分支: fix/diagram-and-export（工作区干净）
 基线: feat/ch-level-length @ b6fadf6
 t3 的 pi: 运行中（idle）
-dist: 构建于 09-20 13:46，含本次全部修复
-测试: 722 通过（新增 57 个）
+dist: 构建于 09-20 14:12，含本次全部 22 个修复
+测试: 735 通过（84 文件）
 ```
 
 **分支**
@@ -996,7 +1168,7 @@ dist: 构建于 09-20 13:46，含本次全部修复
 |---|---|---|
 | `master` | v0.7.3 基线 | 稳定 |
 | `feat/ch-level-length` | ch 级篇幅 + bash 恢复 | 已验证 |
-| **`fix/diagram-and-export`** | **本轮 19 个修复** | **当前** |
+| **`fix/diagram-and-export`** | **本轮 22 个修复** | **当前，已端到端跑通** |
 | `feat/responsibility-separation` | prompt 职责分离 | ⚠️ **含同样的「每个子节 3000-5000 字」层级错误**，合并前必须一并修正 |
 | `feat/tool-least-privilege` | 角色工具限制 | 被取代（回退点） |
 
@@ -1023,7 +1195,11 @@ grep -c 'resolveDocumentTitle' dist/assemble/assembler.js          # >0 文档�
 grep -c 'after-execute' dist/orchestrator/phases.js                # >0 waitPoint 时机
 grep -c 'exportDocument' dist/orchestrator/phases.js               # >0 phase8 真导出
 
-npm run build && npm test      # 722 通过
+grep -c 'onEnter' dist/orchestrator/phases.js           # >0 阶段进入时清理残件 (Bug 28)
+grep -c 'svgFile' dist/diagrams/cache.js                 # >0 缓存检查产物存在 (Bug 29)
+grep -c "'done'" dist/orchestrator/phases.js             # >0 done 已注册 (Bug 30)
+
+npm run build && npm test      # 735 通过
 
 # t3 侧
 cat /home/water/Projects/t3/projects/LmERP2/.pi/settings.json   # 必须是 deepseek
