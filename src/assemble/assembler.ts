@@ -38,6 +38,66 @@ export interface AssemblyResult {
  * - 非版本化: ch001.md (向后兼容)
  * - 自动选择每个章节的最新版本
  */
+/**
+ * 章节正文开头的示意图分页符
+ *
+ * 不能用 `---`：pandoc 会把「前面空行 + `---` + 紧跟非空行」识别为
+ * YAML 元数据块开头，导致整个导出失败（Bug 25，实测退出码 64）。
+ * `***` 是普通主题分隔线，无歧义。
+ */
+const CHAPTER_SEPARATOR = '\n\n***\n\n';
+
+/** 代码块围栏 */
+const FENCE_RE = /^\s*(```|~~~)/;
+
+/** ATX 标题 */
+const HEADING_RE = /^(#{1,6})(\s+)(.*)$/;
+
+/**
+ * 调整章节正文的标题层级，并给首个标题加上锚点 id
+ *
+ * - `demote` 为 true 时将所有标题降一级（文档标题占用了 h1）
+ * - 给第一个标题追加 `{#chXXX}`，使 TOC 链接可跳转（Bug 23）
+ * - **跳过代码块**：Python/Shell 注释 `# xxx` 不是标题
+ *
+ * @param content 章节正文
+ * @param chapterId 章节 id（用作锚点）
+ * @param demote 是否降级标题
+ */
+function prepareChapterContent(content: string, chapterId: string, demote: boolean): string {
+  const lines = content.split('\n');
+  let inFence = false;
+  let anchored = false;
+
+  const out = lines.map(line => {
+    if (FENCE_RE.test(line)) {
+      inFence = !inFence;
+      return line;
+    }
+    if (inFence) return line;
+
+    const m = line.match(HEADING_RE);
+    if (!m) return line;
+
+    const hashes = demote && m[1].length < 6 ? `#${m[1]}` : m[1];
+    let text = m[3];
+    if (!anchored) {
+      // 去掉可能已存在的 id 标记后重新追加，避免重复
+      text = `${text.replace(/\s*\{#[^}]+\}\s*$/, '')} {#${chapterId}}`;
+      anchored = true;
+    }
+    return `${hashes}${m[2]}${text}`;
+  });
+
+  const result = out.join('\n');
+
+  // 章节没有标题时补一个锚点，保证 TOC 链接仍可用
+  if (!anchored) {
+    return `<a id="${chapterId}"></a>\n\n${result}`;
+  }
+  return result;
+}
+
 export class ChapterAssembler {
   /**
    * Assemble chapters into a single document
@@ -75,7 +135,14 @@ export class ChapterAssembler {
         );
       }
 
-      const content = injection.content;
+      // 标题层级 + 锚点（Bug 23、24）
+      // 有文档标题时，文档标题占 h1，章节内容整体降一级；
+      // 首个标题追加 {#chXXX} 使 TOC 链接可跳转
+      const content = prepareChapterContent(
+        injection.content,
+        chapterId,
+        Boolean(options.title),
+      );
 
       chapters.push({ 
         id: chapterId, 
@@ -103,13 +170,13 @@ export class ChapterAssembler {
       parts.push(`# ${options.title}\n`);
     }
 
-    // Generate TOC if requested
+    // Generate TOC if requested（标题层级随是否有文档标题而变，Bug 24）
     if (options.generateTOC) {
-      parts.push(this.generateTOC(chapters));
+      parts.push(this.generateTOC(chapters, options.title ? 2 : 1));
     }
 
     // Add chapters
-    const pageBreak = options.pageBreaks !== false ? '\n---\n' : '\n';
+    const pageBreak = options.pageBreaks !== false ? CHAPTER_SEPARATOR : '\n\n';
     const chapterContents = chapters.map(ch => ch.content).join(pageBreak);
     parts.push(chapterContents);
 
@@ -265,9 +332,14 @@ export class ChapterAssembler {
 
   /**
    * Generate table of contents
+   *
+   * @param headingLevel 目录标题层级（有文档标题时为 2，否则为 1）
    */
-  private generateTOC(chapters: { id: string; content: string; title: string; version: string }[]): string {
-    const lines: string[] = ['# 目录\n'];
+  private generateTOC(
+    chapters: { id: string; content: string; title: string; version: string }[],
+    headingLevel: number = 1,
+  ): string {
+    const lines: string[] = [`${'#'.repeat(headingLevel)} 目录\n`];
 
     for (const chapter of chapters) {
       lines.push(`- [${chapter.title}](#${chapter.id})`);
