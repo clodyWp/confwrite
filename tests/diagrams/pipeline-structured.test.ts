@@ -119,7 +119,8 @@ describe('管线：结构化格式', () => {
   });
 
   it('节点数与结构化块一致（4 个）', () => {
-    expect(Array.from(svg.matchAll(/<g id="node-/g))).toHaveLength(4);
+    // 用 data-node-id 而不是旧渲染器的 <g id="node-...">，避免绑死渲染器实现
+    expect(Array.from(svg.matchAll(/data-node-id="/g))).toHaveLength(4);
   });
 
   it('连线标签取自 edges 的 label 字段', () => {
@@ -128,7 +129,7 @@ describe('管线：结构化格式', () => {
   });
 
   it('连线数与 edges 一致（3 条）', () => {
-    expect(Array.from(svg.matchAll(/<line[^>]*marker-end/g))).toHaveLength(3);
+    expect(Array.from(svg.matchAll(/data-edge-from="/g))).toHaveLength(3);
   });
 
   it('description 的散文不会被当成节点', () => {
@@ -157,6 +158,6 @@ describe('管线：散文格式仍然可用（回归）', () => {
   });
 
   it('散文里的连接关系被解析成边', () => {
-    expect(Array.from(svg.matchAll(/<line[^>]*marker-end/g)).length).toBeGreaterThanOrEqual(1);
+    expect(Array.from(svg.matchAll(/data-edge-from="/g)).length).toBeGreaterThanOrEqual(1);
   });
 });

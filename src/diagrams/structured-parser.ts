@@ -86,6 +86,56 @@ export interface DiagramSpec {
   edges: SpecEdge[];
 }
 
+/**
+ * 把散文解析结果（层名 + 连接）适配成 DiagramSpec
+ *
+ * 散文格式里每行写着「层名：节点1、节点2」，解析器给出的是
+ * `{id, label, layer}`。新引擎需要的是 DiagramSpec，所以按 layer 分组，
+ * 合成**无标签的容器** —— 容器只用于确定层序，不画框（render 会跳过空标签）。
+ *
+ * 散文格式已不再是推荐写法（写手提示词教的是结构化格式），但旧草稿和
+ * 写手偶发的散文块仍然要能出图，所以要保留这条路。
+ */
+export function proseToSpec(
+  nodes: Array<{ id: string; label: string; layer: number }>,
+  connections: Array<{ from: string; to: string; label?: string }>,
+): DiagramSpec {
+  const byLayer = new Map<number, string[]>();
+  for (const node of nodes) {
+    const list = byLayer.get(node.layer) ?? [];
+    list.push(node.id);
+    byLayer.set(node.layer, list);
+  }
+
+  const layers = [...byLayer.keys()].sort((a, b) => a - b);
+  const containers: SpecContainer[] = layers.map((layer, i) => ({
+    id: `layer_${i}`,
+    label: '', // 空标签 = 只分层、不画框
+    nodes: byLayer.get(layer) ?? [],
+  }));
+
+  const idToContainer = new Map<string, string>();
+  for (const c of containers) {
+    for (const id of c.nodes) idToContainer.set(id, c.id);
+  }
+
+  return {
+    containers,
+    nodes: nodes.map(n => ({
+      id: n.id,
+      label: n.label,
+      container: idToContainer.get(n.id),
+    })),
+    edges: connections.map(c => ({
+      from: c.from,
+      to: c.to,
+      label: c.label,
+      direction: 'forward' as const,
+      style: 'solid' as const,
+    })),
+  };
+}
+
 type Section = 'containers' | 'nodes' | 'edges';
 
 const SECTIONS: Section[] = ['containers', 'nodes', 'edges'];

@@ -138,11 +138,15 @@ export function renderSvg(input: RenderInput): string {
 
   // ---- 容器（原则 1 / 7）----
   for (const container of input.containers) {
+    // 无标签的容器只用于分层，不画框（散文回退路径会合成这种容器）
+    if (!container.label) continue;
+
     const fill = container.crosscut ? '#94a3b8' : palette[0];
     parts.push(
-      `<rect x="${container.x}" y="${container.y}" width="${container.w}" height="${container.h}" ` +
+      `<g data-container-id="${escapeXml(container.id)}">` +
+        `<rect x="${container.x}" y="${container.y}" width="${container.w}" height="${container.h}" ` +
         `rx="8" fill="${fill}" fill-opacity="0.07" stroke="${fill}" stroke-opacity="0.45" ` +
-        `stroke-width="1.2" stroke-dasharray="5 4"/>`,
+        `stroke-width="1.2" stroke-dasharray="5 4"/></g>`,
     );
     // 标签宽度兜底：超出容器宽度就截断，绝不伸出画布
     const labelFontSize = metrics.fontSize - 1;
@@ -170,8 +174,11 @@ export function renderSvg(input: RenderInput): string {
     const path = edge.points.map(p => `${p.x},${p.y}`).join(' ');
     const dash = dashArray(edge.style);
     const startMarker = edge.bidirectional ? ' marker-start="url(#arrowhead-start)"' : '';
+    // data-* 钩子：测试与 SVG 审查工具据此识别元素，不必绑死内部标记格式
     parts.push(
-      `<polyline points="${path}" fill="none" stroke="${lineColor}" stroke-width="1.5"${dash}` +
+      `<polyline points="${path}" ` +
+        `data-edge-from="${escapeXml(edge.from)}" data-edge-to="${escapeXml(edge.to)}" ` +
+        `fill="none" stroke="${lineColor}" stroke-width="1.5"${dash}` +
         ` marker-end="url(#arrowhead)"${startMarker}/>`,
     );
 
@@ -194,8 +201,9 @@ export function renderSvg(input: RenderInput): string {
     const strokeWidth = node.highWeight ? 2.5 : 1.5;
 
     parts.push(
-      `<rect x="${node.x}" y="${node.y}" width="${node.w}" height="${node.h}" rx="${radius}" ` +
-        `fill="${fill}" stroke="${darken(base, 0.25)}" stroke-width="${strokeWidth}"/>`,
+      `<g data-node-id="${escapeXml(node.id)}" data-node-h="${node.h}">` +
+        `<rect x="${node.x}" y="${node.y}" width="${node.w}" height="${node.h}" rx="${radius}" ` +
+        `fill="${fill}" stroke="${darken(base, 0.25)}" stroke-width="${strokeWidth}"/></g>`,
     );
 
     const startY = node.y + node.h / 2 - ((node.label.length - 1) * lineHeight) / 2 + metrics.fontSize / 3;
@@ -215,7 +223,8 @@ export function renderSvg(input: RenderInput): string {
 
 /** 供自检使用：取出所有折线的顶点 */
 export function extractPolylines(svg: string): Point[][] {
-  return Array.from(svg.matchAll(/<polyline points="([^"]+)"/g)).map(m =>
+  // 属性顺序无关（data-* 钩子在前，points 不一定紧跟在标签名后）
+  return Array.from(svg.matchAll(/<polyline\b[^>]*\bpoints="([^"]+)"/g)).map(m =>
     m[1]
       .trim()
       .split(/\s+/)

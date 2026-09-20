@@ -68,9 +68,32 @@ function orderByBarycenter(ids: number[], barycenter: Map<number, number>): numb
 /**
  * 主入口
  */
+/**
+ * 样式里的字号档位 → 实际像素
+ *
+ * 此前新引擎**完全忽略** style.fontSize（旧渲染器是支持的），
+ * 属于静默失效：用户改了 diagram-style.json 却看不到任何变化。
+ */
+const STYLE_FONT_SIZE: Record<DiagramStyle['fontSize'], number> = {
+  compact: 11,
+  normal: DEFAULT_METRICS.fontSize,
+  spacious: 15,
+};
+
 export function layoutDiagram(spec: DiagramSpec, style: DiagramStyle, title?: string): LayoutResult {
   const warnings: string[] = [];
-  const base = DEFAULT_METRICS;
+  const base = {
+    ...DEFAULT_METRICS,
+    fontSize: STYLE_FONT_SIZE[style.fontSize] ?? DEFAULT_METRICS.fontSize,
+  };
+
+  // 图表必须保持 ≤1 页的可读宽度，因此不支持横向布局。
+  // 但**不能静默忽略**用户配置 —— 明确告警，避免"改了没反应"。
+  if (style.layoutDirection === 'left-to-right') {
+    warnings.push(
+      'layoutDirection=left-to-right 暂不支持（图表需保持单页可读宽度），已按 top-to-bottom 渲染',
+    );
+  }
   // BUG：标题只留了字号+行距，没给容器的"标签区 + 上边距"留位，
   // 于是第一个容器的框会向上罩住标题（实测容器 y=23、标题基线 y=49）
   const hasFlowContainer = spec.containers.some(c => !c.crosscut);

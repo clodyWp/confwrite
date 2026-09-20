@@ -7,14 +7,15 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync } from 'node:fs';
 import { join, basename } from 'node:path';
 import { extractDiagrams, type DiagramBlock } from './extractor.js';
-import { generateSVG, type SVGNode, type SVGConnection } from './generator.js';
 import { convertToPng } from './png-converter.js';
+import { layoutDiagram } from './layout/index.js';
 import { validateDiagram, type DiagramData } from './validator.js';
 import { DiagramCache, type CacheEntry } from './cache.js';
 import { loadDiagramStyle, type DiagramStyle } from './style.js';
 import {
   hasStructuredFormat,
   parseStructuredDiagram,
+  proseToSpec,
   type DiagramSpec,
 } from './structured-parser.js';
 import {
@@ -200,19 +201,29 @@ export class DiagramPipeline {
         // —— 而知识库 layout.md 的 7 条布局原则，每条都有对应的结构化字段。
         //
         // 散文格式（提示词里教的写法）仍然支持，作为回退。
-        const spec = hasStructuredFormat(block.rawContent)
+        const structured = hasStructuredFormat(block.rawContent)
           ? parseStructuredDiagram(block.rawContent)
           : null;
 
-        const { nodes, connections } = spec && spec.nodes.length > 0
-          ? specToGeneratorInput(spec)
-          : parseDiagramDescription({
-              description: block.description,
-              title: block.title,
-            });
+        // 结构化格式优先；散文作为回退，适配成同一个 DiagramSpec
+        let spec: DiagramSpec;
+        if (structured && structured.nodes.length > 0) {
+          spec = structured;
+        } else {
+          const prose = parseDiagramDescription({
+            description: block.description,
+            title: block.title,
+          });
+          spec = proseToSpec(prose.nodes, prose.connections);
+        }
 
-        // 生成 SVG
-        const svgResult = generateSVG(nodes, connections, this.style);
+        // 生成 SVG —— 走布局引擎（正交路由 + 压缩到单页可读）
+        //
+        // 原实现调 generateSVG（旧渲染器）：真实数据上画布最高 4290px、
+        // 高宽比 8.0、字号小到 3.3pt，18/23 张超过一页。新引擎实测
+        // 最高 727px、高宽比全部 ≤1.5、字号全部可读。
+        const layout = layoutDiagram(spec, this.style, block.title);
+        const svgResult = { svg: layout.svg, width: layout.width, height: layout.height };
         const svgPath = join(figuresDir, `${diagramId}.svg`);
         writeFileSync(svgPath, svgResult.svg, 'utf-8');
 
@@ -227,8 +238,16 @@ export class DiagramPipeline {
         if (!options.skipValidation) {
           const diagramData: DiagramData = {
             id: diagramId,
-            nodes: nodes.map(n => ({ id: n.id, label: n.label, layer: n.layer })),
-            connections,
+            nodes: layout.nodes.map(n => ({
+              id: n.id,
+              label: n.label.join(''),
+              layer: n.layer,
+              x: n.x,
+              y: n.y,
+              width: n.w,
+              height: n.h,
+            })),
+            connections: layout.edges.map(e => ({ from: e.from, to: e.to, label: e.label })),
             svgContent: svgResult.svg,
             svgWidth: svgResult.width,
             svgHeight: svgResult.height,
@@ -352,52 +371,4 @@ export class DiagramPipeline {
       return false;
     }
   }
-}
-
-/**
- * 把结构化 spec 映射为生成器的输入
- *
- * 层号的来源是**容器顺序**（对应知识库原则 1「分组压缩」）：
- * 容器天然就是分层，写手已经用它标注了归属。
- * 横切 / 贯穿型容器（如「贯穿动作」）不属于任何一层，放到最后，
- * 由布局引擎负责画成侧边条。
- *
- * 注：层号与尺寸的最终决定权在新布局引擎（layout.ts），
- * 这里只提供"一份足够好的默认值"，避免老生成器拿到全 0 层号。
- */
-function specToGeneratorInput(spec: DiagramSpec): {
-  nodes: Array<{ id: string; label: string; layer: number }>;
-  connections: Array<{ from: string; to: string; label?: string }>;
-} {
-  const layerOf = new Map<string, number>();
-  let layer = 0;
-
-  for (const container of spec.containers) {
-    if (container.crosscut) continue;
-    for (const nodeId of container.nodes) {
-      if (!layerOf.has(nodeId)) layerOf.set(nodeId, layer);
-    }
-    layer++;
-  }
-
-  const crosscutLayer = layer;
-  for (const container of spec.containers) {
-    if (!container.crosscut) continue;
-    for (const nodeId of container.nodes) {
-      if (!layerOf.has(nodeId)) layerOf.set(nodeId, crosscutLayer);
-    }
-  }
-
-  return {
-    nodes: spec.nodes.map(n => ({
-      id: n.id,
-      label: n.label,
-      layer: layerOf.get(n.id) ?? 0,
-    })),
-    connections: spec.edges.map(e => ({
-      from: e.from,
-      to: e.to,
-      ...(e.label ? { label: e.label } : {}),
-    })),
-  };
 }
