@@ -99,8 +99,13 @@ Phase 8 → done  14:09:44   ✓
 | 28 | 残留产物让阶段跳过自己的工作 | P0 | ✅ 已修 | `b9b119f` |
 | 29 | 图表缓存不检查产物是否存在 | P0 | ✅ 已修 | `637e8b9` |
 | 30 | 到达 `done` 后收尾报错 | P2 | ✅ 已修 | `1f1a17c` |
+| 31 | 素材包与大纲不对应 → 静默拿到别的章节素材 | P0 | ✅ 已修 | `ef378a7` |
+| 32 | turn 预算耗尽无条件判失败（产物已正确产出） | P1 | ⬜ 未修 | — |
+| 33 | 提取器认 mermaid、注入器不认 → 图永远进不了文档 | P0 | ✅ 已修 | `f3b2e62` |
+| 34 | 提取器扫描所有版本 → 旧版本的图成为孤儿 | P2 | ✅ 已修 | `f3b2e62` |
+| 35 | 缺 mmdc 时静默降级，谎报「生成完成」 | P1 | ✅ 已修 | `f3b2e62` |
 
-> 已修 **22** 个 / 共 **30** 个。
+> 已修 **26** 个 / 共 **35** 个。
 > 未修的 7 个集中在第 4 阶段（写作与审阅收敛性），
 > 不影响「沿用现有产物 → 图表 → 导出 Word」这条路径 —— 该路径已端到端走通。
 
@@ -1009,6 +1014,149 @@ if (machine.status()?.phase === 'done') {
 
 ---
 
+---
+
+## 1c. 8 章全量重跑发现的 bug（31–35）
+
+第四轮实测：把大纲从 15 章缩到 8 章并重新编号后做一次**全量生成**
+（不重做任何旧草稿）。全程 83 分钟，写作 8/8 章，第 2 轮审阅 8/8 accept，
+产出 `final.docx`（639 KB / 20 张内嵌图）。本轮暴露 5 个 bug。
+
+### 🔴 Bug 31 — 素材包与大纲不对应时会静默拿到别的章节素材
+
+**发现场景**：把 ch011–ch014 重新编号为 ch005–ch008 后：
+
+```
+assets/chapter-kits/ 里躺着 48 个来自更早 48 章大纲的素材包
+  ch005.md 表头 = 「2.3 微服务与容器化部署方案」   ← 旧内容
+  新大纲 ch005  = 「3.1 质保期服务承诺」           ← 新含义
+```
+
+三条路径都不校验内容是否对应：
+
+| 环节 | 代码 | 行为 |
+|---|---|---|
+| 取素材包 | `dispatcher.readChapterKit()` | 只按 id 找文件，存在就返回 |
+| 章节同步 | `chapter-syncer` | 已存在章节保留原 status（completed） |
+| 素材包生成 | `kit-generator.generateBatch()` | 只写当前大纲的，不清理旧包 |
+
+**后果**：产出一份「标题是 A、正文是 B」的文档，且完全不报错。
+
+**更深一层**：phase 0b 与 phase 3 的 `execute()` 都是**空壳** ——
+`organize_materials` / `prepare_materials` 既不在 `EXECUTABLE_ACTIONS` 里、
+dispatcher 也不处理，所以**自动化流程永远不会重建素材包**，
+素材包只由手动命令 `/confwrite:organize` 生成。
+实测上一轮是 `0b → 2 → 4a`，phase 3 被整个跳过。
+
+**修法**：新增 `src/organize/kit-validator.ts`（解析表头、逐章校验 id + 标题）；
+phase 2/3 的出口条件加上「素材包与大纲逐章对应」；phase 3 的 execute
+真正调用 `organizeMaterials()`；dispatcher 加兜底校验。
+
+**顺带修掉一个状态覆盖问题**：`organizeMaterials` 把同步结果写到磁盘上的
+state，而状态机在 execute 之后用**它内存里的** state 覆盖保存 ——
+同步会被回滚，新章节永远变不成 pending。phase 3 现在会把结果合并回
+`ctx.state`。
+
+**真机验证**：`Phase 2 → 3 → 4a`，ch005 素材包表头变成
+「3.1 质保期服务承诺」✓，8 个素材包全部与大纲对应 ✓
+
+**状态**：✅ 已修复（`ef378a7`）
+
+---
+
+### 🔴 Bug 33 — 提取器认 mermaid，注入器不认 → 图永远进不了文档
+
+**事故链**：
+
+```
+第 1 轮审阅把 ch001 的图表判为 high：
+  「使用 type/title/description 自由文本描述，不是 Mermaid、结构化 YAML」
+← 但这其实是本项目自己的图表格式约定（知识库要求 mermaid）
+fixer 于是把 diagram-start 标记改写成 mermaid 围栏
+```
+
+| | `diagram-start` | mermaid 围栏 |
+|---|---|---|
+| **提取器** | ✓ | ✓（向后兼容） |
+| **注入器** | ✓ | **✗** |
+
+**后果**：ch001 的 3 张图全部丢失 —— 文档里只剩 3 个 mermaid 代码块，
+该章图片数 0，而 pipeline 汇报「图表生成完成」。
+
+**修法**：注入器删掉本地重复的正则，改用 `extractDiagrams`（两端共用同一套
+块定位）；`DiagramBlock` 增加 `rawBlock` 供精确替换；编号改为**文档顺序**
+（原来先给所有 diagram-start 编号再给 mermaid 编号，mermaid 靠前时
+fig1 并非文档里第一个图）。
+
+**状态**：✅ 已修复（`f3b2e62`）
+
+---
+
+### 🟠 Bug 34 — 提取器扫描所有版本，注入只针对最新版本
+
+`pipeline.extractDiagrams()` 用 `readdirSync` 扫描所有 `chXXX-v*.md`，
+而注入、审阅、组装都只取**最新版本**。
+
+**后果**：孤儿图。实测 `ch001-fig1/fig2` 由 v1 的 diagram-start 提取，
+但 v2 已改成 mermaid → 有 PNG，文档里 0 处引用；**22 张图只注入 20 张**。
+旧版本还可能与新版本争夺同一个 diagramId（内容来自 v1、位置在 v2）。
+
+**修法**：每章只取最高版本号的文件（同 dispatcher / assembler 的取法）。
+
+**状态**：✅ 已修复（`f3b2e62`）
+
+---
+
+### 🟠 Bug 35 — 缺 mmdc 时静默降级，谎报「生成完成」
+
+`mmdc` 未安装时 `processMermaidBlock` 走降级分支：写一条
+`svgFile=''` / `pngFile=''` 的 manifest 记录、返回 `success: true`，
+而调用方 `result.generated++`（注释写着「仍然算成功，因为保留了原始内容」）。
+
+**后果**：图根本没生成却报「图表生成完成」。与 Bug 16（缺 pandoc）同类。
+附带：空文件名是 falsy，会**绕过 Bug 29 加上的产物存在性检查**，
+导致这类记录永远冒充「已缓存」，装好 mmdc 也不会重试。
+
+**修法**：`rendered` 标志 + `mermaidKeptAsCode` 计数；缺 mmdc 时不写
+manifest 记录（并清掉旧记录）；`cache.shouldRegenerate` 把空文件名视为
+「需要重新生成」；phase 5 汇报改为如实汇报（含安装指引）。
+
+**真实数据验证**：
+
+```
+修复前：generated = 23（谎报），无任何告警
+修复后：mermaidKeptAsCode = 3，3 条告警，manifest 23 → 20 条
+```
+
+**状态**：✅ 已修复（`f3b2e62`）
+
+---
+
+### 🟠 Bug 32 — turn 预算耗尽被无条件判失败，即使产物已正确产出
+
+**真机现象**：ch005 的审阅任务
+
+```
+Tool #40: bash → python3 ... open('review/ch005-r1.json') ... print(verdict)
+[budget] turn 41 超过上限 40，中止
+Task completed. Turns: 41, Tool calls: 40
+```
+
+它**已经正确写出了 accept 报告**（评分 9/9/9/9/8），却在复核自己产物时
+耗尽预算 → 任务判失败 → 章节变 `pending` → 触发 Bug 3 的 4c 死锁
+→ 空转 2000 tick。**本次运行唯一需要人工干预的环节。**
+
+工具调用统计：**bash 168 次**、read 68 次、write 2 次 —— 绝大部分是在
+测量与自检，正是「≥300 字」规则（Bug 6）逼出来的行为。
+
+**修法（建议）**：分类任务结果时，若该任务的目标产物已存在且有效
+（如 reviewer 的 `review/chXXX-rN.json` 是合法 JSON 且有 verdict），
+应判成功而非失败。
+
+**状态**：⬜ 未修复
+
+---
+
 ## 2. 修法优先级与执行情况
 
 ### 2.1 已在 `fix/diagram-and-export` 分支完成（22 个）
@@ -1127,13 +1275,14 @@ subagent  ~/Projects/t3/projects/LmERP2/.pi/settings.json  deepseek / deepseek-f
 | 项 | 值 |
 |---|---|
 | 路径 | `/home/water/Projects/t3/projects/LmERP2` |
-| 阶段 | **`done` ✓（流程自行走完）** |
-| 章节 | 15 章全部 `completed`（其中 5 章为手工标记，见下方说明） |
-| 产出 | `assembly/merged-v1.md`（1,127,292 B，14 个安全分隔符 + 29 处图片引用） |
-| 图表 | `figures/` 29 张（png+svg，**分层配色 7~8 色**，已插入文档） |
+| 阶段 | **`done` ✓（8 章全量重跑，流程自行走完）** |
+| 章节 | **8 章**全部 `completed`（大纲已从 15 章缩减为 8 章并重新编号） |
+| 产出 | `assembly/merged-v1.md`（623,165 B，7 个安全分隔符 + 20 处图片引用） |
+| 图表 | `figures/` 生成 23 个块 → 20 张实际渲染（**ch001 的 3 张因缺 mmdc 未渲染**，见 Bug 35） |
 | 定稿 | `output/final.md` + `finalization.json` |
-| **导出** | ✅ **`output/final.docx`（1,472,671 B，29 张图 + TOC + Heading1 × 1）** |
-| 流程轨迹 | `Phase 5 → 6` → `6 → 7` → `7 → 8` → `8 → done`（全部由流程自行推进） |
+| **导出** | ✅ **`output/final.docx`（639,366 B，20 张图 + TOC + Heading1 × 1）** |
+| 流程轨迹 | `2 → 3 → 4a → 4b → 4c → 4d → 4b → 4c → 5 → 6 → 7 → 8 → done` |
+| 耗时 | 83 分钟（14:41 → 16:04）；写作 8/8 章约 20 分钟；第 2 轮审阅 8/8 accept |
 
 **阶段轨迹（executionLog）**
 
