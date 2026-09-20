@@ -471,6 +471,25 @@ export const phase5: PhaseDefinition = {
     const pipeline = new DiagramPipeline(ctx.projectDir);
     const result = await pipeline.run();
 
+    // 把管线结果落盘（Bug 35）
+    //
+    // notify 只是 UI 通知，pi 的 TUI 会重绘覆盖，事后无法回看 ——
+    // 真机事故里为了拿到「mermaid 为什么没渲染」花了很多轮。
+    // 这里写一份持久的诊断记录，失败原因不再丢失。
+    try {
+      const { writeFileSync, mkdirSync } = await import('node:fs');
+      const { join } = await import('node:path');
+      const logsDir = join(ctx.projectDir, 'logs');
+      mkdirSync(logsDir, { recursive: true });
+      writeFileSync(
+        join(logsDir, 'diagram-pipeline.json'),
+        JSON.stringify({ at: new Date().toISOString(), ...result }, null, 2),
+        'utf-8',
+      );
+    } catch {
+      // 诊断日志失败不应影响流程
+    }
+
     // 如实汇报（Bug 35）：未渲染的 mermaid 图不能算「生成完成」。
     // 缺 mmdc 时给出可执行的修复指引，而不是一句笼统的完成。
     const parts = [`生成 ${result.generated} 个图表`];
@@ -478,7 +497,10 @@ export const phase5: PhaseDefinition = {
     if (result.mermaidKeptAsCode > 0) {
       parts.push(`⚠️ ${result.mermaidKeptAsCode} 个 mermaid 未渲染（缺 mmdc，保留为代码块）`);
     }
-    if (result.failed > 0) parts.push(`❌ ${result.failed} 个失败`);
+    if (result.failed > 0) {
+      const firstReason = result.errors[0]?.error ?? '未知原因';
+      parts.push(`❌ ${result.failed} 个失败（首个原因：${firstReason.slice(0, 200)}）`);
+    }
 
     return {
       action: 'generate_diagrams',
