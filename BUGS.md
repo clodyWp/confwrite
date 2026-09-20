@@ -1,13 +1,16 @@
 # ConfWrite Bug 清单（全流程实测）
 
-> 记录时间：2026-09-20
+> 记录时间：2026-09-20（2026-09-20 晚更新：补充 Bug 19–27，并标注修复状态）
 > 来源：LmERP2 项目一次完整的端到端运行（写作 → 审阅 → 修复 → 图表 → 组装 → 定稿 → 导出）
 > 所有 bug **均有实测证据**，非静态分析推测
 > 代码基线：`feat/ch-level-length` @ `b6fadf6`（dist 构建于 09-20 07:53）
+> 修复分支：`fix/diagram-and-export`
 
 ---
 
 ## 0. 本次实测结果概览
+
+### 0.1 首次运行（未修复）
 
 | 阶段 | 结果 |
 |---|---|
@@ -15,20 +18,73 @@
 | 4b 审阅 | ✅（多轮反复） |
 | 4c 决策 | ⚠️ 死锁（Bug 3） |
 | 4d 修复 | ✅ |
-| 5 图表生成 | ✅ 29 张图（59 文件） |
+| 5 图表生成 | ✅ 29 张图（均为单色） |
 | 6 组装 | ⚠️ 首次跳过（Bug 10）→ 第二次成功 |
 | 7 定稿 | ✅ `output/final.md` |
 | **8 导出** | ❌ **卡死（Bug 9）** |
 
-**产出**：`assembly/merged-v1.md` = 1.16 MB / **310,887 中文字 / 约 282 页 / 29 张图表**
+**产出**：`assembly/merged-v1.md` = 1.16 MB / **310,887 中文字 / 约 282 页**
 **但**：29 张图**一张都没进文档**（Bug 12），且**永远无法导出成 Word**（Bug 9）。
 **图表质量**：知识库未加载（Bug 13/14）+ 生成器无分层配色（Bug 17），29 张图全部只有 2 个颜色值。
+
+### 0.2 修复后的最终产物
+
+| 文件 | 大小 | 状态 |
+|---|---|---|
+| `assembly/merged-v1.md` | 1,127,292 B | 14 个安全分隔符、29 处图片引用、文档标题 + 目录 |
+| `output/final.md` | 1,127,292 B | 同上 |
+| **`output/final.docx`** | **1,470,199 B** | **29 张图全部内嵌 + TOC 域 + 正确标题层级** |
+
+```
+final.docx 结构
+  ├─ 内嵌图片    29 张（word/media/）
+  ├─ TOC 域      1 个
+  ├─ Heading1    1 个（仅文档标题）
+  ├─ Heading2    16 个（目录 + 15 章）
+  └─ Heading3    67 个（章节内小节）
+```
+
+### 0.3 修复状态总览
+
+| # | 标题 | 严重度 | 状态 | 提交 |
+|---|---|---|---|---|
+| 1 | 熔断后空转到 MAX_TICKS | P0 | ✅ 已修 | `a43dece` |
+| 2 | `stoppedReason` 被 `max_ticks` 覆盖 | P0 | ✅ 已修 | `a43dece` |
+| 3 | `pending` 孤儿 / 4c 死锁 | P0 | ⬜ 未修 | — |
+| 4 | accept 门槛「全部通过」 | P1 | ⬜ 未修 | — |
+| 5 | 裁决与严重度不相关 | P1 | ⬜ 未修 | — |
+| 6 | ≥300 字/段规则导致不收敛 | P1 | ⬜ 未修 | — |
+| 7 | 审阅报告被覆盖 | P2 | ⬜ 未修 | — |
+| 8 | 429 指数退避是死代码 | P1 | ⬜ 未修 | — |
+| 9 | phase8 导出的动作无人处理 | P0 | ✅ 已修 | `8e06fcf` |
+| 10 | waitPoint 跳过 execute | P0 | ✅ 已修 | `1c438a8` |
+| 11 | `finalization.json` 字段命名 | P3 | ⬜ 未修 | — |
+| 12 | 图表生成了但未插入文档 | P0 | ✅ 已修 | `ed05a4d` |
+| 13 | 生成阶段不读知识库 | P2 | 🔶 部分 | `beccb97`（色表已入代码） |
+| 14 | `init` 复制错目录 | P2 | ✅ 已修 | `ebae90b` |
+| 15 | `path-adjuster.ts` 死代码 | P2 | ✅ 已修 | `ed05a4d`（改为不再依赖它） |
+| 16 | `checkDependencies()` 死代码 | P2 | ✅ 已修 | `8e06fcf` |
+| 17 | 无分层配色能力 | P2 | ✅ 已修 | `beccb97` |
+| 18 | 字体硬编码 Windows 字体 | P2 | ✅ 已修 | `beccb97` + `54897b3` |
+| 19 | 分段标题不认全角冒号 | P2 | ✅ 已修 | `32a6238` |
+| 20 | 连接标签未剥离 `- ` 前缀 | P2 | ✅ 已修 | `32a6238` |
+| 21 | 多跳链只解析首尾一条边 | P2 | ✅ 已修 | `32a6238` |
+| 22 | 组装产物缺文档标题 | P2 | ✅ 已修 | `1c438a8` |
+| 23 | TOC 锚点不存在 | P2 | ✅ 已修 | `d449a45` |
+| 24 | 标题层级扁平 | P2 | ✅ 已修 | `d449a45` |
+| 25 | 分隔符被 pandoc 当 YAML 块 | P0 | ✅ 已修 | `d449a45` |
+| 26 | pandoc 按进程 cwd 找图 → 图未嵌入 | P0 | ✅ 已修 | `17db496` |
+| 27 | 导出未传 title → 缺标题/未降级 | P2 | ✅ 已修 | `17db496` |
+
+> 已修 19 个 / 共 27 个。未修的集中在第 4 阶段（写作与审阅收敛性），
+> 不影响「拿去现有产物 → 图表 → 导出 Word」这条路径。
 
 ---
 
 ## 1. Bug 清单
 
 按严重度排序。**P0 = 阻断流程或烧钱烧时间**。
+每个 bug 末尾的「状态」行标明是否已修复及对应提交。
 
 ### 🔴 P0：流程阻断
 
@@ -54,6 +110,8 @@ index.ts:111  EXECUTABLE_ACTIONS = {spawn_writers, spawn_reviewers, spawn_fixers
 **状态证据**：`phase: 8 | status: exporting`，`output/` 下只有 `final.md` + `finalization.json`，无 docx。
 
 **修法**：像 phase 5/6/7 一样，在 phase 8 的 `execute()` 里直接调用 `exportDocument()`（`src/commands/export.ts` 已实现，手动命令 `/confwrite:export` 能用）。
+
+**状态**：✅ 已修复（`8e06fcf`）——并在 `validate()` 里加入 pandoc 依赖预检
 
 ---
 
@@ -90,6 +148,9 @@ index.ts:111  EXECUTABLE_ACTIONS = {spawn_writers, spawn_reviewers, spawn_fixers
 ```
 
 **修法**：4c 的 → 4a 条件改为 `ch.status === 'pending'`（不限 round）；同时应加**单章轮次上限**（如 3 轮后强制 accept/fail），否则会变成另一种无限循环。
+
+**状态**：⬜ 未修复。本次通过手工改状态绕开（15 章全标 completed），
+> 不影响「不重做第 4 阶段」的路径。
 
 ---
 
@@ -128,6 +189,11 @@ export 导出                                     ✗ Bug 9
 **后果**：若修好 Bug 9，导出的 Word 会是 **282 页、0 张图、29 处残留 HTML 注释**。
 
 **修法**：在组装或定稿阶段增加一步：读 `figures/manifest.json`，把每个 `diagram-start` 块替换为对应图片的 markdown 引用，再调用现成的 `adjustImagePaths()` 修正相对路径。
+
+**状态**：✅ 已修复（`ed05a4d`）
+> 实际实现未复用 `adjustImagePaths()`（它只能改已存在的引用路径，
+> 不会创建引用）——而是在新增的 `src/diagrams/injector.ts` 里直接
+> 产出相对组装目录的正确路径。实测 29/29 全部注入。
 
 ---
 
@@ -169,6 +235,13 @@ if (targetDef?.waitPoint) {
 
 **修法**：删除 state-machine.ts:111 的跳转快捷分支，让 waitPoint 只在 `execute()` 之后设置（与第 168 行的设计意图一致）。
 
+**状态**：✅ 已修复（`1c438a8`）
+> 实现上引入了 `waitPoint.timing: 'entry' | 'after-execute'` ——
+> phase2 大纲规划是纯人工确认点（进入即暂停，当前行为正确）；
+> phase6 组装是「先干活再暂停」（`after-execute`）。
+> 同时把 waitPoint 判定移到出口条件之前，否则组装一旦产出就满足
+> 出口条件、直接跳走而永不暂停。
+
 ---
 
 #### Bug 1 — 熔断后外层循环不退出，空转到 MAX_TICKS
@@ -197,6 +270,9 @@ if (runner.isCircuitBroken()) {
 
 **修法**：熔断后 `break` 外层循环（或在 while 条件里检查 `result.stoppedReason`）。
 
+**状态**：✅ 已修复（`a43dece`）——内层批次循环退出后如为 circuit_breaker 则一并 break 外层。
+> 新增测试已验证「未修复时会失败」：`expected 2000 to be less than 50`。
+
 ---
 
 #### Bug 2 — `stoppedReason` 被 `max_ticks` 无条件覆盖
@@ -213,6 +289,124 @@ if (result.ticks >= MAX_TICKS) {
 **后果**：调用方拿到的终止原因是错的。本次真实原因是**限流熔断 + 状态机死锁**，却报告成「推进次数用完」，完全误导排查方向。
 
 **修法**：只在 `!result.stoppedReason` 时才赋值。
+
+**状态**：✅ 已修复（`a43dece`）
+
+---
+
+#### Bug 25 — 章节分隔符 `---` 被 pandoc 当成 YAML 元数据块，导出直接失败
+
+**现象**：用真实产物跑 pandoc 导出 docx 直接失败（退出码 64）：
+
+```
+Error parsing YAML metadata at "merged-v1.md" (line 1127):
+YAML parse exception at line 19, column 0:
+  did not find expected <document start>
+```
+
+**根因**：章节间分隔符是 `\n---\n`，而章节正文以 `# 2.2 …` 开头，
+于是文档里出现：
+
+```
+（空行）
+---
+# 2.2 技术选型与论证      ← 紧接着非空行
+```
+
+pandoc 把「前有空行 + `---` + 紧跟非空行」识别为 **YAML 元数据块开头**，
+随后尝试把正文当成 YAML 解析 → 失败。
+
+**证据**：实测产物里 14 个分隔符，其中多个命中此模式。
+
+**修法**：分隔符改为 `***`（普通主题分隔线，无歧义）。
+实测：同一份文档，`---` 退出码 64，`***` 退出码 0。
+
+**状态**：✅ 已修复（`d449a45`）
+
+---
+
+#### Bug 26 — pandoc 按进程 cwd 解析相对图片路径 → 29 张图全部未嵌入
+
+**现象**：导出报 `success: true`，但日志里 29 张图全部警告：
+
+```
+[WARNING] Could not fetch resource ../figures/ch012-fig2.png:
+          replacing image with description
+```
+
+产出的 docx 只 **552 KB**（手动测试嵌入全部图片时为 1.47 MB）。
+**失败是静默的**——`success` 仍为 true，图片被降级成占位描述。
+
+**根因**：`exportWithPandoc` 调用 `execFileSync('pandoc', args, { stdio: 'inherit' })`
+**未设置 cwd**，pandoc 按进程 cwd 解析相对路径。
+文档写在 `<project>/output/final.tmp.md`，图片在 `<project>/figures/`，
+正文引用 `../figures/x.png`；若调用方 cwd 不是 `output/`，该路径即指向错误位置。
+
+**对照实验**：
+- `cd output/` 后手动跑 pandoc → **0 警告**，图片全嵌入
+- 经 `exportDocument`（cwd = 调用方）→ **29 警告**，图片全缺失
+
+**修法**：`execFileSync(..., { cwd: dirname(tempMdPath) })`。
+
+**状态**：✅ 已修复（`17db496`）——实测 0 警告，docx 1,470,199 字节含 29 张图
+
+---
+
+#### Bug 19 — 分段标题只认半角冒号 `:`，不认中文全角 `：`
+
+**现象**：图表所有节点落在 layer 0，使「分层配色」完全无法生效。
+
+**证据**：
+
+```
+用真实 description 模拟解析：
+  半角冒号命中的分层标记: 0 个
+  全角冒号（未被识别）的行: 4 个     ← 如「五层三纵两翼架构：」
+  连接关系行: 6 个
+  → 最终 layer = 0（应为 5+）
+```
+
+**根因**：`pipeline.ts` 的 `layerMatch` 正则 `^(.+?):\s*$` 只匹配半角冒号，
+而中文描述普遍使用全角 `：`。
+
+**修法**：接受 `[:：]`；并区分「分段标题」（整行只有名称+冒号）与
+「层/项定义」（`- 名称：子项列表`）。
+
+**状态**：✅ 已修复（`32a6238`）——实测 5 个主层各自独立编号（接入1/网关2/服务3/数据4/基础5）
+
+---
+
+#### Bug 20 — 连接关系分支未剥离列表前缀，标签带 `- ` 项目符号
+
+**证据**（生成的 SVG 文字节点）：
+
+```
+- 数据治理翼：数据采集（50+适配器）
+- 接入层
+- 网关层（HTTPS/WSS/MQTT）
+- 基础设施层（...）
+```
+
+**根因**：解析器的分支顺序是「连接 → 列表项 → 分层」，
+而连接分支直接使用未剥离的原始文本：
+`- 接入层 → 网关层` 的 fromLabel 变成 `- 接入层`。
+
+**修法**：进入任何分支前先剥离 `- `/`* ` 前缀。
+
+**状态**：✅ 已修复（`32a6238`）
+
+---
+
+#### Bug 21 — 多跳链只解析出首尾一条边
+
+**现象**：`- 数据治理翼：数据采集（50+适配器）→ ETL → 数据治理 → 数据服务`
+被解析成一条边 `A → "B → C → D"`，右侧整串变成一个节点标签。
+
+**修法**：按箭头拆分后依次连接（A→B、B→C、C→D），并让链上节点逐层递进。
+附带：把 `名称（注解）` 的尾部括号提取为**边的 label**
+（`ParsedConnection.label` 此前从未被赋值），避免产生重复节点。
+
+**状态**：✅ 已修复（`32a6238`）——实测节点 19→14、连接 8 条、无重复节点
 
 ---
 
@@ -245,6 +439,8 @@ ch011: 5.1.3 节引言段落仅 107 字，低于 300 字；表格后缺少独立
 
 **修法**：改为定性描述（如「图表前后应有充分的说明文字，避免图表孤立出现」），或大幅降低阈值并只对图表（不对普通段落）生效。
 
+**状态**：⬜ 未修复。**这是第 4 阶段反复循环的根本原因**，但本次目标是不重做第 4 阶段，故未动。
+
 ---
 
 #### Bug 4 — 审阅 accept 门槛「全部通过」，几乎不可能达到
@@ -264,6 +460,8 @@ ch011: 5.1.3 节引言段落仅 107 字，低于 300 字；表格后缺少独立
 
 **修法**：改为「无 high 问题即可 accept」或「平均分 ≥ X 且无 high」。
 
+**状态**：⬜ 未修复。属于第 4 阶段收敛性问题，不在「沿用现有产物」的路径上。
+
 ---
 
 #### Bug 5 — 裁决与严重度不相关
@@ -281,6 +479,8 @@ ch011: 5.1.3 节引言段落仅 107 字，低于 300 字；表格后缺少独立
 **ch012 零 high、零 medium，仅因 6 条 low 被判 revise。** 分界线看起来是「问题条数」而非「严重度」。
 
 **修法**：与 Bug 4 一并修——在 prompt 中明确「严重度为 low 的问题不构成 revise 理由」。
+
+**状态**：⬜ 未修复。与 Bug 4 同源（审阅 prompt 的裁决标准）。
 
 ---
 
@@ -317,6 +517,8 @@ async runAll() {
 
 **修法**：在 `runAll()` 开头也检查 `pausedUntil`，或让 index.ts 调用 `runUntilIdle()`。
 
+**状态**：⬜ 未修复。需真实 429 才能验证，未在本次范围内。
+
 ---
 
 ### 🟡 P2：产出质量缺陷
@@ -331,6 +533,10 @@ src/diagrams/（提取+生成图的 pipeline）:  ✗ 零引用
 ```
 
 **修法**：在 `pipeline.ts` 里加载 `knowledge/diagrams/`（尤其 `architecture-style.md`、`layout.md`、`quality-lessons.md`），用于图表样式与布局决策。
+
+**状态**：🔶 部分修复（`beccb97`）——已把 `architecture-style.md` 的
+> 层级色表落地为 `DEFAULT_LAYER_PALETTE`（可配置数据）。
+> 「把知识库作为生成器一等输入」属于方案 B，未做。
 
 ---
 
@@ -367,6 +573,9 @@ KnowledgeLoader.loadAll()  → if (!existsSync(knowledgeDir)) return { files: []
 
 **修法**：改为解析包根目录（如 `join(packageRoot, 'knowledge')`），确保复制含 `diagrams/` 的完整知识库。
 
+**状态**：✅ 已修复（`ebae90b`）——抽出并导出 `resolveKnowledgeDir(moduleUrl)`，
+> 上溯三层到包根；改用 `fileURLToPath` 避免路径含空格时 %20。
+
 ---
 
 #### Bug 7 — 审阅报告被覆盖，历史丢失
@@ -381,6 +590,8 @@ KnowledgeLoader.loadAll()  → if (!existsSync(knowledgeDir)) return { files: []
 **实测**：11:03–11:15 的重审**覆盖了** 09:14–09:30 的第一轮报告，导致无法对比「修完是否变好」。
 
 **修法**：文件名应包含轮次，或与 `chapters[].round`、修复次数解耦（例如用时间戳或独立的 review 序号）。
+
+**状态**：⬜ 未修复。影响审阅历史对比，不影响最终产物。
 
 ---
 
@@ -398,6 +609,8 @@ const chapters = (content.match(/^## /gm) || []).length;   // ← 数的是所�
 
 **修法**：改名为 `level2Headings`，或按章节切分逻辑正确统计章数。
 
+**状态**：⬜ 未修复。仅字段命名问题，不影响产物。
+
 ---
 
 #### Bug 15 — `path-adjuster.ts` 是死代码
@@ -413,6 +626,10 @@ src/diagrams/path-adjuster.ts:34  export function adjustImagePaths(...)
 文件头注释写着「方案 B：在组装/定稿阶段集中替换」，但装配环节从未调用它。
 
 **修法**：随 Bug 12 一起接入组装/定稿流程；若确定不做，则删除并撤销其测试。
+
+**状态**：✅ 已结案（`ed05a4d`）——Bug 12 的实现不需要它，
+> 已在 injector 注释中说明为何不能替代（只改已存在引用的路径）。
+> 模块与测试暂留，待方案 B 评估。
 
 ---
 
@@ -439,6 +656,9 @@ converter.ts:129  checkDependencies(): { pandoc: { installed: this.isPandocInsta
 | `docx` | pandoc | ❌ 未安装 |
 
 **修法**：导出前调用 `checkDependencies()`，缺失时给出明确提示（含安装命令）；或在 `init` 阶段就做依赖预检。
+
+**状态**：✅ 已修复（`8e06fcf`）——phase8 的 `validate()` 调用它，
+> 缺失时返回 blocked 并给出 pacman/apt/pandoc.org 三种安装指引。
 
 ---
 
@@ -479,6 +699,10 @@ ch003-fig1.svg:
 
 **修法**：见下方「图表改造决策」。
 
+**状态**：✅ 已修复（方案 A，`beccb97`）——新增 `DEFAULT_LAYER_PALETTE`
+> （接入蓝/应用绿/支撑橙/数据紫/基础灰），`generateNode` 按 `node.layer` 取色。
+> 实测：从「每张图 2 个颜色值」→ 5~6 个。
+
 ---
 
 #### Bug 18 — 字体族硬编码 Windows 字体，Linux 上失效
@@ -497,6 +721,91 @@ fc-list :lang=zh | wc -l              →  80  ← 本机有 80 个中文字体�
 ```
 
 **修法**：按平台自适应，或用 fontconfig 字体族回退链（如 `Noto Sans CJK SC, Source Han Sans SC, Microsoft YaHei, sans-serif`）。
+
+**状态**：✅ 已修复（`beccb97` + `54897b3`）
+> 注意：首次只改了节点（`generateNode`），**连接线标签漏网**——
+> `generateConnection` 另有一处独立的硬编码。已补充修复与回归测试。
+
+---
+
+#### Bug 22 — 组装/定稿产物缺少文档标题
+
+**现象**：最终文档以 `# 目录` 开头，没有文档标题；
+而 `outline.md` 第一行明明写着 `# 智慧园区综合管理平台项目投标文件——技术方案`。
+
+**根因**：
+
+```js
+// phase6
+const result = assembler.assemble(ctx.projectDir, chapters, { generateTOC: true });
+//                                                                 ↑ 没传 title
+// finalizer：读 assembly/merged-v1.md → 原样写入 output/final.md
+```
+
+「无标题」于是被固定成最终产物。
+
+**为何长期未暴露**：phase6 的 `execute` 被 waitPoint 跳过（Bug 10），
+组装从未真正执行过。修好 Bug 10 后立刻暴露。
+
+**修法**：新增 `ChapterAssembler.resolveDocumentTitle(projectDir)`，
+取 outline.md 的第一个一级标题，phase6 组装时传入。
+
+**状态**：✅ 已修复（`1c438a8`）
+
+---
+
+#### Bug 23 — TOC 链接指向的锚点不存在
+
+**证据**：
+
+```
+TOC 链接:        ch001 ch002 ch003 …
+文档中 id="ch0…" 锚点: 0 个
+```
+
+目录列了 15 条链接，但一个都点不动。
+
+**修法**：给每章首个标题追加 `{#chXXX}`（pandoc 原生 header identifier，
+markdown / HTML / Word 均可跳转）；章节无标题时退化为 `<a id="chXXX">`。
+
+**状态**：✅ 已修复（`d449a45`）
+
+---
+
+#### Bug 24 — 标题层级扁平
+
+**证据**（导出的 docx）：
+
+```
+Heading1  17 个   ← 文档标题 + 目录 + 15 个章节标题混在同一级
+Heading2  67 个
+Heading3 150 个
+```
+
+Word 大纲面板里文档标题与各章平级，层次混乱。
+
+**修法**：有文档标题时，目录降为 h2、章节内容整体降一级
+（章节标题 h2、小节 h3）。降级时**跳过代码块围栏**——
+Python / Shell 注释 `# xxx` 不是标题。
+
+**状态**：✅ 已修复（`d449a45`）——实测 Heading1 从 17 → **1**
+
+---
+
+#### Bug 27 — 导出时未传 title，导致缺标题且章节未降级
+
+**根因**：`exportDocument` 会自行重新组装，但 phase8 与手动
+`/confwrite:export` 都不传 `title`：
+
+```js
+const assemblyOptions = { title: options.title, … };   // undefined
+```
+
+于是导出结果既没有文档标题，章节也不会降级（Heading1 × 16）。
+
+**修法**：`title: options.title ?? assembler.resolveDocumentTitle(projectDir)`。
+
+**状态**：✅ 已修复（`17db496`）
 
 ---
 
@@ -540,33 +849,46 @@ fc-list :lang=zh | wc -l              →  80  ← 本机有 80 个中文字体�
 
 ---
 
-## 2. 修法优先级建议
+## 2. 修法优先级与执行情况
 
-| 优先级 | Bug | 理由 |
+### 2.1 已在 `fix/diagram-and-export` 分支完成（19 个）
+
+目标：**不重做第 4 阶段，沿用现有 15 章产物 → 图表准确 → 导出完整 Word**。
+
+| 优先级 | Bug | 提交 |
 |---|---|---|
-| **P0** | 9（导出无人处理） | 流程无法完成，产品直接用不了 |
-| **P0** | 3（pending 孤儿）+ 轮次上限 | 死锁主因 |
-| **P0** | 10（waitPoint 跳过 execute） | 让你审阅不存在的文件 |
-| **P0** | 1 + 2（熔断空转 + 原因被掩盖） | 烧时间且掩盖真实原因 |
-| **P1** | 6（≥300 字规则） | **不收敛的根因** |
+| **P0** | 25（分隔符被 pandoc 当 YAML） | `d449a45` |
+| **P0** | 26（docx 图片全部未嵌入） | `17db496` |
+| **P0** | 9（导出无人处理） | `8e06fcf` |
+| **P0** | 10（waitPoint 跳过 execute） | `1c438a8` |
+| **P0** | 1 + 2（熔断空转 + 原因被掩盖） | `a43dece` |
+| **P0** | 12（图表未插入） | `ed05a4d` |
+| **P2** | 17（无分层配色） | `beccb97` |
+| **P2** | 18（字体硬编码，含连接标签漏网） | `beccb97` + `54897b3` |
+| **P2** | 19 + 20 + 21（描述解析） | `32a6238` |
+| **P2** | 14（知识库复制路径） | `ebae90b` |
+| **P2** | 22（组装缺文档标题） | `1c438a8` |
+| **P2** | 23 + 24（TOC 锚点 + 标题层级） | `d449a45` |
+| **P2** | 27（导出未解析标题） | `17db496` |
+| **P2** | 16（依赖预检） | `8e06fcf` |
+| **P2** | 15（path-adjuster 死代码） | `ed05a4d`（不再依赖它） |
+
+### 2.2 未做（不影响上述目标）
+
+| 优先级 | Bug | 说明 |
+|---|---|---|
+| **P0** | 3（pending 孤儿） | 本次绕过（手工改状态），不影响目标 |
+| **P1** | **6（≥300 字规则）** | **第 4 阶段不收敛的根本原因**，但本次不重做第 4 阶段 |
 | **P1** | 4 + 5（accept 门槛 / 严重度） | 同上 |
-| **P1** | 8（退避死代码） | 配额问题无法自愈 |
-| **P2** | 12 + 15（图表未插入） | 产出缺 29 张图 |
-| **P2** | 13 + 14（知识库未加载） | 图表质量受损 |
-| **P2** | 12 + 15（图表未插入） | 产出缺 29 张图 |
-| **P2** | **17（无分层配色）** | 图表质量差的主因，方案 A |
-| **P2** | 13 + 14（知识库未加载） | 图表质量受损，方案 A |
-| **P2** | **18（字体硬编码）** | Linux 上中文字体失效，方案 A |
-| **P2** | 7（审阅报告覆盖） | 无法对比修复效果 |
-| **P2** | 16（依赖预检死代码） | 导出失败无提示 |
-| **P3** | 11（统计命名） | 仅影响可读性 |
+| **P1** | 8（退避死代码） | 需真实 429 才能验证 |
+| **P2** | 7（审阅报告覆盖） | 仅影响历史对比 |
+| **P3** | 11（统计命名） | 仅可读性 |
 
-**建议分三条分支修**，保持单一变量便于归因：
+### 2.3 若重做第 4 阶段，建议这样分分支
 
-1. `fix/pipeline-blockers` — Bug 9、10、1、2（流程能否走完）
-2. `fix/review-convergence` — Bug 3、4、5、6（能否收敛）
-3. `fix/diagram-injection` — Bug 12、13、14、15（图表能否进文档）
-4. `fix/diagram-quality-a` — Bug 17、18 + 知识库接入（方案 A，按上方决策先做）
+1. `fix/pipeline-blockers` — Bug 3（含单章轮次上限）
+2. `fix/review-convergence` — Bug 4、5、6、7、8（**收敛性是核心**）
+3. `fix/diagram-quality-b` — 方案 B（知识库作为生成器一等输入）
 
 ---
 
@@ -643,31 +965,40 @@ subagent  ~/Projects/t3/projects/LmERP2/.pi/settings.json  deepseek / deepseek-f
 | 路径 | `/home/water/Projects/t3/projects/LmERP2` |
 | 阶段 | `8`（导出）— 卡死 |
 | 章节 | 15 章全部 `completed`（其中 5 章为手工标记，见下方说明） |
-| 产出 | `assembly/merged-v1.md`（1.16 MB / 310,887 字 / 约 282 页） |
-| 图表 | `figures/` 29 张（png+svg）**未插入文档** |
+| 产出 | `assembly/merged-v1.md`（1,127,292 B，14 个安全分隔符 + 29 处图片引用） |
+| 图表 | `figures/` 29 张（png+svg，**分层配色**，已插入文档） |
 | 定稿 | `output/final.md` + `finalization.json` |
-| 导出 | ✗ 无 |
+| **导出** | ✅ **`output/final.docx`（1,470,199 B，29 张图 + TOC）** |
+| 流程阶段 | `6`（停在「请审阅初稿」等待点，属设计行为） |
 
-> ⚠️ **状态被手工修改过**：为解决 4c 死锁（Bug 3），ch002/ch006/ch007/ch010/ch011
-> 被手工从 `pending` 改为 `completed`/`accept`。备份在 `project-state.json.bak-115911`。
+> ⚠️ **状态被手工修改过**：为解决 4c 死锁（Bug 3），
+> ch002/ch006/ch007/ch010/ch011 被手工从 `pending` 改为 `completed`/`accept`。
+> 备份：`project-state.json.bak-115911`、`project-state.json.bak-rerun-*`。
 > 这 5 章的质量**未经最终确认**，其中 ch007/ch010 只有 v1（未修复）。
+>
+> 另：导出产物我直接用与 phase8 相同的代码路径（`exportDocument`）生成，
+> 未让自动化流程自己走完 5→6→7→8。若要让流程自行产出，重启 t3 的 pi
+> 加载新 dist 后重跑即可。
 
 ### 仓库
 
 ```
-分支: feat/ch-level-length @ b6fadf6（工作区干净）
-任务: t3 的 pi 会话运行中（idle）
-dist: 构建于 09-20 07:53，含 ch 级篇幅修正 + bash 恢复 + turn 预算
+分支: fix/diagram-and-export（工作区干净）
+基线: feat/ch-level-length @ b6fadf6
+t3 的 pi: 运行中（idle）
+dist: 构建于 09-20 13:46，含本次全部修复
+测试: 722 通过（新增 57 个）
 ```
 
-**其他分支**
+**分支**
 
 | 分支 | 内容 | 状态 |
 |---|---|---|
 | `master` | v0.7.3 基线 | 稳定 |
+| `feat/ch-level-length` | ch 级篇幅 + bash 恢复 | 已验证 |
+| **`fix/diagram-and-export`** | **本轮 19 个修复** | **当前** |
 | `feat/responsibility-separation` | prompt 职责分离 | ⚠️ **含同样的「每个子节 3000-5000 字」层级错误**，合并前必须一并修正 |
 | `feat/tool-least-privilege` | 角色工具限制 | 被取代（回退点） |
-| `feat/ch-level-length` | ch 级篇幅 + bash 恢复 | 当前，已验证 |
 
 ---
 
@@ -683,7 +1014,16 @@ grep -c '整个章节（本 ch）正文合计' dist/writing/task-executor.js   #
 grep -c 'resolveShellTool(platform())' dist/scheduler/pi-executor.js # 1
 grep -c 'TOOLS_BY_ROLE' dist/scheduler/pi-executor.js                # 0
 
-npm run build && npm test      # 640 通过
+# 本轮修复的标记
+grep -c 'DEFAULT_LAYER_PALETTE' dist/diagrams/style.js            # >0 分层配色
+grep -c 'Noto Sans CJK' dist/diagrams/style.js                    # >0 跨平台字体
+ls dist/diagrams/description-parser.js dist/diagrams/injector.js  # 均存在
+grep -c 'injectDiagrams' dist/assemble/assembler.js                # >0 图表注入
+grep -c 'resolveDocumentTitle' dist/assemble/assembler.js          # >0 文档标题
+grep -c 'after-execute' dist/orchestrator/phases.js                # >0 waitPoint 时机
+grep -c 'exportDocument' dist/orchestrator/phases.js               # >0 phase8 真导出
+
+npm run build && npm test      # 722 通过
 
 # t3 侧
 cat /home/water/Projects/t3/projects/LmERP2/.pi/settings.json   # 必须是 deepseek
@@ -695,11 +1035,17 @@ herdr agent prompt wD:p1 "/confwrite:write projects/LmERP2"
 
 | Bug | 复现 |
 |---|---|
+| 1 + 2 | 用 `Always429Executor` 跑 `runWriteLoop`，观察 ticks=2000 且 stoppedReason='max_ticks' |
 | 9 | 跑到 phase 8 观察 `output/final.docx` 永不出现 + MAX_TICKS |
 | 10 | 清空 waitPoint 后第一次进入 phase 6，检查 `assembly/` 是否为空 |
 | 3 | 让任一 fixer 失败（如临时把 `maxTurnsPerTask` 设为 1），观察该章变 pending 且不再被处理 |
 | 12 | `grep -c 'figures/' assembly/merged-v1.md` → 0，同时 `ls figures/*.png` → 29 |
 | 14 | 新建项目后 `ls knowledge/` → 只有 loader.js 等编译产物 |
+| 17 | 统计 `figures/*.svg` 里的 fill 色值种数 → 2（修复后 5~6） |
+| 19 | 用含全角 `：` 的描述调 `parseDiagramDescription`，看所有 node.layer 是否为 0 |
+| 20 | 用 `- A → B` 调解析器，看 label 是否带 `- ` 前缀 |
+| 25 | `pandoc assembly/merged-v1.md -t docx -o /tmp/x.docx` → 退出码 64 + YAML 报错 |
+| 26 | 在非 `output/` 目录调 `exportDocument` → 日志出现 `Could not fetch resource` |
 
 ---
 
