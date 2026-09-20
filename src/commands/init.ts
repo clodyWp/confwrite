@@ -6,9 +6,30 @@
  */
 import { existsSync, mkdirSync, writeFileSync, copyFileSync, readdirSync, statSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { validateSlug, normalizePath } from '../utils/paths.js';
 import { ProjectStore } from '../state/store.js';
 import type { ProjectState } from '../state/schema.js';
+
+/**
+ * 从模块 URL 解析包根目录下的 knowledge/ 路径
+ *
+ * 历史事故（Bug 14）：原实现只上溯两层 `dirname`，得到的是 `dist/knowledge`
+ * ——而该目录恰好是 tsc 编译 `src/knowledge/loader.ts` 的产物目录
+ * （只含 loader.js / .d.ts / .map）。结果项目的 knowledge/ 里全是编译产物，
+ * 真正的知识库（knowledge/diagrams/ 下 16 个 .md）从未被复制。
+ *
+ * 同时用 fileURLToPath 而不是 URL.pathname，避免路径含空格时出现 %20。
+ *
+ * @param moduleUrl 调用方的 import.meta.url
+ * @returns <包根>/knowledge
+ */
+export function resolveKnowledgeDir(moduleUrl: string): string {
+  // <包根>/dist/commands/init.js 或 <包根>/src/commands/init.ts
+  const moduleDir = dirname(fileURLToPath(moduleUrl));
+  const packageRoot = dirname(dirname(moduleDir));
+  return join(packageRoot, 'knowledge');
+}
 
 export interface InitOptions {
   slug: string;
@@ -104,7 +125,9 @@ export function initProject(options: InitOptions): InitResult {
   }
 
   // Copy knowledge base (diagrams/, etc.) so KitGenerator can inject it
-  const knowledgeSrc = join(dirname(dirname(new URL(import.meta.url).pathname)), 'knowledge');
+  // 取包根目录的 knowledge/（含 diagrams/ 下 16 个 .md），
+  // 而不是 dist/knowledge（tsc 编译产物）—— 见 Bug 14
+  const knowledgeSrc = resolveKnowledgeDir(import.meta.url);
   const knowledgeDest = join(projectDir, 'knowledge');
   if (existsSync(knowledgeSrc) && !existsSync(knowledgeDest)) {
     copyDirRecursive(knowledgeSrc, knowledgeDest);
