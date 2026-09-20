@@ -64,8 +64,13 @@ export async function exportDocument(
   }
 
   // Assemble chapters
+  // title 未显式指定时，从 outline.md 的一级标题解析（Bug 27）
+  //
+  // phase8 与手动 /confwrite:export 都不传 title，若不自动解析：
+  //   - 导出结果没有文档标题
+  //   - 章节标题不会降级（与文档标题同为 Heading1）
   const assemblyOptions: AssemblyOptions = {
-    title: options.title,
+    title: options.title ?? assembler.resolveDocumentTitle(projectDir),
     generateTOC: options.toc,
     pageBreaks: true,
   };
@@ -240,7 +245,15 @@ function exportWithPandoc(
 
   // Execute conversion
   try {
-    execFileSync('pandoc', args, { stdio: 'inherit' });
+    // cwd 必须设为临时文件所在目录（Bug 26）
+    //
+    // pandoc 解析**相对图片路径**时基于进程 cwd，而文档里写的是
+    // `../figures/xxx.png`（相对文档所在目录）。若继承调用方 cwd，
+    // 这个相对路径会指向错误位置，pandoc 只能降级为
+    // “replacing image with description” —— 导出的 Word 里没有图。
+    // 实测：29 张图全部未嵌入，docx 只有 552 KB（应为 1.47 MB）。
+    const cwd = dirname(tempMdPath);
+    execFileSync('pandoc', args, { stdio: 'inherit', cwd });
 
     // Clean up temporary file
     unlinkSync(tempMdPath);
