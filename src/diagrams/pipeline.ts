@@ -13,6 +13,11 @@ import { validateDiagram, type DiagramData } from './validator.js';
 import { DiagramCache, type CacheEntry } from './cache.js';
 import { loadDiagramStyle, type DiagramStyle } from './style.js';
 import {
+  hasStructuredFormat,
+  parseStructuredDiagram,
+  type DiagramSpec,
+} from './structured-parser.js';
+import {
   parseDiagramDescription,
   type ParsedNode,
   type ParsedConnection,
@@ -187,13 +192,24 @@ export class DiagramPipeline {
           continue;
         }
 
-        // 标准格式：解析描述为节点和连接
-        // （解析逻辑已抽到 description-parser.ts 便于单测；
-        //   修复了全角冒号、列表前缀、多跳链三个 bug）
-        const { nodes, connections } = parseDiagramDescription({
-          description: block.description,
-          title: block.title,
-        });
+        // 解析为节点与连接
+        //
+        // **结构化格式优先**：写手实际产出的就是 containers / nodes / edges，
+        // 里面带着 owner / timing / high_weight / direction / style。
+        // 只读散文 description 会把这些全丢掉，图退化成「散文里的几个方框」
+        // —— 而知识库 layout.md 的 7 条布局原则，每条都有对应的结构化字段。
+        //
+        // 散文格式（提示词里教的写法）仍然支持，作为回退。
+        const spec = hasStructuredFormat(block.rawContent)
+          ? parseStructuredDiagram(block.rawContent)
+          : null;
+
+        const { nodes, connections } = spec && spec.nodes.length > 0
+          ? specToGeneratorInput(spec)
+          : parseDiagramDescription({
+              description: block.description,
+              title: block.title,
+            });
 
         // 生成 SVG
         const svgResult = generateSVG(nodes, connections, this.style);
@@ -336,4 +352,52 @@ export class DiagramPipeline {
       return false;
     }
   }
+}
+
+/**
+ * 把结构化 spec 映射为生成器的输入
+ *
+ * 层号的来源是**容器顺序**（对应知识库原则 1「分组压缩」）：
+ * 容器天然就是分层，写手已经用它标注了归属。
+ * 横切 / 贯穿型容器（如「贯穿动作」）不属于任何一层，放到最后，
+ * 由布局引擎负责画成侧边条。
+ *
+ * 注：层号与尺寸的最终决定权在新布局引擎（layout.ts），
+ * 这里只提供"一份足够好的默认值"，避免老生成器拿到全 0 层号。
+ */
+function specToGeneratorInput(spec: DiagramSpec): {
+  nodes: Array<{ id: string; label: string; layer: number }>;
+  connections: Array<{ from: string; to: string; label?: string }>;
+} {
+  const layerOf = new Map<string, number>();
+  let layer = 0;
+
+  for (const container of spec.containers) {
+    if (container.crosscut) continue;
+    for (const nodeId of container.nodes) {
+      if (!layerOf.has(nodeId)) layerOf.set(nodeId, layer);
+    }
+    layer++;
+  }
+
+  const crosscutLayer = layer;
+  for (const container of spec.containers) {
+    if (!container.crosscut) continue;
+    for (const nodeId of container.nodes) {
+      if (!layerOf.has(nodeId)) layerOf.set(nodeId, crosscutLayer);
+    }
+  }
+
+  return {
+    nodes: spec.nodes.map(n => ({
+      id: n.id,
+      label: n.label,
+      layer: layerOf.get(n.id) ?? 0,
+    })),
+    connections: spec.edges.map(e => ({
+      from: e.from,
+      to: e.to,
+      ...(e.label ? { label: e.label } : {}),
+    })),
+  };
 }
