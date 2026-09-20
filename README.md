@@ -16,6 +16,25 @@
 - **真实文档转换** — 支持 PDF (pdf-parse) / DOCX (mammoth) / HTML → Markdown
 - **定稿一致性检查** — Phase 7 自动统计文档 + 校验数据基线一致性
 
+## 图表渲染
+
+图表由内置布局引擎生成，**不使用 mermaid**。写手产出结构化格式
+（`containers / nodes / edges`），引擎负责：
+
+- **正交折线**：连线只有水平段和竖直段，没有曲线和斜线
+- **单页压缩**：画布宽 ≤680px（保证字号可读）、高 ≤900px，压不下时按
+  「边距 → 层间距 → 字号」的顺序压缩，**不拆成多张图**
+- **分组与权重**：`containers` 决定分层，`high_weight` 节点更大更醒目，
+  `crosscut` 画成贯穿全程的侧条
+
+布局实现见 `src/diagrams/layout/`（`graph` → `metrics` → `route` → `render`）。
+
+真实数据的几何回归（可选）：
+
+```bash
+CONFWRITE_REAL_DRAFTS=/path/to/project/drafts/chapters npm test
+```
+
 ## 安装
 
 ```bash

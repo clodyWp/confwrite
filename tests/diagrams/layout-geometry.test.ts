@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { layoutDiagram, type LayoutResult } from '../../src/diagrams/layout/index.js';
 import { isOrthogonal, saneStart } from '../../src/diagrams/layout/route.js';
@@ -256,7 +256,18 @@ edges:
     direction: bidirectional
 `);
 
-const REAL_DIR = '/home/water/Projects/t3/projects/LmERP2/drafts/chapters';
+/**
+ * 真实数据回归的草稿目录（可选）
+ *
+ * 用环境变量指定：真实项目是使用者的私有内容，不进仓库。
+ * 未设置时相关用例跳过 —— 不能写死机器路径，否则在别人机器上会被
+ * try/catch 静默跳过，这条最关键的回归守卫等于不存在。
+ *
+ *   CONFWRITE_REAL_DRAFTS=/path/to/project/drafts/chapters npm test
+ */
+const REAL_DRAFTS = process.env.CONFWRITE_REAL_DRAFTS ?? '';
+const REAL_DIR = REAL_DRAFTS;
+const HAS_REAL_DATA = REAL_DRAFTS !== '' && existsSync(REAL_DRAFTS);
 
 function loadRealSpecs(): Array<{ name: string; spec: DiagramSpec }> {
   const out: Array<{ name: string; spec: DiagramSpec }> = [];

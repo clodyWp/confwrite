@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { layoutDiagram } from '../../src/diagrams/layout/index.js';
@@ -27,9 +27,19 @@ import type { DiagramSpec } from '../../src/diagrams/structured-parser.js';
 
 const style = getDefaultDiagramStyle();
 
-const REAL_DIR = join(
-  '/home/water/Projects/t3/projects/LmERP2/drafts/chapters',
-);
+/**
+ * 真实数据回归的草稿目录（可选）
+ *
+ * 用环境变量指定，因为真实项目不在仓库里（那是使用者的私有内容）。
+ * 未设置时相关用例整体跳过，并打印一行说明 —— 不写死机器路径，
+ * 否则在别人机器或 CI 上会被 try/catch **静默跳过**，
+ * 「每张真实图都满足几何不变量」形同虚设。
+ *
+ *   CONFWRITE_REAL_DRAFTS=/path/to/project/drafts/chapters npm test
+ */
+const REAL_DRAFTS = process.env.CONFWRITE_REAL_DRAFTS ?? '';
+const REAL_DIR = REAL_DRAFTS;
+const HAS_REAL = REAL_DRAFTS !== '' && existsSync(REAL_DRAFTS);
 
 function specFrom(raw: string): DiagramSpec {
   return parseStructuredDiagram(raw);
