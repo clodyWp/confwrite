@@ -44,13 +44,28 @@ dist/ 实际：feat/responsibility-separation 编译产物
 
 ## 3. 当前有哪些分支
 
+```
+master ──── 4d30e14 (v0.7.3 已发布基线)
+  │
+  ├── feat/responsibility-separation @ f62f85c   （从 master 分出，未验证）
+  │
+  └── 1e502ff (tag: before-ch-level-fix)
+        └── feat/tool-least-privilege           （回退点，已被取代）
+              └── feat/ch-level-length @ 39fdf88 （ch 级篇幅 + bash 恢复，已验证）
+                    └── fix/diagram-and-export @ ef0c34f  ← 当前
+```
+
 | 分支 | 内容 | 状态 |
 |------|------|------|
-| `master` | 已发布基线（v0.7.3）| 稳定 |
-| `feat/responsibility-separation` | prompt 职责分离（Writer 不再自检字数）| 已提交，正在 t3 验证 |
-| `feat/tool-least-privilege` | 工具最小权限 + turn 硬预算 | **仅计划文档，未实现** |
+| `master` | 已发布基线（v0.7.3） | 稳定 |
+| `feat/responsibility-separation` | prompt 职责分离 | ⚠️ 未验证；**含与本次根因同源的层级错误**，合并前须修 |
+| `feat/tool-least-privilege` | 工具最小权限 + turn 预算 | 被取代（回退点） |
+| `feat/ch-level-length` | ch 级篇幅修正 + bash 恢复 | 已验证 |
+| **`fix/diagram-and-export`** | **19 个 bug 修复：图表准确 + 图表注入 + 导出打通** | **当前，产物已验证** |
 
-`feat/` 前缀是"功能开发分支"的惯例。三个分支互不影响，随时可切。
+`feat/` = 功能开发，`fix/` = 缺陷修复。
+**注意**：`fix/diagram-and-export` **线性包含** `feat/ch-level-length` 的全部提交，
+所以合回它是快进合并；但 `feat/responsibility-separation` 是另一条独立的线。
 
 ---
 
@@ -231,7 +246,77 @@ git commit -m "wip: 暂存"
 
 ---
 
-## 8. 撤销与回退
+## 8. 文档与多分支：怎么改才不会冲突
+
+### 8.1 先搞清一个事实
+
+git **不会**因为「两边都有这个文件」就报冲突。
+冲突的条件是：**两边都改动了同一文件的同一区域**（相对于共同祖先）。
+
+用本项目实际例子说明：
+
+| 分支 | 有 `TODO.md` 吗 | 合并到 `fix/diagram-and-export` |
+|---|---|---|
+| `feat/ch-level-length` | 有（同一个 blob） | 快进合并，**不冲突** |
+| `feat/tool-least-privilege` | 有（旧版 7 KB） | 它是祖先，**不冲突** |
+| `feat/responsibility-separation` | 没有 | 只有一边「新增」→ **不冲突** |
+
+所以现在很安全。但若**两个分支都从「已有 TODO.md」的基点各自改它**，
+下次合并就会冲突。
+
+### 8.2 约定：文档按「新增」而非「修改」组织
+
+| 文档类型 | 放哪 | 为什么 |
+|---|---|---|
+| 迭代计划/完成报告（`ITERATION-PLAN-vX.md`） | 分支内**新增**，文件名带版本号 | 各分支只新增自己的文件 → 永不冲突（已见效） |
+| 专项方案（`PLAN-<feature>.md`） | 同上 | 同上 |
+| `BUGS.md` | 跟着**修复分支**走 | 它是「这一轮修了什么」，随分支合并 |
+| `TODO.md` | 只在**主干线**改 | 它是「当前状态摘要」，不是历史 → 合并时选一边即可 |
+| `GIT-GUIDE.md` | 只在 `master` 改 | 与具体功能无关的通用文档 |
+
+**一句话：历史性内容各写各的文件，状态性内容只在主干改。**
+
+### 8.3 真的冲突了怎么办
+
+状态型文档（`TODO.md`）冲突后**不要手工编辑**，直接选一边：
+
+```bash
+# 看两边差异（可选）
+git diff --name-only --diff-filter=U     # 列出所有冲突文件
+
+# 保留当前分支的版本
+git checkout --ours TODO.md
+
+# 或保留传入分支的版本
+git checkout --theirs TODO.md
+
+# 标记为已解决并提交
+git add TODO.md
+git commit -m "merge: 解决 TODO.md 冲突（取当前分支版本）"
+```
+
+> ⚠️ `--ours` / `--theirs` 的含义容易搞反：
+> `--ours` = **你当前所在**的分支；`--theirs` = **被合并进来**的那个分支。
+
+> ❌ 不推荐 `.gitattributes` 的 `merge=union`：
+> 它会把两个版本直接拼接，产生重复段落，比冲突更难清理。
+
+### 8.4 怎么提前知道会不会冲突
+
+```bash
+# 合之前先干跑一次（不真合并，只报告）
+git merge --no-commit --no-ff <分支名>
+git merge --abort        # 看完就取消
+
+# 或者看两个分支分叉后都改了哪些文件
+git diff --name-only $(git merge-base A B) A > /tmp/a.txt
+git diff --name-only $(git merge-base A B) B > /tmp/b.txt
+comm -12 <(sort /tmp/a.txt) <(sort /tmp/b.txt)   # 两边都改过的文件 = 可能冲突
+```
+
+---
+
+## 9. 撤销与回退
 
 ```bash
 # 丢弃某个文件的所有未提交改动
@@ -252,7 +337,7 @@ git log --oneline master..feat/responsibility-separation
 
 ---
 
-## 9. 速查表
+## 10. 速查表
 
 | 我想… | 命令 |
 |-------|------|
@@ -268,7 +353,7 @@ git log --oneline master..feat/responsibility-separation
 
 ---
 
-## 10. 需要我代劳时
+## 11. 需要我代劳时
 
 你只需要说清楚两件事，我可以帮你执行：
 
