@@ -22,6 +22,7 @@
 
 **产出**：`assembly/merged-v1.md` = 1.16 MB / **310,887 中文字 / 约 282 页 / 29 张图表**
 **但**：29 张图**一张都没进文档**（Bug 12），且**永远无法导出成 Word**（Bug 9）。
+**图表质量**：知识库未加载（Bug 13/14）+ 生成器无分层配色（Bug 17），29 张图全部只有 2 个颜色值。
 
 ---
 
@@ -415,6 +416,118 @@ src/diagrams/path-adjuster.ts:34  export function adjustImagePaths(...)
 
 ---
 
+#### Bug 16 — `checkDependencies()` 是死代码，不提示缺少 pandoc
+
+**现象**：`docx` 导出失败时，用户只得到一个晦涩的 `execFileSync` 报错，看不到「请先安装 pandoc」。
+
+**证据**：
+
+```
+converter.ts:129  checkDependencies(): { pandoc: { installed: this.isPandocInstalled(), ... } }
+全代码库搜 checkDependencies → 只有它自己的定义，没有任何调用
+
+本机实测:  $ which pandoc  →  ✗ 未安装
+           export.ts:243   execFileSync('pandoc', args, ...)  ← 直接抛错
+```
+
+**附**：各格式的依赖现状
+
+| 格式 | 依赖 | 状态 |
+|---|---|---|
+| `md` | 无（纯 JS） | ✅ 可用 |
+| `html` | 无（纯 JS 正则转换） | ✅ 可用（质量一般） |
+| `docx` | pandoc | ❌ 未安装 |
+
+**修法**：导出前调用 `checkDependencies()`，缺失时给出明确提示（含安装命令）；或在 `init` 阶段就做依赖预检。
+
+---
+
+#### Bug 17 — 图表生成器无「分层配色」能力，所有节点同一颜色
+
+**现象**：29 张图全部只用 2 个颜色值（1 个填充色 + 白底），**所有节点都是同一个橙色**。
+
+**证据**：
+
+```
+ch003-fig1.svg:
+       20  #d97706    ← 20 个节点全用同一个橙色
+        1  #ffffff    ← 背景
+
+全部 29 张图: 每张都恰好只有 2 个不同颜色值
+```
+
+**根因**（`src/diagrams/generator.ts:208` generateNode）：
+
+```js
+<rect ... fill="${colors.primary}" .../>
+                ↑ 所有节点统一用 primary，与 node.layer 无关
+```
+
+节点虽然带了 `layer` 字段（用于纵向分层排布），但**颜色与 layer 无关**。色板只有 7 个色位（primary/secondary/tertiary/data/line/bg/text）。
+
+**对照知识库要求**（`knowledge/diagrams/architecture-style.md`）：
+
+| 知识库要求 | 实际 |
+|---|---|
+| **按层分色**：接入层蓝 / 应用层绿 / 支撑层橙 / 数据层紫 / 基础设施灰 | ❌ 全部同一橙色 |
+| 低饱和度企业色调 | ⚠️ `warm` 方案 = amber-600，饱和度偏高 |
+| 信息密集，模块内展示子项 | ❌ 单行标签（甚至带着 `- ` 列表符号） |
+| 横切关注点用两侧竖条 | ❌ 无 |
+| 扁平纯色 + 细边框 | ✅ 做到了 |
+
+**关键**：即使修好 Bug 13/14（让知识库能加载），**也实现不了**——渲染代码本身缺少按层取色的能力。这是两个独立缺陷。
+
+**修法**：见下方「图表改造决策」。
+
+---
+
+#### Bug 18 — 字体族硬编码 Windows 字体，Linux 上失效
+
+**证据**（`src/diagrams/generator.ts:230`）：
+
+```js
+// 注释写着：解决 Windows 中文字体问题
+const fontFamily = 'Microsoft YaHei, SimHei, sans-serif';
+```
+
+```
+fc-list | grep -c "Microsoft YaHei"  →  0   ✗ 不存在
+fc-list | grep -c "SimHei"            →  0   ✗ 不存在
+fc-list :lang=zh | wc -l              →  80  ← 本机有 80 个中文字体（Noto Sans CJK 等）却用不上
+```
+
+**修法**：按平台自适应，或用 fontconfig 字体族回退链（如 `Noto Sans CJK SC, Source Han Sans SC, Microsoft YaHei, sans-serif`）。
+
+---
+
+### 📐 图表改造决策（已定）
+
+> **决定**：先用 **方案 A** 让图「能看」，后续按 **方案 B** 完整实现。
+> 记录日期：2026-09-20
+
+#### 方案 A（先做）—— 低代价、收益明显
+
+| 改动 | 对应 Bug |
+|---|---|
+| `generateNode` 按 `node.layer` 从色板取不同颜色（5 层 5 色） | Bug 17 |
+| 字体族改为平台自适应 / fontconfig 回退链 | Bug 18 |
+| 修 `init` 复制路径，让知识库真正进入项目 | Bug 14 |
+| 把 `architecture-style.md` 的层级色表接进 `style.ts` 色板 | Bug 13 |
+| 导出前做 pandoc 依赖预检 | Bug 16 |
+
+**预期效果**：从「一片橙」变成「分层清晰」。**不改布局算法**。
+
+#### 方案 B（后续）—— 按知识库规范完整实现
+
+- 模块内展示子项细节（信息密度）
+- 横切关注点用右侧/两侧竖条
+- 按 `layout.md` 实现多种布局模式
+- 把知识库作为生成器的**一等输入**（而非硬编码样式）
+
+**注意**：方案 A 不应阻碍方案 B——建议 A 的改动把「层级→颜色」映射做成可配置数据，B 阶段直接替换数据源即可。
+
+---
+
 ### 🔵 P3：非系统性问题（偶发，已记录）
 
 | 现象 | 频次 | 说明 |
@@ -440,7 +553,12 @@ src/diagrams/path-adjuster.ts:34  export function adjustImagePaths(...)
 | **P1** | 8（退避死代码） | 配额问题无法自愈 |
 | **P2** | 12 + 15（图表未插入） | 产出缺 29 张图 |
 | **P2** | 13 + 14（知识库未加载） | 图表质量受损 |
+| **P2** | 12 + 15（图表未插入） | 产出缺 29 张图 |
+| **P2** | **17（无分层配色）** | 图表质量差的主因，方案 A |
+| **P2** | 13 + 14（知识库未加载） | 图表质量受损，方案 A |
+| **P2** | **18（字体硬编码）** | Linux 上中文字体失效，方案 A |
 | **P2** | 7（审阅报告覆盖） | 无法对比修复效果 |
+| **P2** | 16（依赖预检死代码） | 导出失败无提示 |
 | **P3** | 11（统计命名） | 仅影响可读性 |
 
 **建议分三条分支修**，保持单一变量便于归因：
@@ -448,6 +566,7 @@ src/diagrams/path-adjuster.ts:34  export function adjustImagePaths(...)
 1. `fix/pipeline-blockers` — Bug 9、10、1、2（流程能否走完）
 2. `fix/review-convergence` — Bug 3、4、5、6（能否收敛）
 3. `fix/diagram-injection` — Bug 12、13、14、15（图表能否进文档）
+4. `fix/diagram-quality-a` — Bug 17、18 + 知识库接入（方案 A，按上方决策先做）
 
 ---
 
