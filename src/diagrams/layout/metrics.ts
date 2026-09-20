@@ -25,7 +25,18 @@
 export const TARGET_WIDTH = 680;
 
 /** 高宽比上限（超过就会在 Word 里跨页） */
+/**
+ * 高宽比上限 —— **仅用于信息提示，不再作为压缩或判定依据**
+ *
+ * 曾经用它近似「会不会跨页」。但它对**窄图**过严：提示词里的四层
+ * 架构示例是 236x367，高宽比 1.56 会报警，可它轻松放得下一页。
+ * 「≤1 页」的真实约束就是页面框本身（下面两个常量），代码库的校验器
+ * （validator.ts 的 WORD_LIMITS）用的也是这两个数，这里与之对齐。
+ */
 export const MAX_ASPECT_RATIO = 1.5;
+
+/** 画布高上限（Word A4 可用高度，与 validator.ts 的 WORD_LIMITS 一致） */
+export const MAX_HEIGHT = 900;
 
 /** 字号占画布宽的最小比例（低于此值在 Word 里小于 8pt） */
 export const MIN_FONT_RATIO = 0.019;
@@ -245,14 +256,19 @@ export function solveCanvas(input: SolveInput): CanvasSize {
     };
   };
 
-  const overRatio = (): boolean => {
-    const { width, height } = measure();
-    return width > 0 && height / width > MAX_ASPECT_RATIO;
-  };
+  const overPage = (): boolean => {
+      const { width, height } = measure();
+      // 判据是**真实约束**（宽 <=TARGET_WIDTH、高 <=MAX_HEIGHT），不是高宽比。
+      // 高宽比对窄图会误报：236x367 高宽比 1.56，却完全放得下一页。
+      // 压缩触发：超页面框 **或** 高宽比偏大（后者让图更紧凑，是好事）
+      return (
+        width > TARGET_WIDTH || height > MAX_HEIGHT || (width > 0 && height / width > MAX_ASPECT_RATIO)
+      );
+    };
 
   // ① 压边距
   const margin0 = metrics.margin;
-  while (overRatio() && metrics.margin > MIN_MARGIN) {
+  while (overPage() && metrics.margin > MIN_MARGIN) {
     metrics.margin = Math.max(MIN_MARGIN, metrics.margin - 4);
   }
   if (metrics.margin < margin0) {
@@ -262,7 +278,7 @@ export function solveCanvas(input: SolveInput): CanvasSize {
   // ② 压层间距（不得低于容器布局所需的下限）
   const gapFloor = Math.max(MIN_LAYER_GAP, input.minLayerGap ?? 0);
   const gap0 = metrics.layerGap;
-  while (overRatio() && metrics.layerGap > gapFloor) {
+  while (overPage() && metrics.layerGap > gapFloor) {
     metrics.layerGap = Math.max(gapFloor, metrics.layerGap - 4);
   }
   if (metrics.layerGap < gap0) {
@@ -271,7 +287,7 @@ export function solveCanvas(input: SolveInput): CanvasSize {
 
   // ③ 压字号（受可读性下限保护）
   const font0 = metrics.fontSize;
-  while (overRatio() && metrics.fontSize > MIN_FONT_SIZE) {
+  while (overPage() && metrics.fontSize > MIN_FONT_SIZE) {
     const next = metrics.fontSize - 0.5;
     const { width } = measure();
     if (width > 0 && next / width < MIN_FONT_RATIO) break; // 再压就不可读了
@@ -292,11 +308,18 @@ export function solveCanvas(input: SolveInput): CanvasSize {
   }
 
   // ④ 压到极限仍超一页 —— 如实记录，交给校验器判定阻塞
-  if (width > 0 && height / width > MAX_ASPECT_RATIO) {
-    adjustments.push(
-      `⚠️ 压到极限仍超一页（高宽比 ${(height / width).toFixed(2)} > ${MAX_ASPECT_RATIO}），需要折行分栏`,
-    );
-  }
+  if (width > TARGET_WIDTH || height > MAX_HEIGHT) {
+      adjustments.push(
+        `⚠️ 压到极限仍超一页（${Math.round(width)}x${Math.round(height)} 超出 ` +
+          `${TARGET_WIDTH}x${MAX_HEIGHT}），需要折行分栏`,
+      );
+    } else if (width > 0 && height / width > MAX_ASPECT_RATIO) {
+      // 只是提示：窄图高宽比天然偏大，但仍在页面框内
+      adjustments.push(
+        `高宽比 ${(height / width).toFixed(2)}（窄图偏大属正常，` +
+          `${Math.round(width)}x${Math.round(height)} 未超页面框）`,
+      );
+    }
 
   return { width: Math.round(width), height: Math.round(height), metrics, adjustments };
 }

@@ -1,3 +1,5 @@
+import { dedent } from '../utils/dedent.js';
+
 /**
  * Diagram Extractor
  * 
@@ -90,7 +92,10 @@ export function extractDiagrams(content: string, chapterId: string): DiagramBloc
   DIAGRAM_BLOCK_RE.lastIndex = 0;
   let match;
   while ((match = DIAGRAM_BLOCK_RE.exec(content)) !== null) {
-    const rawContent = match[1].trim();
+    // 去公共缩进：写手常把 diagram 块缩进书写，而下面所有字段解析都是
+    // **行首敏感**的（`!/^\s/` 判顶层键）。实测缩进后解析出 0 个节点、
+    // description 也为空 —— 这一章凭空少一张图，且悄无声息。
+    const rawContent = dedent(match[1].trim());
     const parsed = parseDiagramBlock(rawContent);
 
     hits.push({

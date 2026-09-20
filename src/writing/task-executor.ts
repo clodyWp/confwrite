@@ -129,16 +129,46 @@ ${kitContent}
 
 涉及流程、架构、关系、状态时，使用图表描述标记。
 
-**图表格式**（必须使用 diagram-start 标记）：
+**图表格式**（必须使用 diagram-start 标记，内部是 containers / nodes / edges 三段）：
 
 \`\`\`
 <!-- diagram-start
 type: <architecture|flow|concept|relation|timeline|diagram>
 title: <图表标题>
 description: |
-  <详细描述元素清单和关系>
+  <一段话说明这张图要表达什么；给审阅者看，不会画进图里>
+containers:
+  - id: <英文id>
+    label: <分组名，≤8 字>
+    nodes: [<节点id>, <节点id>]
+nodes:
+  - id: <英文id>
+    label: <节点文字，≤12 字，需要编号就写 ①②③>
+    container: <所属容器的 id>
+    high_weight: true        # 仅当它是全图最关键的 ≤3 个节点之一时才写
+    owner: <责任人>          # 不画进图，仅供正文引用
+    timing: <时限>           # 同上
+    detail: <详细说明>       # 同上
+edges:
+  - from: <节点id>
+    to: <节点id>
+    label: <箭头上的短标签，≤10 字，可省略>
+    direction: forward       # forward | backward | bidirectional
+    style: solid             # solid | dashed | dotted
 diagram-end -->
 \`\`\`
+
+**布局铁律**（违反会被校验打回，必须逐条遵守）：
+
+1. **一张图装下全部内容**。不要写「详见下一张图」，也不要把一个流程拆成几张。
+   引擎会把图压缩到 ≤1 页：宽度 ≤680px、高宽比 ≤1.5。
+2. **containers 按流程顺序列**（顺序就是层的先后），每组 ≤4 个节点，组数 ≤5。
+3. **节点标签 ≤12 字**。长说明放正文，不要塞进节点。
+4. **high_weight 全图最多 3 个**。
+5. **横平竖直**：不要用 ASCII 画线，也不要描述箭头走向 —— 连线由引擎按正交折线自动生成。
+6. **节点总数 ≤24**，连线总数 ≤28。
+
+**严禁使用 mermaid 代码块**（代码块形式的图不会被渲染，等于这一章少了图）。
 
 **图表类型**：
 - **architecture**: 系统架构、模块划分、分层结构
@@ -149,8 +179,6 @@ diagram-end -->
 - **diagram**: 其他类型图表
 
 **限制**：每章最多 3 个图表标记。
-
-**严禁使用 mermaid 代码块。**
 
 **图表前后必须有文字说明**，格式：
 
@@ -168,13 +196,64 @@ diagram-end -->
     type: architecture
     title: 系统整体架构
     description: |
-      三层架构：
-      - 客户端层：Web 浏览器、移动端 App
-      - 服务层：API Gateway、用户服务、订单服务
-      - 数据层：MySQL 主从、Redis 集群
-      连接关系：
-      - 客户端 → API Gateway（HTTP/HTTPS）
-      - API Gateway → 各微服务（gRPC）
+      系统分为客户端、网关、服务、数据四层，各层职责单一、通过标准接口通信。
+    containers:
+      - id: client
+        label: 客户端
+        nodes: [web, app]
+      - id: gateway
+        label: 网关层
+        nodes: [gw]
+      - id: service
+        label: 服务层
+        nodes: [user_svc, order_svc]
+      - id: data
+        label: 数据层
+        nodes: [mysql, redis]
+    nodes:
+      - id: web
+        label: Web 浏览器
+        container: client
+      - id: app
+        label: 移动端 App
+        container: client
+      - id: gw
+        label: API 网关
+        container: gateway
+        high_weight: true
+        owner: 平台组
+        timing: P99 < 50ms
+      - id: user_svc
+        label: 用户服务
+        container: service
+      - id: order_svc
+        label: 订单服务
+        container: service
+      - id: mysql
+        label: MySQL 主从
+        container: data
+      - id: redis
+        label: Redis 集群
+        container: data
+    edges:
+      - from: web
+        to: gw
+        label: HTTPS
+      - from: app
+        to: gw
+        label: HTTPS
+      - from: gw
+        to: user_svc
+        label: gRPC
+      - from: gw
+        to: order_svc
+        label: gRPC
+      - from: user_svc
+        to: mysql
+        style: dashed
+      - from: order_svc
+        to: redis
+        style: dashed
     diagram-end -->
 
     从架构图可以看出，API 网关承担了路由、鉴权、限流等职责，有效隔离了客户端与后端服务的直接耦合。这种设计使得服务可以独立部署和扩展...（这里是对架构图的总结，提炼关键要点和设计优势，≥300字）

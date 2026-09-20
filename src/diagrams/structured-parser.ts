@@ -1,3 +1,4 @@
+
 /**
  * 结构化图表格式解析（containers / nodes / edges）
  *
@@ -161,8 +162,37 @@ interface RawItem {
  *
  * 必须是**顶格**的段标题 —— 散文 description 里提到 `nodes:` 不算。
  */
+/**
+ * 按 **section 键的相对缩进** 归一化
+ *
+ * 不能用"整块去公共缩进"：提取出来的块以 `<!-- diagram-start` 开头，
+ * 那一行没有前导空格，于是公共缩进算出来是 0，内部仍然缩进 ——
+ * 实测 hasStructuredFormat 为 true 但解析出 0 个节点。
+ *
+ * 这里改用 containers/nodes/edges 三个键自己缩进量的**最小值**作基线，
+ * 三种情形都能覆盖：块整体缩进、只有内部缩进、完全没缩进。
+ */
+function normalizeSections(raw: string): string {
+  const lines = raw.split('\n');
+  let base = Number.POSITIVE_INFINITY;
+
+  for (const line of lines) {
+    const m = /^([ \t]*)(containers|nodes|edges):[ \t]*$/.exec(line);
+    if (m) base = Math.min(base, m[1].length);
+  }
+
+  if (!Number.isFinite(base) || base === 0) return raw;
+
+  return lines
+    .map(line => {
+      const lead = /^[ \t]*/.exec(line)![0].length;
+      return line.trim() === '' ? line : line.slice(Math.min(base, lead));
+    })
+    .join('\n');
+}
+
 export function hasStructuredFormat(rawContent: string): boolean {
-  return /^(containers|nodes|edges):\s*$/m.test(rawContent);
+  return /^[ \t]*(containers|nodes|edges):[ \t]*$/m.test(normalizeSections(rawContent));
 }
 
 /** 去掉包裹的引号 */
@@ -306,7 +336,7 @@ function normalizeStyle(value: string | undefined): SpecEdge['style'] {
  * 没有结构化段时返回空结构（调用方应据此回退到散文解析器）。
  */
 export function parseStructuredDiagram(rawContent: string): DiagramSpec {
-  const raw = collectItems(rawContent);
+  const raw = collectItems(normalizeSections(rawContent));
 
   // ---- 节点 ----
   const nodes: SpecNode[] = [];

@@ -21,6 +21,7 @@ import {
   wrapLabel,
   TARGET_WIDTH,
   MAX_ASPECT_RATIO,
+  MAX_HEIGHT,
   MIN_FONT_RATIO,
   type LayoutMetrics,
 } from './metrics.js';
@@ -410,8 +411,8 @@ export function layoutDiagram(spec: DiagramSpec, style: DiagramStyle, title?: st
   );
   const height = Math.round(metrics.margin * 2 + titleHeight + contentHeight);
 
-  if (width > 0 && height / width > MAX_ASPECT_RATIO) {
-    warnings.push(`高宽比 ${(height / width).toFixed(2)} 超上限 ${MAX_ASPECT_RATIO}`);
+  if (width > TARGET_WIDTH || height > MAX_HEIGHT) {
+    warnings.push(`画布 ${Math.round(width)}x${Math.round(height)} 超出页面框 ${TARGET_WIDTH}x${MAX_HEIGHT}`);
   }
   if (width > 0 && metrics.fontSize / width < MIN_FONT_RATIO) {
     warnings.push(`字号占宽比 ${((metrics.fontSize / width) * 100).toFixed(2)}% 低于可读线`);
