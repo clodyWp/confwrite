@@ -58,6 +58,18 @@ export interface RouteOptions {
   labelFontSize?: number;
 }
 
+/**
+ * 线段与节点边框之间必须保持的安全间距
+ *
+ * 只判断"线段是否进入节点内部"是不够的：一条距边框 2px 的横线在几何上
+ * 算"通畅"，但视觉上就是**贴在边框上**（用户反馈"黏附在图形边上"）。
+ * 实测 20 张图里有 64 处这样的共线。
+ */
+const SEGMENT_CLEARANCE = 4;
+
+/** 端点附近允许贴合自身节点，这个豁免范围要大于安全间距 */
+const ENDPOINT_TOLERANCE = SEGMENT_CLEARANCE + 2;
+
 /** 连线标签的宽度上限（超了就截断，避免长标签压住节点） */
 const LABEL_MAX_WIDTH = 140;
 
@@ -106,14 +118,20 @@ function routeIsClear(points: Point[], boxes: Box[], ignore: Box[]): boolean {
       const px = a.x + (b.x - a.x) * (s / steps);
       const py = a.y + (b.y - a.y) * (s / steps);
 
-      // 端点必须贴在自身框的边上，所以只允许**端部 3px 内**接触 from/to
+      // 端点必须贴在自身框的边上，所以只允许**端部一小段**接触 from/to
       const nearEndpoint =
-        Math.hypot(px - first.x, py - first.y) <= 3 ||
-        Math.hypot(px - last.x, py - last.y) <= 3;
+        Math.hypot(px - first.x, py - first.y) <= ENDPOINT_TOLERANCE ||
+        Math.hypot(px - last.x, py - last.y) <= ENDPOINT_TOLERANCE;
 
       for (const box of boxes) {
         if (nearEndpoint && ignore.includes(box)) continue;
-        if (px > box.x + 1 && px < box.x + box.w - 1 && py > box.y + 1 && py < box.y + box.h - 1) {
+        // 按 SEGMENT_CLEARANCE 外扩：贴着边框走也算不合格
+        if (
+          px > box.x - SEGMENT_CLEARANCE &&
+          px < box.x + box.w + SEGMENT_CLEARANCE &&
+          py > box.y - SEGMENT_CLEARANCE &&
+          py < box.y + box.h + SEGMENT_CLEARANCE
+        ) {
           return false;
         }
       }
@@ -153,13 +171,16 @@ function freeBandColumns(
   const out: number[] = [];
 
   for (let x = bounds.left + 4; x <= bounds.right - 4; x += 6) {
+    // 这里的判据必须与实际的通畅校验（routeIsClear）用同一个安全间距，
+    // 否则会返回一批"看起来空闲、实际贴着边框"的通道，
+    // 随后被 routeIsClear 否决 → 候选耗尽 → 只能退回兜底路线
     const blocked = boxes.some(
       b =>
         !ignore.includes(b) &&
         x > b.x - clearance &&
         x < b.x + b.w + clearance &&
-        hi > b.y + 2 &&
-        lo < b.y + b.h - 2,
+        hi > b.y - SEGMENT_CLEARANCE &&
+        lo < b.y + b.h + SEGMENT_CLEARANCE,
     );
     if (!blocked) out.push(x);
   }
@@ -209,6 +230,32 @@ function freeColumns(boxes: Box[], bounds: { left: number; right: number }, igno
   return out;
 }
 
+/** 折线穿过了几个节点框（用于在无解时挑"最优的坏路线"） */
+function countHits(points: Point[], boxes: Box[], ignore: Box[]): number {
+  let hits = 0;
+  for (const box of boxes) {
+    if (ignore.includes(box)) continue;
+    for (let i = 1; i < points.length; i++) {
+      const a = points[i - 1];
+      const b = points[i];
+      const steps = Math.max(2, Math.ceil((Math.abs(b.x - a.x) + Math.abs(b.y - a.y)) / 4));
+      let hit = false;
+      for (let k = 0; k <= steps && !hit; k++) {
+        const px = a.x + (b.x - a.x) * (k / steps);
+        const py = a.y + (b.y - a.y) * (k / steps);
+        if (px > box.x + 1 && px < box.x + box.w - 1 && py > box.y + 1 && py < box.y + box.h - 1) {
+          hit = true;
+        }
+      }
+      if (hit) {
+        hits++;
+        break;
+      }
+    }
+  }
+  return hits;
+}
+
 /** 单段是否不穿过任何节点框 */
 function segClear(a: Point, b: Point, boxes: Box[], ignore: Box[], clearance: number): boolean {
   const length = Math.abs(b.x - a.x) + Math.abs(b.y - a.y);
@@ -218,11 +265,12 @@ function segClear(a: Point, b: Point, boxes: Box[], ignore: Box[], clearance: nu
     const py = a.y + (b.y - a.y) * (s / steps);
     for (const box of boxes) {
       if (ignore.includes(box)) continue;
+      // 外扩 SEGMENT_CLEARANCE：贴着别的节点边框走同样算不合格
       if (
-        px > box.x + clearance - 1 &&
-        px < box.x + box.w - clearance + 1 &&
-        py > box.y + clearance - 1 &&
-        py < box.y + box.h - clearance + 1
+        px > box.x - SEGMENT_CLEARANCE &&
+        px < box.x + box.w + SEGMENT_CLEARANCE &&
+        py > box.y - SEGMENT_CLEARANCE &&
+        py < box.y + box.h + SEGMENT_CLEARANCE
       ) {
         return false;
       }
@@ -311,13 +359,7 @@ function staircaseRoute(
     points.push({ x: toTop.x, y: toTop.y });
   }
 
-  const deduped: Point[] = [];
-  for (const pt of points) {
-    const last = deduped[deduped.length - 1];
-    if (!last || Math.abs(last.x - pt.x) > 0.5 || Math.abs(last.y - pt.y) > 0.5) {
-      deduped.push(pt);
-    }
-  }
+  const deduped = dedupePoints(points);
   return deduped.length >= 2 ? deduped : null;
 }
 
@@ -382,6 +424,27 @@ function polylineLength(points: Point[]): number {
 
 type Side = 'top' | 'right' | 'bottom' | 'left';
 
+/** 各条边的外法向 */
+const SIDE_NORMAL: Record<Side, Point> = {
+  top: { x: 0, y: -1 },
+  bottom: { x: 0, y: 1 },
+  left: { x: -1, y: 0 },
+  right: { x: 1, y: 0 },
+};
+
+/** 进出口的短桩长度：保证首末段垂直于所在边，不会沿着边框跑 */
+const STUB = 12;
+
+/** 去掉相邻重复点 */
+function dedupePoints(points: Point[]): Point[] {
+  const out: Point[] = [];
+  for (const pt of points) {
+    const last = out[out.length - 1];
+    if (!last || Math.abs(last.x - pt.x) > 0.5 || Math.abs(last.y - pt.y) > 0.5) out.push(pt);
+  }
+  return out;
+}
+
 /** 矩形某条边的中点 —— 连线的进出口 */
 function anchorOn(box: Box, side: Side): Point {
   switch (side) {
@@ -405,27 +468,30 @@ function buildRoute(
   channelX?: number,
   channelY?: number,
 ): Point[] {
-  const aVertical = aSide === 'top' || aSide === 'bottom';
-  const bVertical = bSide === 'top' || bSide === 'bottom';
+  // 进出口各向外伸一小段（法向短桩），这样首末段一定**垂直于**所在边。
+  //
+  // 之前的做法是让线直接连到锚点，混合情形（水平出、竖直入之类）会让线
+  // **沿着边框水平切入目标顶边** —— 既贴着那一行的边框走，又必然穿过同行的
+  // 其它节点。这正是"连线穿节点"和"黏在图形边上"两个问题的共同来源。
+  const na = SIDE_NORMAL[aSide];
+  const nb = SIDE_NORMAL[bSide];
+  const a1 = { x: a.x + na.x * STUB, y: a.y + na.y * STUB };
+  const b1 = { x: b.x + nb.x * STUB, y: b.y + nb.y * STUB };
 
-  if (aVertical && bVertical) {
-    const y = channelY ?? (a.y + b.y) / 2;
-    return [a, { x: a.x, y }, { x: b.x, y }, b];
-  }
-  if (!aVertical && !bVertical) {
-    const x = channelX ?? (a.x + b.x) / 2;
-    return [a, { x, y: a.y }, { x, y: b.y }, b];
-  }
-  if (aVertical) {
-    if (channelY !== undefined && Math.abs(channelY - a.y) > 1) {
-      return [a, { x: a.x, y: channelY }, { x: b.x, y: channelY }, b];
+  const middle: Point[] = [];
+
+  if (Math.abs(a1.x - b1.x) > 0.5 && Math.abs(a1.y - b1.y) > 0.5) {
+    if (channelX !== undefined) {
+      middle.push({ x: channelX, y: a1.y }, { x: channelX, y: b1.y });
+    } else if (channelY !== undefined) {
+      middle.push({ x: a1.x, y: channelY }, { x: b1.x, y: channelY });
+    } else {
+      // L 型：先横后竖
+      middle.push({ x: b1.x, y: a1.y });
     }
-    return [a, { x: a.x, y: b.y }, b];
   }
-  if (channelX !== undefined && Math.abs(channelX - a.x) > 1) {
-    return [a, { x: channelX, y: a.y }, { x: channelX, y: b.y }, b];
-  }
-  return [a, { x: b.x, y: a.y }, b];
+
+  return dedupePoints([a, a1, ...middle, b1, b]);
 }
 
 /** 可能的通道位置（含画布左右外沿的兜底） */
@@ -623,7 +689,12 @@ export function routeEdges(
     );
     if (stair) return stair;
 
-    return candidates[0];
+    // 实在找不到通畅路线：挑"穿过节点最少"的那条，而不是随便取第一个
+    if (candidates.length === 0) return [];
+    const scored = candidates
+      .map(p => ({ p, bad: countHits(p, allBoxes, [from, to]) }))
+      .sort((x, y) => x.bad - y.bad);
+    return scored[0].p;
   };
 
   for (const edge of edges) {

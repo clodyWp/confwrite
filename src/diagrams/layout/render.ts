@@ -106,11 +106,23 @@ export function renderSvg(input: RenderInput): string {
       `width="${input.width}" height="${input.height}">`,
   );
 
+  // 箭头尺寸必须用 userSpaceOnUse 固定住。
+  //
+  // 默认 markerUnits="strokeWidth" 会让箭头按线宽缩放：
+  // markerWidth=10 × stroke-width=1.5 实际是 15px 长，而不少连线只有
+  // 20~30px —— 整条线几乎被箭头吃掉，箭头与线段、节点的关系就乱了。
+  // 这里固定成 7x6 的实心三角，箭头尖端正好落在端点（refX=7）。
+  const arrow = 7;
+  const arrowHalf = 3;
   parts.push(
-    `<defs><marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">` +
-      `<polygon points="0 0, 10 3.5, 0 7" fill="${lineColor}"/></marker>` +
-      `<marker id="arrowhead-start" markerWidth="10" markerHeight="7" refX="0" refY="3.5" orient="auto">` +
-      `<polygon points="10 0, 0 3.5, 10 7" fill="${lineColor}"/></marker></defs>`,
+    `<defs>` +
+      `<marker id="arrowhead" markerUnits="userSpaceOnUse" markerWidth="${arrow}" ` +
+      `markerHeight="${arrowHalf * 2}" refX="${arrow}" refY="${arrowHalf}" orient="auto">` +
+      `<polygon points="0 0, ${arrow} ${arrowHalf}, 0 ${arrowHalf * 2}" fill="${lineColor}"/></marker>` +
+      `<marker id="arrowhead-start" markerUnits="userSpaceOnUse" markerWidth="${arrow}" ` +
+      `markerHeight="${arrowHalf * 2}" refX="0" refY="${arrowHalf}" orient="auto">` +
+      `<polygon points="${arrow} 0, 0 ${arrowHalf}, ${arrow} ${arrowHalf * 2}" fill="${lineColor}"/></marker>` +
+      `</defs>`,
   );
 
   parts.push(`<rect width="100%" height="100%" fill="#ffffff"/>`);

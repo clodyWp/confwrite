@@ -106,7 +106,38 @@ function auditLayout(r: LayoutResult): string[] {
     }
   }
 
-  // ④ 连线标签不出画布、不压节点、不互相重叠
+  // ④ 线段不得与节点边框共线（“黏在图形边上”，用户实际反馈过）
+  //    只判“是否进入节点内部”是不够的：距边框 2px 的线在几何上算通畅，
+  //    视觉上却贴在边框上。修前 20 张图里有 64 处。
+  for (const edge of r.edges) {
+    for (let i = 1; i < edge.points.length; i++) {
+      const a = edge.points[i - 1];
+      const b = edge.points[i];
+      const horizontal = Math.abs(b.y - a.y) < 0.5 && Math.abs(b.x - a.x) > 2;
+      const vertical = Math.abs(b.x - a.x) < 0.5 && Math.abs(b.y - a.y) > 2;
+      if (!horizontal && !vertical) continue;
+
+      for (const box of nodes) {
+        if (horizontal) {
+          const lo = Math.min(a.x, b.x);
+          const hi = Math.max(a.x, b.x);
+          if (hi <= box.x + 1 || lo >= box.x + box.w - 1) continue;
+          if (Math.abs(a.y - box.y) < 2 || Math.abs(a.y - (box.y + box.h)) < 2) {
+            problems.push(`线段贴着节点边框 ${edge.from}->${edge.to} (y=${a.y})`);
+          }
+        } else {
+          const lo = Math.min(a.y, b.y);
+          const hi = Math.max(a.y, b.y);
+          if (hi <= box.y + 1 || lo >= box.y + box.h - 1) continue;
+          if (Math.abs(a.x - box.x) < 2 || Math.abs(a.x - (box.x + box.w)) < 2) {
+            problems.push(`线段贴着节点边框 ${edge.from}->${edge.to} (x=${a.x})`);
+          }
+        }
+      }
+    }
+  }
+
+  // ⑤ 连线标签不出画布、不压节点、不互相重叠
   const labelBoxes: Array<{ box: Box; text: string }> = [];
   for (const edge of r.edges) {
     if (!edge.label || !edge.labelAt) continue;
@@ -390,9 +421,11 @@ edges:
         }
       }
 
-      // 起点朝向：208 条边里最多允许 2 条为"通畅优先"让步
-      if (saneViolations > 2) {
-        failures.push(`起点朝向：${saneViolations}/${edgeTotal} 条背向目标（上限 2）`);
+      // 起点朝向：允许极少数为“不穿节点 + 不贴边框”让步。
+      // 实测 208 条里 3 条会先反向走 12px 再绕 —— 这比穿过节点或贴着
+      // 边框走要好，所以阈值放到 4 并留一条余量。
+      if (saneViolations > 4) {
+        failures.push(`起点朝向：${saneViolations}/${edgeTotal} 条背向目标（上限 4）`);
       }
       expect(failures, `\n${failures.join('\n')}`).toEqual([]);
     });
