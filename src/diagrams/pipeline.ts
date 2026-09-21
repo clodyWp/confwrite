@@ -202,6 +202,14 @@ export class DiagramPipeline {
         // 最高 727px、高宽比全部 ≤1.5、字号全部可读。
         const layout = layoutDiagram(spec, this.style, block.title);
         const svgResult = { svg: layout.svg, width: layout.width, height: layout.height };
+        
+        // 传播布局引擎的告警 ✓
+        if (layout.warnings.length > 0) {
+          result.warnings.push({
+            diagramId,
+            warnings: layout.warnings,
+          });
+        }
         const svgPath = join(figuresDir, `${diagramId}.svg`);
         writeFileSync(svgPath, svgResult.svg, 'utf-8');
 
