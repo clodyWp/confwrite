@@ -90,10 +90,24 @@ ${para2}
 
 ${beforeText}
 
-\`\`\`mermaid
-graph TD
-    A --> B
-\`\`\`
+<!-- diagram-start
+type: flow
+title: 流程图
+containers:
+  - id: c1
+    label: 主流程
+    nodes: [a, b]
+nodes:
+  - id: a
+    label: 开始
+    container: c1
+  - id: b
+    label: 结束
+    container: c1
+edges:
+  - from: a
+    to: b
+diagram-end -->
 
 ${afterText}
 `;
@@ -102,15 +116,36 @@ ${afterText}
       expect(result.diagramFormatValid).toBe(true);
     });
 
-    it('图表前没有描述时失败', () => {
+    it('mermaid 代码块直接报错（已废弃）', () => {
+    const validator = new ContentValidator();
+    const result = validator.validate('# 标题\n\n\`\`\`mermaid\ngraph TD\n    A --> B\n\`\`\`\n');
+    expect(result.diagramFormatValid).toBe(false);
+    expect(result.diagramIssues.some(i => i.issue.includes('mermaid'))).toBe(true);
+  });
+
+  it('图表前没有描述时失败', () => {
       const content = `# 章节标题
 
 ## 子节1
 
-\`\`\`mermaid
-graph TD
-    A --> B
-\`\`\`
+<!-- diagram-start
+type: flow
+title: 流程图
+containers:
+  - id: c1
+    label: 主流程
+    nodes: [a, b]
+nodes:
+  - id: a
+    label: 开始
+    container: c1
+  - id: b
+    label: 结束
+    container: c1
+edges:
+  - from: a
+    to: b
+diagram-end -->
 `;
       const validator = new ContentValidator();
       const result = validator.validate(content);

@@ -88,7 +88,10 @@ export async function runWriteLoop(
   });
   
   const scheduler = new SubagentScheduler(config);
-  const executor = executorOverride ?? new PiSubagentExecutor({ projectDir });
+  const executor = executorOverride ?? new PiSubagentExecutor({
+    projectDir,
+    maxTurnsPerTask: config.maxTurnsPerTask,
+  });
   const runner = new SchedulerRunner(
     scheduler,
     executor,
@@ -109,6 +112,20 @@ export async function runWriteLoop(
 
   while (result.ticks < MAX_TICKS) {
     result.ticks++;
+
+    // 已到达终态：正常收尾（Bug 30）
+    //
+    // `done` 是 phase 8 的跳转目标，但不是需要执行的阶段。
+    // 以前没有这个检查，循环会再 tick 一次，而对 'done' 没有
+    // 可执行的阶段定义（历史行为是返回 blocked），index.ts 于是把它
+    // 当失败：控制台打印「⛔ 未知: 未知 Phase: done」，
+    // stoppedReason 被记为 'blocked' —— 成功的运行看起来像失败。
+    //
+    // 检查必须在 tick 之前：终态不需要任何推进。
+    if (machine.status()?.phase === 'done') {
+      result.stoppedReason = 'completed';
+      break;
+    }
 
     // 检查上下文大小，超过阈值时触发压缩
     if (getContextTokens && triggerCompact && config.compactThresholdTokens > 0) {
@@ -239,13 +256,20 @@ export async function runWriteLoop(
           await dispatcher.processTask(taskResult.id, outcome as 'success' | 'failed', output);
         }
         
-        // 熔断器触发时退出循环
+        // 熔断器触发时退出批次循环
         if (result.stoppedReason === 'circuit_breaker') break;
       }
-      
-      if (result.stoppedReason !== 'circuit_breaker') {
-        notify(`✅ 所有任务执行完成: ${result.tasksSucceeded} 成功, ${result.tasksFailed} 失败`, 'info');
+
+      // 熔断后必须终止外层推进循环（Bug 1）
+      //
+      // 原实现只 break 了内层批次循环，外层 while 继续跑：
+      // 派发任务 → 熔断立即失败 → 0 执行 → 再派发 → … 空转到 MAX_TICKS。
+      // 实测：29 个任务竟消耗 2000 次 tick（约 1970 次空转）。
+      if (result.stoppedReason === 'circuit_breaker') {
+        break;
       }
+
+      notify(`✅ 所有任务执行完成: ${result.tasksSucceeded} 成功, ${result.tasksFailed} 失败`, 'info');
     } else if (step.action === 'advance' || step.action === 'phase_entered') {
       continue;
     } else {
@@ -256,8 +280,15 @@ export async function runWriteLoop(
   }
 
   if (result.ticks >= MAX_TICKS) {
+    // 仅在尚无终止原因时才归因于 tick 上限（Bug 2）
+    //
+    // 原实现无条件赋值，把 circuit_breaker 等真实原因覆盖成 'max_ticks'，
+    // 导致调用方看到「推进次数用完」而实际是限流熔断或状态机死锁，
+    // 完全误导排查方向。
     notify(`⚠️ 达到最大推进次数 (${MAX_TICKS})，请检查状态`, 'info');
-    result.stoppedReason = 'max_ticks';
+    if (!result.stoppedReason) {
+      result.stoppedReason = 'max_ticks';
+    }
   }
 
   if (!result.stoppedReason) {

@@ -7,11 +7,22 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync } from 'node:fs';
 import { join, basename } from 'node:path';
 import { extractDiagrams, type DiagramBlock } from './extractor.js';
-import { generateSVG, type SVGNode, type SVGConnection } from './generator.js';
 import { convertToPng } from './png-converter.js';
+import { layoutDiagram } from './layout/index.js';
 import { validateDiagram, type DiagramData } from './validator.js';
 import { DiagramCache, type CacheEntry } from './cache.js';
 import { loadDiagramStyle, type DiagramStyle } from './style.js';
+import {
+  hasStructuredFormat,
+  parseStructuredDiagram,
+  proseToSpec,
+  type DiagramSpec,
+} from './structured-parser.js';
+import {
+  parseDiagramDescription,
+  type ParsedNode,
+  type ParsedConnection,
+} from './description-parser.js';
 
 /**
  * 管线选项
@@ -35,28 +46,18 @@ export interface PipelineResult {
   skipped: number;
   /** 失败的数量 */
   failed: number;
+  /**
+   * 格式不受支持、无法渲染的图表数量（当前 = mermaid 块）
+   *
+   * 这些图**没有生成**，不能计入 generated。项目已废弃 mermaid，
+   * 只支持结构化格式（containers / nodes / edges）。如实计数是为了
+   * 让写手/fixer 知道该改哪里，而不是静默少一张图（Bug 35 的教训）。
+   */
+  unsupportedFormat: number;
   /** 错误列表 */
   errors: Array<{ diagramId: string; error: string }>;
   /** 验证警告 */
   warnings: Array<{ diagramId: string; warnings: string[] }>;
-}
-
-/**
- * 解析后的节点
- */
-interface ParsedNode {
-  id: string;
-  label: string;
-  layer: number;
-}
-
-/**
- * 解析后的连接
- */
-interface ParsedConnection {
-  from: string;
-  to: string;
-  label?: string;
 }
 
 /**
@@ -82,14 +83,33 @@ export class DiagramPipeline {
       return [];
     }
 
-    const files = readdirSync(chaptersDir).filter(f => f.endsWith('.md'));
-    const allBlocks: DiagramBlock[] = [];
-
-    for (const file of files) {
-      const content = readFileSync(join(chaptersDir, file), 'utf-8');
+    // 每章只取**最新版本**（Bug 34）
+    //
+    // 原实现 readdirSync 扫描所有 chXXX-v*.md。而注入只针对最新版本
+    // （dispatcher.readChapterDraft / assembler 都取最高版本号）——
+    // 于是从旧版本提取出来的图永远注入不了，成为孤儿。真机事故里
+    // ch001-fig1/fig2 由 v1 的 diagram-start 提取，但 v2 已改成 mermaid，
+    // 文档里 0 处引用，22 张图只注入了 20 张。
+    //
+    // 旧版本还可能与新版本争夺同一个 diagramId（同章同序号），
+    // 结果是「内容来自 v1、位置在 v2」，更难排查。
+    const latestByChapter = new Map<string, { file: string; version: number }>();
+    for (const file of readdirSync(chaptersDir)) {
+      if (!file.endsWith('.md')) continue;
       const chapterId = this.extractChapterId(file);
-      const blocks = extractDiagrams(content, chapterId);
-      allBlocks.push(...blocks);
+      const m = file.match(/-v(\d+)\.md$/);
+      const version = m ? parseInt(m[1], 10) : 0; // 无版本号视为 v0（向后兼容）
+
+      const current = latestByChapter.get(chapterId);
+      if (!current || version > current.version) {
+        latestByChapter.set(chapterId, { file, version });
+      }
+    }
+
+    const allBlocks: DiagramBlock[] = [];
+    for (const [chapterId, { file }] of latestByChapter) {
+      const content = readFileSync(join(chaptersDir, file), 'utf-8');
+      allBlocks.push(...extractDiagrams(content, chapterId));
     }
 
     return allBlocks;
@@ -104,6 +124,7 @@ export class DiagramPipeline {
       generated: 0,
       skipped: 0,
       failed: 0,
+      unsupportedFormat: 0,
       errors: [],
       warnings: [],
     };
@@ -133,27 +154,54 @@ export class DiagramPipeline {
           continue;
         }
 
-        // 处理 mermaid 格式（向后兼容）
+        // mermaid 已废弃：不渲染，但**明确报错**而不是静默跳过。
+        //
+        // 项目已统一到结构化格式（containers / nodes / edges）。写手提示词和
+        // 知识注入都写着「严禁 mermaid」，如果这里静默少一张图，就会出现
+        // 「文档里没有图，也没人知道为什么」——Bug 33/35 都是这么来的。
         if (block.format === 'mermaid') {
-          const mermaidResult = await this.processMermaidBlock(block, diagramId, figuresDir, options);
-          if (mermaidResult.success) {
-            result.generated++;
-          } else {
-            // mermaid 处理失败，保留原始代码块，不阻塞流程
-            result.warnings.push({
-              diagramId,
-              warnings: [`mermaid 渲染失败，保留原始代码块: ${mermaidResult.error}`],
-            });
-            result.generated++; // 仍然算成功，因为保留了原始内容
-          }
+          result.unsupportedFormat++;
+          result.errors.push({
+            diagramId,
+            error:
+              '图表使用了 mermaid 代码块，已废弃不再渲染。' +
+              '请改写为 diagram-start 结构化格式（containers / nodes / edges）',
+          });
           continue;
         }
 
-        // 标准格式：解析描述为节点和连接
-        const { nodes, connections } = this.parseDescription(block);
 
-        // 生成 SVG
-        const svgResult = generateSVG(nodes, connections, this.style);
+        // 解析为节点与连接
+        //
+        // **结构化格式优先**：写手实际产出的就是 containers / nodes / edges，
+        // 里面带着 owner / timing / high_weight / direction / style。
+        // 只读散文 description 会把这些全丢掉，图退化成「散文里的几个方框」
+        // —— 而知识库 layout.md 的 7 条布局原则，每条都有对应的结构化字段。
+        //
+        // 散文格式（提示词里教的写法）仍然支持，作为回退。
+        const structured = hasStructuredFormat(block.rawContent)
+          ? parseStructuredDiagram(block.rawContent)
+          : null;
+
+        // 结构化格式优先；散文作为回退，适配成同一个 DiagramSpec
+        let spec: DiagramSpec;
+        if (structured && structured.nodes.length > 0) {
+          spec = structured;
+        } else {
+          const prose = parseDiagramDescription({
+            description: block.description,
+            title: block.title,
+          });
+          spec = proseToSpec(prose.nodes, prose.connections);
+        }
+
+        // 生成 SVG —— 走布局引擎（正交路由 + 压缩到单页可读）
+        //
+        // 原实现调 generateSVG（旧渲染器）：真实数据上画布最高 4290px、
+        // 高宽比 8.0、字号小到 3.3pt，18/23 张超过一页。新引擎实测
+        // 最高 727px、高宽比全部 ≤1.5、字号全部可读。
+        const layout = layoutDiagram(spec, this.style, block.title);
+        const svgResult = { svg: layout.svg, width: layout.width, height: layout.height };
         const svgPath = join(figuresDir, `${diagramId}.svg`);
         writeFileSync(svgPath, svgResult.svg, 'utf-8');
 
@@ -168,8 +216,16 @@ export class DiagramPipeline {
         if (!options.skipValidation) {
           const diagramData: DiagramData = {
             id: diagramId,
-            nodes: nodes.map(n => ({ id: n.id, label: n.label, layer: n.layer })),
-            connections,
+            nodes: layout.nodes.map(n => ({
+              id: n.id,
+              label: n.label.join(''),
+              layer: n.layer,
+              x: n.x,
+              y: n.y,
+              width: n.w,
+              height: n.h,
+            })),
+            connections: layout.edges.map(e => ({ from: e.from, to: e.to, label: e.label })),
             svgContent: svgResult.svg,
             svgWidth: svgResult.width,
             svgHeight: svgResult.height,
@@ -218,163 +274,5 @@ export class DiagramPipeline {
     return match ? match[1] : 'unknown';
   }
 
-  /**
-   * 解析描述为节点和连接
-   * 
-   * 简单的解析器，从描述文本中提取节点和连接关系。
-   */
-  private parseDescription(block: DiagramBlock): {
-    nodes: ParsedNode[];
-    connections: ParsedConnection[];
-  } {
-    const nodes: ParsedNode[] = [];
-    const connections: ParsedConnection[] = [];
-    const nodeMap = new Map<string, string>();
 
-    const description = block.description;
-    const lines = description.split('\n');
-
-    let layer = 0;
-
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (!trimmed || trimmed === '|') continue;
-
-      // 检测连接关系 (A → B 或 A -> B)
-      const connMatch = trimmed.match(/(.+?)\s*(?:→|->)\s*(.+)/);
-      if (connMatch) {
-        const fromLabel = connMatch[1].trim();
-        const toLabel = connMatch[2].trim();
-
-        const fromId = this.getOrCreateNode(fromLabel, layer, nodes, nodeMap);
-        const toId = this.getOrCreateNode(toLabel, layer + 1, nodes, nodeMap);
-
-        connections.push({ from: fromId, to: toId });
-        continue;
-      }
-
-      // 检测列表项 (- 模块名)
-      const listMatch = trimmed.match(/^[-*]\s*(.+)/);
-      if (listMatch) {
-        const label = listMatch[1].trim();
-        this.getOrCreateNode(label, layer, nodes, nodeMap);
-        continue;
-      }
-
-      // 检测分层标记 (层名:)
-      const layerMatch = trimmed.match(/^(.+?):\s*$/);
-      if (layerMatch) {
-        layer++;
-        continue;
-      }
-    }
-
-    // 如果没有解析出节点，创建一个默认节点
-    if (nodes.length === 0) {
-      nodes.push({
-        id: 'node-1',
-        label: block.title || '图表',
-        layer: 0,
-      });
-    }
-
-    return { nodes, connections };
-  }
-
-  /**
-   * 获取或创建节点
-   */
-  private getOrCreateNode(
-    label: string,
-    layer: number,
-    nodes: ParsedNode[],
-    nodeMap: Map<string, string>
-  ): string {
-    // 检查是否已存在
-    const existingId = nodeMap.get(label);
-    if (existingId !== undefined) {
-      return existingId;
-    }
-
-    // 创建新节点
-    const id = `node-${nodes.length + 1}`;
-    nodes.push({ id, label, layer });
-    nodeMap.set(label, id);
-
-    return id;
-  }
-
-  /**
-   * 处理 mermaid 格式的图表（向后兼容）
-   * 
-   * 尝试用 mmdc 渲染，如果不可用则保留原始 mermaid 代码块
-   */
-  private async processMermaidBlock(
-    block: DiagramBlock,
-    diagramId: string,
-    figuresDir: string,
-    options: PipelineOptions
-  ): Promise<{ success: boolean; error?: string }> {
-    const mmdPath = join(figuresDir, `${diagramId}.mmd`);
-    const svgPath = join(figuresDir, `${diagramId}.svg`);
-    const pngPath = join(figuresDir, `${diagramId}.png`);
-
-    // 写入 mermaid 文件
-    writeFileSync(mmdPath, block.description, 'utf-8');
-
-    // 尝试用 mmdc 渲染
-    const mmdcAvailable = this.checkMmdc();
-    
-    if (mmdcAvailable) {
-      try {
-        const { execFileSync } = await import('node:child_process');
-        execFileSync('mmdc', ['-i', mmdPath, '-o', svgPath], { stdio: 'pipe' });
-
-        // 生成 PNG
-        if (!options.skipPng) {
-          await convertToPng(svgPath, pngPath);
-        }
-
-        // 更新缓存
-        this.cache.setEntry(diagramId, {
-          sourceHash: this.cache.computeHash(block.rawContent),
-          svgFile: `${diagramId}.svg`,
-          pngFile: `${diagramId}.png`,
-          generatedAt: new Date().toISOString(),
-        });
-
-        return { success: true };
-      } catch (error) {
-        // mmdc 渲染失败，保留原始 mermaid 代码块
-        return {
-          success: false,
-          error: error instanceof Error ? error.message : String(error),
-        };
-      }
-    } else {
-      // mmdc 不可用，保留原始 mermaid 代码块
-      // 不生成 SVG/PNG，Markdown 渲染器可以处理 mermaid 代码块
-      this.cache.setEntry(diagramId, {
-        sourceHash: this.cache.computeHash(block.rawContent),
-        svgFile: '', // 空表示未生成
-        pngFile: '',
-        generatedAt: new Date().toISOString(),
-      });
-
-      return { success: true };
-    }
-  }
-
-  /**
-   * 检查 mmdc 是否可用
-   */
-  private checkMmdc(): boolean {
-    try {
-      const { execFileSync } = require('node:child_process');
-      execFileSync('mmdc', ['--version'], { stdio: 'pipe' });
-      return true;
-    } catch {
-      return false;
-    }
-  }
 }

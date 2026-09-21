@@ -17,8 +17,6 @@
 | `deployment.md` | 部署图规范 | Writer（部署章节） |
 | `data-flow.md` | 数据流图规范 | Writer（数据流章节） |
 | `comparison-table.md` | 对比表规范 | Writer（对比章节） |
-| `mermaid-syntax.md` | Mermaid 语法参考 | Phase 5（转换） |
-| `plantuml-syntax.md` | PlantUML 语法参考 | Phase 5（转换） |
 | `quality-lessons.md` | 质量教训（持续更新） | Phase 5（检查） |
 
 ## 使用方式
@@ -31,7 +29,7 @@
 ### Phase 5
 1. 提取 `<!-- diagram-start -->` 标记
 2. 基于知识库做规格检查（节点数、布局原则、术语一致性）
-3. 转换为 mermaid → 渲染 SVG
+3. 解析为结构化图表 → 布局引擎渲染 SVG（正交路由，压缩到 ≤1 页）
 4. 替换标记为图片引用
 
 ## 维护方法

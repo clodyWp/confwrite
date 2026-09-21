@@ -63,6 +63,23 @@ export class DiagramCache {
       return true; // 不存在缓存，需要生成
     }
 
+    // 产物缺失时必须重新生成（Bug 29）
+    //
+    // 原先只比对源哈希，不检查 svg/png 是否还在。实测事故：
+    // 清空 figures/*.svg 与 *.png 但保留 manifest.json 后，pipeline 认为
+    // 29 张图「未变更」而全部 skip —— 一张图都没生成；而 phase 5 的出口
+    // 条件正是 hasFile('figures/manifest.json')，于是流程认为图表阶段
+    // 已完成，后续组装拿不到任何图片。
+    const figuresDir = join(this.projectDir, 'figures');
+    for (const f of [entry.svgFile, entry.pngFile]) {
+      // 空文件名 = 从未生成过（旧版本在 mmdc 不可用时写过 svgFile='' 的记录），
+      // 必须视为需要重新生成 —— 否则这类记录会永远冒充「已缓存」，
+      // 即使之后装好了 mmdc 也不会重试（Bug 35）。
+      if (!f || !existsSync(join(figuresDir, f))) {
+        return true;
+      }
+    }
+
     const currentHash = this.computeHash(sourceContent);
     return currentHash !== entry.sourceHash;
   }

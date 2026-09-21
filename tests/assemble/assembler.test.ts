@@ -96,7 +96,11 @@ POST /api/users/login
       const chapterOrder = ['ch001', 'ch002'];
       const result = assembler.assemble(tempDir, chapterOrder);
 
-      expect(result.content).toContain('---');
+      // 分隔符为 *** 而非 ---：
+      // 「空行 + --- + 紧跟非空行」会被 pandoc 识别为 YAML 元数据块开头，
+      // 导致 docx 导出直接失败（Bug 25）。
+      expect(result.content).toContain('***');
+      expect(result.content).not.toMatch(/^---\s*\n\S/m);
     });
 
     it('handles missing chapters gracefully', () => {

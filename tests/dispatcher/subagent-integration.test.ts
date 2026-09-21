@@ -49,7 +49,7 @@ describe('Dispatcher — subagent integration', () => {
 
     writeFileSync(
       join(TEST_DIR, 'assets', 'chapter-kits', 'ch001-kit.md'),
-      '# ch001 素材包\n\n内容...'
+      '# ch001 素材包：项目概述\n\n内容...'
     );
 
     const state = createState();

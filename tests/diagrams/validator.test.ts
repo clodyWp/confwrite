@@ -67,18 +67,10 @@ describe('DiagramValidator', () => {
       expect(overlapCheck?.details).toContain('重叠');
     });
 
-    it('detects too many layers', () => {
+    it('层数过多不再判失败（新引擎压缩到单页，压缩优先不拆图）', () => {
       const diagram: DiagramData = {
         id: 'ch01-fig1',
-        nodes: [
-          { id: 'A', label: 'L0', layer: 0 },
-          { id: 'B', label: 'L1', layer: 1 },
-          { id: 'C', label: 'L2', layer: 2 },
-          { id: 'D', label: 'L3', layer: 3 },
-          { id: 'E', label: 'L4', layer: 4 },
-          { id: 'F', label: 'L5', layer: 5 },
-          { id: 'G', label: 'L6', layer: 6 }, // 超过 5 层
-        ],
+        nodes: Array.from({ length: 9 }, (_, i) => ({ id: `N${i}`, label: `L${i}`, layer: i })),
         connections: [],
         svgContent: '<svg>...</svg>',
         type: 'architecture',
@@ -86,8 +78,12 @@ describe('DiagramValidator', () => {
 
       const result = validateDiagram(diagram);
 
-      const layerCheck = result.checks.find(c => c.name === '层级数量');
-      expect(layerCheck?.passed).toBe(false);
+      // 旧判据是「架构图 ≤5 层」，前提是旧渲染器层多了图会无限变高。
+      // 新引擎对任意层数都会压缩（实测 11 层压到 727px），产品决策是
+      // 「压缩优先、不拆图」，所以这里只如实报告，不判失败。
+      const check = result.checks.find(c => c.name === '层级数量');
+      expect(check?.passed).toBe(true);
+      expect(check?.details).toContain('9 层');
     });
 
     it('detects too many connections', () => {
@@ -112,20 +108,23 @@ describe('DiagramValidator', () => {
       expect(connCheck?.passed).toBe(false);
     });
 
-    it('detects long labels that may overflow', () => {
+    it('长标签不再判失败（引擎会折行并截断）', () => {
       const diagram: DiagramData = {
         id: 'ch01-fig1',
-        nodes: [
-          { id: 'A', label: '这是一个非常非常长的标签文字', layer: 0 },
-        ],
+        nodes: [{ id: 'A', label: '这是一个非常非常长的标签文字需要折行', layer: 0 }],
         connections: [],
         svgContent: '<svg>...</svg>',
       };
 
       const result = validateDiagram(diagram);
 
+      // 旧判据按「≤12 字」判失败，前提是旧渲染器不折行、超出就溢出节点框。
+      // 新引擎按节点宽度折行（≤2 行，超出用 … 截断），节点宽度也按折行后
+      // 最宽的一行反推 —— 长标签不会再撑破图形。是否真溢出由「文字溢出」
+      // 检查按渲染结果判定，比数字数可靠。
       const labelCheck = result.checks.find(c => c.name === '标签长度');
-      expect(labelCheck?.passed).toBe(false);
+      expect(labelCheck?.passed).toBe(true);
+      expect(labelCheck?.details).toContain('最长');
     });
 
     it('detects missing PNG file', () => {

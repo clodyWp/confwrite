@@ -1,3 +1,5 @@
+import { dedent } from '../utils/dedent.js';
+
 /**
  * Diagram Extractor
  * 
@@ -31,6 +33,13 @@ export interface DiagramBlock {
   description: string;
   /** 原始标记内容（不含 diagram-start/end 标记本身） */
   rawContent: string;
+  /**
+   * 完整的匹配文本（含 diagram-start/end 或 ``` 围栏本身）
+   *
+   * 注入器用它做精确替换（Bug 33）—— 两端必须用同一套块定位逻辑，
+   * 否则提取器认的格式注入器不认，图就永远进不了文档。
+   */
+  rawBlock: string;
   /** 检测到的内部格式 */
   format: DiagramFormat;
 }
@@ -71,52 +80,63 @@ const MERMAID_BLOCK_RE = /```mermaid\s*\n([\s\S]*?)```/g;
  * @returns 图表块数组
  */
 export function extractDiagrams(content: string, chapterId: string): DiagramBlock[] {
-  const blocks: DiagramBlock[] = [];
-  let index = 0;
+  // 两种格式一次扫描、按**出现位置**排序后统一编号（Bug 33）。
+  //
+  // 原实现先给所有 diagram-start 编号（0..n-1），再给 mermaid 编号
+  // （n..n+m-1）—— 于是当 mermaid 块出现在文档靠前位置时，fig1 指向的
+  // 并不是文档里第一个图表。生成与注入两端都依赖这套编号，一旦错位
+  // 就会「图生成了但对不上位置」。
+  type Hit = { pos: number; block: Omit<DiagramBlock, 'index'> };
+  const hits: Hit[] = [];
 
-  // 提取 diagram-start 标记
   DIAGRAM_BLOCK_RE.lastIndex = 0;
   let match;
   while ((match = DIAGRAM_BLOCK_RE.exec(content)) !== null) {
-    const rawContent = match[1].trim();
+    // 去公共缩进：写手常把 diagram 块缩进书写，而下面所有字段解析都是
+    // **行首敏感**的（`!/^\s/` 判顶层键）。实测缩进后解析出 0 个节点、
+    // description 也为空 —— 这一章凭空少一张图，且悄无声息。
+    const rawContent = dedent(match[1].trim());
     const parsed = parseDiagramBlock(rawContent);
 
-    blocks.push({
-      chapterId,
-      index,
-      type: parsed.type,
-      title: parsed.title,
-      description: parsed.description,
-      rawContent,
-      format: detectFormat(parsed.description),
+    hits.push({
+      pos: match.index,
+      block: {
+        chapterId,
+        type: parsed.type,
+        title: parsed.title,
+        description: parsed.description,
+        rawContent,
+        format: detectFormat(parsed.description),
+        rawBlock: match[0],
+      },
     });
-
-    index++;
   }
 
-  // 提取 mermaid 代码块（向后兼容）
   MERMAID_BLOCK_RE.lastIndex = 0;
-  let mermaidIndex = 0;
   while ((match = MERMAID_BLOCK_RE.exec(content)) !== null) {
     const mermaidCode = match[1].trim();
 
-    blocks.push({
-      chapterId,
-      index: index + mermaidIndex,
-      type: 'diagram',
-      title: `图表 ${index + mermaidIndex + 1}`,
-      description: mermaidCode,
-      rawContent: mermaidCode,
-      format: 'mermaid',
+    hits.push({
+      pos: match.index,
+      block: {
+        chapterId,
+        type: 'diagram',
+        title: '', // 无标题，编号确定后回填为「图表 N」
+        description: mermaidCode,
+        rawContent: mermaidCode,
+        format: 'mermaid',
+        rawBlock: match[0],
+      },
     });
-
-    mermaidIndex++;
   }
 
-  // 按在文档中出现的顺序排序
-  blocks.sort((a, b) => a.index - b.index);
+  hits.sort((a, b) => a.pos - b.pos);
 
-  return blocks;
+  return hits.map((h, i) => ({
+    ...h.block,
+    index: i,
+    title: h.block.title || `图表 ${i + 1}`,
+  }));
 }
 
 /**
@@ -140,24 +160,47 @@ function parseDiagramBlock(rawContent: string): {
   for (const line of lines) {
     const trimmed = line.trim();
 
-    if (trimmed.startsWith('type:')) {
-      const value = trimmed.slice(5).trim();
-      if (isValidDiagramType(value)) {
-        type = value;
+    // 顶层键：**不缩进**且形如 `key:`
+    //
+    // 事故（8 章重跑，23 张图全是垃圾）：此前这里是 `trimmed.startsWith('type:')`
+    // 这样的关键词判断，而 description 分支进来后**永不设回 false** ——
+    // 于是 description 把后面的 containers: / nodes: / edges: 整块 YAML 全吞掉，
+    // 散文解析器看到 `- id: xxx` 就当「层定义」，节点名直接变成字段名 id / from。
+    //
+    // 不能靠「是不是已知字段名」来判断边界（散文里也可能提到 nodes:），
+    // 必须用 YAML 自己的规则：块标量在**缩进回落到顶层**时结束。
+    const keyMatch = /^([A-Za-z_][A-Za-z0-9_-]*):(?:\s|$)/.exec(line);
+    const isTopLevelKey = !/^\s/.test(line) && keyMatch !== null;
+
+    if (isTopLevelKey) {
+      const key = keyMatch![1];
+
+      // 任何顶层键都结束描述块
+      inDescription = false;
+
+      if (key === 'type') {
+        const value = line.slice(line.indexOf(':') + 1).trim();
+        if (isValidDiagramType(value)) {
+          type = value;
+        }
+      } else if (key === 'title') {
+        title = line.slice(line.indexOf(':') + 1).trim() || '图表';
+      } else if (key === 'description') {
+        // 内联值（`description: 一句话`）vs 块标量（`description: |`）
+        const inlineValue = line.slice(line.indexOf(':') + 1).trim();
+        if (inlineValue && !['|', '|-', '|+', '>', '>-', '>+'].includes(inlineValue)) {
+          description = inlineValue;
+        } else {
+          inDescription = true;
+        }
       }
-    } else if (trimmed.startsWith('title:')) {
-      title = trimmed.slice(6).trim() || '图表';
-    } else if (trimmed.startsWith('description:')) {
-      inDescription = true;
-      // 检查是否有内联值（非 | 多行格式）
-      const inlineValue = trimmed.slice(12).trim();
-      if (inlineValue && inlineValue !== '|') {
-        description = inlineValue;
-        inDescription = false;
-      }
-    } else if (inDescription) {
-      // 多行描述内容
-      if (trimmed === '|') continue; // 跳过 | 标记
+
+      continue;
+    }
+
+    // 缩进行：属于 description 的块标量内容
+    if (inDescription) {
+      if (trimmed === '|') continue; // 防御：某些写法把 | 单独放一行
       descLines.push(trimmed);
     }
   }

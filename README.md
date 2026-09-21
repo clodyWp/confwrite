@@ -16,6 +16,25 @@
 - **真实文档转换** — 支持 PDF (pdf-parse) / DOCX (mammoth) / HTML → Markdown
 - **定稿一致性检查** — Phase 7 自动统计文档 + 校验数据基线一致性
 
+## 图表渲染
+
+图表由内置布局引擎生成，**不使用 mermaid**。写手产出结构化格式
+（`containers / nodes / edges`），引擎负责：
+
+- **正交折线**：连线只有水平段和竖直段，没有曲线和斜线
+- **单页压缩**：画布宽 ≤680px（保证字号可读）、高 ≤900px，压不下时按
+  「边距 → 层间距 → 字号」的顺序压缩，**不拆成多张图**
+- **分组与权重**：`containers` 决定分层，`high_weight` 节点更大更醒目，
+  `crosscut` 画成贯穿全程的侧条
+
+布局实现见 `src/diagrams/layout/`（`graph` → `metrics` → `route` → `render`）。
+
+真实数据的几何回归（可选）：
+
+```bash
+CONFWRITE_REAL_DRAFTS=/path/to/project/drafts/chapters npm test
+```
+
 ## 安装
 
 ```bash
@@ -112,7 +131,7 @@ ch003 技术选型
 | 5 | 图表生成 | 提取 mermaid → SVG → PNG |
 | 6 | 组装 | 合并章节 → final.md |
 | 7 | 定稿 | 统计文档 + 基线一致性检查 |
-| 8 | 导出 | convert-to-docx → final.docx |
+| 8 | 导出 | pandoc → `output/final.docx`（含 TOC） |
 
 ### 6. 查看进度 / 恢复 / 上下文管理
 
@@ -234,7 +253,11 @@ src/
 │   └── finalizer.ts          # 定稿处理 (统计+一致性)
 ├── diagrams/                 # 图表管线
 │   ├── extractor.ts          # mermaid 提取
-│   ├── generator.ts          # mermaid → SVG/PNG
+│   ├── description-parser.ts # 图表描述解析（分层/节点/连接）
+│   ├── generator.ts          # mermaid → SVG/PNG（分层配色 + 跨平台字体）
+│   ├── style.ts              # 配色/字体/尺寸风格（可配置，支持项目覆盖）
+│   ├── cache.ts              # 源哈希缓存（含产物存在性校验）
+│   ├── injector.ts           # 把生成的图表注入组装产物
 │   └── pipeline.ts           # 渲染管线
 ├── knowledge/                # 知识库加载
 │   └── loader.ts             # 知识库加载+注入
@@ -244,8 +267,8 @@ src/
 └── utils/
     └── paths.ts              # 路径安全
 
-knowledge/diagrams/           # 内置图表知识库 (15 个 MD 文件)
-tests/                        # 433 个测试用例
+knowledge/diagrams/           # 内置图表知识库 (16 个 MD 文件)
+tests/                        # 735 个测试用例
 ```
 
 ### 设计原则

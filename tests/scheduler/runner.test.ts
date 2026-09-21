@@ -69,7 +69,7 @@ describe('SchedulerRunner', () => {
     expect(existsSync(draftPath)).toBe(true);
     const content = readFileSync(draftPath, 'utf-8');
     expect(content).toContain('ch001');
-    expect(content).toContain('mermaid');
+    expect(content).toContain('diagram-start');
   });
 
   it('writes review JSON for reviewer tasks', async () => {
@@ -145,14 +145,14 @@ describe('MockSubagentExecutor', () => {
     expect(result.durationMs).toBeGreaterThanOrEqual(0);
   });
 
-  it('writer creates mermaid content', async () => {
+  it('writer creates structured diagram content', async () => {
     const executor = new MockSubagentExecutor(TEST_DIR);
     const task = makeTask({ id: 'write-ch001', type: 'writer', chapterId: 'ch001' });
 
     await executor.execute(task);
 
     expect(task.result).toBeDefined();
-    expect(task.result).toContain('mermaid');
+    expect(task.result).toContain('diagram-start');
   });
 
   it('reviewer returns accept decision', async () => {

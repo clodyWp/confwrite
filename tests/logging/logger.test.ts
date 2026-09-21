@@ -151,9 +151,9 @@ describe('Logger', () => {
 
       const result = Logger.format(event);
 
+      // 不再逐个格式列数字，只在有 mermaid 时提示"已废弃"
       expect(result.message).toContain('15');
-      expect(result.message).toContain('8');
-      expect(result.message).toContain('7');
+      expect(result.message).toContain('7 个是已废弃的 mermaid');
       expect(result.level).toBe('info');
     });
 

@@ -114,8 +114,8 @@ export class Logger {
    * 格式化图表扫描事件
    */
   private static formatDiagramScan(event: Extract<LogEvent, { type: 'diagram.scan' }>): FormatResult {
-    const mermaidNote = event.byFormat.mermaid > 0 ? ' (兼容)' : '';
-    const message = `🔍 [图表] 扫描到 ${event.total} 个图表\n   ├─ diagram-start: ${event.byFormat['diagram-start']} 个\n   └─ mermaid: ${event.byFormat.mermaid} 个${mermaidNote}`;
+    const legacy = event.byFormat.mermaid > 0 ? `（其中 ${event.byFormat.mermaid} 个是已废弃的 mermaid）` : '';
+    const message = `🔍 [图表] 扫描到 ${event.total} 个图表${legacy}`;
     return { message, level: 'info' };
   }
 

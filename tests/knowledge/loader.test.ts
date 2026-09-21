@@ -118,7 +118,25 @@ describe('KnowledgeLoader', () => {
     expect(content).toContain('选型指南');
     expect(content).toContain('布局方法论');
     expect(content).toContain('架构图');
-    expect(content).toContain('```mermaid');
+  });
+
+  it('注入的图表格式是结构化三段，不是 mermaid（事故根因回归）', () => {
+    writeKnowledge('layout.md', '# 布局方法论\n\n七条原则...');
+    writeKnowledge('architecture.md', '# 架构图\n\n视觉表现...');
+
+    const content = loader.generateWriterInjection(['架构']);
+
+    // 真机事故：注入教「请直接使用 mermaid 代码块」，而写手提示词写着
+    // 「严禁使用 mermaid」—— 两处矛盾，fixer 据此把图改写成 mermaid，
+    // 导致该章 3 张图全部丢失。
+    expect(content).toContain('containers:');
+    expect(content).toContain('nodes:');
+    expect(content).toContain('edges:');
+    expect(content).toContain('diagram-start');
+    expect(content).toContain('严禁 mermaid');
+    expect(content).not.toContain('```mermaid');
+    expect(content).not.toContain('graph TD');
+    expect(content).not.toContain('请直接使用 mermaid');
   });
 
   it('returns empty string when no knowledge files exist', () => {

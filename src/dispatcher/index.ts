@@ -12,7 +12,7 @@
  * - Reviewer: review/${chapterId}-r${round}.json
  * - Fixer: 读取上一版本，输出新版本
  */
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import type { ProjectStore } from '../state/store.js';
 import type { SubagentScheduler } from '../scheduler/index.js';
@@ -20,6 +20,7 @@ import type { Task } from '../scheduler/types.js';
 import type { TaskExecutor, ReviewBaseline } from '../writing/task-executor.js';
 import type { WritingOrchestrator } from '../writing/orchestrator.js';
 import { KnowledgeLoader } from '../knowledge/loader.js';
+import { validateChapterKits } from '../organize/kit-validator.js';
 
 export interface DispatchResult {
   action: string;
@@ -210,7 +211,32 @@ export class Dispatcher {
     if (!existsSync(kitPath)) {
       return `[素材包缺失] 章节 ${chapterId} 的素材包文件不存在: ${kitPath}`;
     }
-    return readFileSync(kitPath, 'utf-8');
+
+    const content = readFileSync(kitPath, 'utf-8');
+
+    // 校验内容确实属于这个章节（Bug 31）
+    //
+    // 只按 id 取文件的话，大纲增删/重编号之后会**静默拿到别的章节**的素材。
+    // 实测：assets/chapter-kits/ch005.md 还是上一版大纲留下的
+    // 「2.3 微服务与容器化部署方案」，而新大纲的 ch005 是「3.1 质保期服务承诺」。
+    // 与其把错误素材喂给 writer 产出一份「标题是 A、正文是 B」的文档，
+    // 不如在这里明确报出来。phase 2/3 的出口条件已经会拦住这种情况，
+    // 这里是绕过流程（手工改状态等）时的兜底。
+    const expectedTitle = this.store.load()?.chapters?.[chapterId]?.title;
+    if (expectedTitle) {
+      const v = validateChapterKits(this.projectDir, [{ id: chapterId, title: expectedTitle }]);
+      if (!v.ok) {
+        const issue = v.issues[0];
+        return (
+          `[素材包不匹配] 章节 ${chapterId} 的期望标题是「${expectedTitle}」，` +
+          `但 ${kitPath} 的表头是「${issue.actualTitle ?? '无法解析'}」。` +
+          '这通常是大纲改动后素材包没有重建造成的。' +
+          '请先重新准备素材（/confwrite:organize，或让流程经过 phase 3 素材准备）再写作。'
+        );
+      }
+    }
+
+    return content;
   }
 
   /**
@@ -224,7 +250,6 @@ export class Dispatcher {
     
     // 扫描目录找最高版本号: ch001-v1.md, ch001-v2.md, ...
     try {
-      const { readdirSync } = require('node:fs');
       const files = readdirSync(draftsDir);
       const versionPattern = new RegExp(`^${chapterId}-v(\\d+)\\.md$`);
       let maxVersion = -1;

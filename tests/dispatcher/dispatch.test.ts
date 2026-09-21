@@ -59,11 +59,11 @@ describe('Dispatcher', () => {
     // Create chapter kits (filename matches KitGenerator output: {chapterId}.md)
     writeFileSync(
       join(TEST_DIR, 'assets', 'chapter-kits', 'ch001.md'),
-      '# ch001 素材包\n\n## 相关文件\n- ref1.md\n\n## 关键数据\n- 性能: 99.9%'
+      '# ch001 素材包：项目概述\n\n## 相关文件\n- ref1.md\n\n## 关键数据\n- 性能: 99.9%'
     );
     writeFileSync(
       join(TEST_DIR, 'assets', 'chapter-kits', 'ch002.md'),
-      '# ch002 素材包\n\n## 相关文件\n- ref2.md\n\n## 关键数据\n- 并发: 1000'
+      '# ch002 素材包：需求分析\n\n## 相关文件\n- ref2.md\n\n## 关键数据\n- 并发: 1000'
     );
 
     // Create state
@@ -75,6 +75,36 @@ describe('Dispatcher', () => {
     taskExecutor = new TaskExecutor();
     writingOrchestrator = new WritingOrchestrator();
     dispatcher = new Dispatcher(TEST_DIR, store, scheduler, taskExecutor, writingOrchestrator);
+  });
+
+  describe('素材包一致性兜底（Bug 31）', () => {
+    it('素材包标题与章节不符时，不得把错误素材喂给 writer', async () => {
+      // 真实事故：大纲重新编号后 ch001 这个 id 被复用，
+      // 但磁盘上还是上一版大纲留下的素材包
+      writeFileSync(
+        join(TEST_DIR, 'assets', 'chapter-kits', 'ch001.md'),
+        '# ch001 素材包：2.3 微服务与容器化部署方案\n\n## 关键数据\n- 不该出现的指标: 42'
+      );
+
+      const result = await dispatcher.dispatch('spawn_writers', {
+        chapters: ['ch001'],
+        projectDir: TEST_DIR,
+      });
+
+      expect(result.tasks[0].prompt).toContain('素材包不匹配');
+      expect(result.tasks[0].prompt).not.toContain('不该出现的指标');
+    });
+
+    it('素材包缺失时给出明确提示', async () => {
+      rmSync(join(TEST_DIR, 'assets', 'chapter-kits', 'ch001.md'));
+
+      const result = await dispatcher.dispatch('spawn_writers', {
+        chapters: ['ch001'],
+        projectDir: TEST_DIR,
+      });
+
+      expect(result.tasks[0].prompt).toContain('素材包缺失');
+    });
   });
 
   describe('dispatch spawn_writers', () => {

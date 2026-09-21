@@ -6,8 +6,10 @@
  * - execute: what to do in this phase
  * - exits: possible transitions to other phases
  */
-import { existsSync, statSync, readFileSync } from 'node:fs';
+import { existsSync, statSync, readFileSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
+import { FormatConverter } from '../assemble/converter.js';
+import { validateChapterKitsAgainstOutline } from '../organize/kit-validator.js';
 import type { Phase, ProjectState } from '../state/schema.js';
 
 export interface PhaseContext {
@@ -37,10 +39,38 @@ export interface PhaseDefinition {
   validate: (ctx: PhaseContext) => ValidationResult;
   execute: (ctx: PhaseContext) => Promise<PhaseResult>;
   exits: Transition[];
+  /**
+   * 进入本阶段时调用（由状态机在 advance 时触发）。
+   *
+   * 用途：清掉**本阶段自己产物**的残留文件（Bug 28）。
+   *
+   * 为什么必需：状态机的 tick 顺序是「先查出口条件 → 再 validate/execute」，
+   * 而 phase 6/7/8 的出口条件就是「某个文件存在」，那个文件又正是本阶段
+   * 要产出的。于是上次运行留下的残件会让出口条件直接成立，**阶段根本不
+   * 执行就跳到下一阶段** —— 真机事故：残留的 output/final.docx 使
+   * phase 8 跳过导出，pandoc 报错的情况下仍然进入 done。
+   *
+   * 注意：只清「工作产物」，不清「缓存」（如 figures/manifest.json）。
+   * 缓存命中时跳过重算是正确行为。
+   */
+  onEnter?: (ctx: PhaseContext) => void;
   /** 是否为等待点（暂停等待用户确认后才继续） */
   waitPoint?: {
     reason: string;
     instructions: string;
+    /**
+     * 暂停时机：
+     *
+     * - `entry`（默认）：进入本阶段即暂停，不执行 execute。
+     *   用于「纯人工确认点」——阶段自身不产生任何产物，
+     *   如 phase2 大纲规划（等用户编写/确认 outline.md）。
+     *
+     * - `after-execute`：先完成本阶段工作，再暂停。
+     *   用于「机器先干活、再请人审阅」——如 phase6 组装：
+     *   必须先生成 assembly/merged-v1.md，否则会让用户
+     *   审阅一个不存在的文件（Bug 10）。
+     */
+    timing?: 'entry' | 'after-execute';
   };
 }
 
@@ -67,6 +97,24 @@ function hasDir(ctx: PhaseContext, relativePath: string): boolean {
 function hasOrganizedMaterials(ctx: PhaseContext): boolean {
   return hasFile(ctx, 'assets/data-baseline.json') &&
     (hasFile(ctx, 'assets/references-index.md') || hasDir(ctx, 'assets/indexes'));
+}
+
+/**
+ * 素材包是否与当前大纲逐章对应（Bug 31）
+ *
+ * 只看 hasOrganizedMaterials 是不够的：它只验证「整理过」，不验证
+ * 「素材包属于当前这一版大纲」。大纲增删/重编号后旧素材包仍在，
+ * 而 dispatcher 是按 id 直接取文件的 —— 于是静默拿到别的章节的素材。
+ *
+ * 实测：上一次运行时 `0b → 2 → 4a`，phase 3 被跳过，写作用的是
+ * 更早 48 章大纲留下的素材包（当时恰好标题未变才没出事）。
+ */
+function kitsMatchOutline(ctx: PhaseContext): boolean {
+  try {
+    return validateChapterKitsAgainstOutline(ctx.projectDir).ok;
+  } catch {
+    return false;
+  }
 }
 
 function needsFix(ctx: PhaseContext, chapterId: string): boolean {
@@ -157,11 +205,14 @@ export const phase2: PhaseDefinition = {
   exits: [
     {
       target: '4a',
-      condition: (ctx) => hasFile(ctx, 'outline.md') && hasOrganizedMaterials(ctx),
+      // 必须同时满足「整理过」与「素材包与大纲逐章对应」（Bug 31）
+      condition: (ctx) =>
+        hasFile(ctx, 'outline.md') && hasOrganizedMaterials(ctx) && kitsMatchOutline(ctx),
     },
     {
       target: '3',
-      condition: (ctx) => hasFile(ctx, 'outline.md') && !hasOrganizedMaterials(ctx),
+      condition: (ctx) =>
+        hasFile(ctx, 'outline.md') && !(hasOrganizedMaterials(ctx) && kitsMatchOutline(ctx)),
     },
   ],
   waitPoint: {
@@ -199,15 +250,48 @@ export const phase3: PhaseDefinition = {
     }
     return { ok: true };
   },
+  // 真正重建素材（Bug 31）
+  //
+  // 原实现只返回一个 action: 'prepare_materials' 描述，而它不在
+  // EXECUTABLE_ACTIONS 里、dispatcher 也不处理 —— 于是**流程永远不会重建
+  // 素材包**，素材包只由手动命令 /confwrite:organize 生成。
+  // 大纲改过之后就会静默用上旧素材包（见 kitsMatchOutline 注释）。
+  // 阶段名叫「素材准备」，本来就该做这件事。
   async execute(ctx) {
+    const { organizeMaterials } = await import('../commands/organize.js');
+    const { ProjectStore } = await import('../state/store.js');
+
+    const r = await organizeMaterials(ctx.projectDir);
+
+    // 把「大纲 → 章节列表」的同步结果合并回内存中的 state。
+    //
+    // organizeMaterials 会把同步结果写进磁盘上的 project-state.json，
+    // 但状态机在 execute 之后会用**它自己内存里的** state 覆盖保存
+    // （state-machine.ts: `this.store.save(state)`）—— 不同步回来的话，
+    // 磁盘上的章节列表会被回滚，新大纲的章节永远不会变成 pending，
+    // 于是 phase 4a 看不到任何待写章节。
+    const fresh = new ProjectStore(ctx.projectDir).load();
+    if (fresh?.chapters) {
+      ctx.state.chapters = fresh.chapters;
+      if (fresh.totalChapters !== undefined) {
+        ctx.state.totalChapters = fresh.totalChapters;
+      }
+    }
+
     return {
       action: 'prepare_materials',
-      message: 'Phase 3: 素材准备',
-      params: { projectDir: ctx.projectDir },
+      message:
+        `Phase 3: 素材准备完成 —— 素材包 ${r.kitStats.success}/${r.kitStats.total}，` +
+        `章节映射 ${r.chapterMappings.length} 个`,
+      params: { projectDir: ctx.projectDir, kitStats: r.kitStats },
     };
   },
   exits: [
-    { target: '4a', condition: (ctx) => hasOrganizedMaterials(ctx) },
+    // 重建后才允许出口；重建失败则留在此阶段重试
+    {
+      target: '4a',
+      condition: (ctx) => hasOrganizedMaterials(ctx) && kitsMatchOutline(ctx),
+    },
   ],
 };
 
@@ -378,6 +462,34 @@ export const phase4d: PhaseDefinition = {
   ],
 };
 
+/**
+ * 图表健康检查（阻塞规则的数据来源）
+ *
+ * 读 Phase 5 落盘的诊断记录（logs/diagram-pipeline.json）：
+ *   · failed > 0            → 有图生成失败
+ *   · unsupportedFormat > 0 → 有图格式不受支持
+ *   · warnings.length > 0   → 有图渲染后校验未通过
+ * 任一为真则阻塞，不放行到组装阶段（知识库 layout.md 的阻塞规则）。
+ *
+ * 读不到记录时**不阻塞** —— 那是"没跑过"，不是"跑坏了"。
+ */
+function diagramHealthBlocked(projectDir: string): boolean {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { readFileSync } = require('node:fs') as typeof import('node:fs');
+    const { join } = require('node:path') as typeof import('node:path');
+    const raw = readFileSync(join(projectDir, 'logs', 'diagram-pipeline.json'), 'utf-8');
+    const data = JSON.parse(raw) as {
+      failed?: number;
+      unsupportedFormat?: number;
+      warnings?: unknown[];
+    };
+    return (data.failed ?? 0) > 0 || (data.unsupportedFormat ?? 0) > 0 || (data.warnings?.length ?? 0) > 0;
+  } catch {
+    return false;
+  }
+}
+
 export const phase5: PhaseDefinition = {
   id: '5',
   name: '图表生成',
@@ -387,22 +499,66 @@ export const phase5: PhaseDefinition = {
     const pipeline = new DiagramPipeline(ctx.projectDir);
     const result = await pipeline.run();
 
+    // 把管线结果落盘（Bug 35）
+    //
+    // notify 只是 UI 通知，pi 的 TUI 会重绘覆盖，事后无法回看 ——
+    // 真机事故里为了拿到「mermaid 为什么没渲染」花了很多轮。
+    // 这里写一份持久的诊断记录，失败原因不再丢失。
+    try {
+      const { writeFileSync, mkdirSync } = await import('node:fs');
+      const { join } = await import('node:path');
+      const logsDir = join(ctx.projectDir, 'logs');
+      mkdirSync(logsDir, { recursive: true });
+      writeFileSync(
+        join(logsDir, 'diagram-pipeline.json'),
+        JSON.stringify({ at: new Date().toISOString(), ...result }, null, 2),
+        'utf-8',
+      );
+    } catch {
+      // 诊断日志失败不应影响流程
+    }
+
+    // 如实汇报（Bug 35）：没渲染出来的图不能算「生成完成」。
+    const parts = [`生成 ${result.generated} 个图表`];
+    if (result.skipped > 0) parts.push(`跳过 ${result.skipped} 个（缓存）`);
+    if (result.unsupportedFormat > 0) {
+      parts.push(
+        `❌ ${result.unsupportedFormat} 个图表格式不受支持（mermaid 已废弃，需改为结构化格式）`,
+      );
+    }
+    if (result.failed > 0) {
+      const firstReason = result.errors[0]?.error ?? '未知原因';
+      parts.push(`❌ ${result.failed} 个失败（首个原因：${firstReason.slice(0, 200)}）`);
+    }
+
     return {
       action: 'generate_diagrams',
-      message: `Phase 5: 图表生成完成 (${result.generated} 个图表)`,
+      message: `Phase 5: 图表处理完成 — ${parts.join('，')}`,
       params: {
         projectDir: ctx.projectDir,
         diagramCount: result.total,
         generated: result.generated,
         skipped: result.skipped,
+        unsupportedFormat: result.unsupportedFormat,
+        failed: result.failed,
         errors: result.errors,
+        warnings: result.warnings,
       },
     };
   },
   exits: [
     {
       target: '6',
-      condition: (ctx) => ctx.state.status === 'assembling' || hasFile(ctx, 'figures/manifest.json'),
+      // 阻塞规则（知识库 layout.md）：渲染后校验未通过 → 禁止进入组装。
+      //
+      // 此前校验失败只推 result.warnings，坏图照常流到组装，最终 Word 里
+      // 的图是坏的而没人拦。这里按知识库的规定做成硬闸门。
+      condition: (ctx) => {
+        const produced =
+          ctx.state.status === 'assembling' || hasFile(ctx, 'figures/manifest.json');
+        if (!produced) return false;
+        return !diagramHealthBlocked(ctx.projectDir);
+      },
     },
   ],
 };
@@ -415,7 +571,11 @@ export const phase6: PhaseDefinition = {
     const { ChapterAssembler } = await import('../assemble/assembler.js');
     const assembler = new ChapterAssembler();
     const chapters = assembler.listChapters(ctx.projectDir);
-    const result = assembler.assemble(ctx.projectDir, chapters, { generateTOC: true });
+    // 传入文档标题（取自 outline.md 的一级标题），否则最终文档没有标题（Bug 22）
+    const result = assembler.assemble(ctx.projectDir, chapters, {
+      title: assembler.resolveDocumentTitle(ctx.projectDir),
+      generateTOC: true,
+    });
     const outputPath = join(ctx.projectDir, 'assembly', 'merged-v1.md');
     assembler.save(result, outputPath);
     return {
@@ -427,9 +587,17 @@ export const phase6: PhaseDefinition = {
   exits: [
     { target: '7', condition: (ctx) => hasFile(ctx, 'assembly/merged-v1.md') },
   ],
+  // 清掉上次组装的残件（Bug 28）：否则出口条件立刻成立，
+  // phase 6 会跳过组装，连「请审阅初稿」的人工确认点也一并跳过。
+  onEnter(ctx) {
+    const p = join(ctx.projectDir, 'assembly', 'merged-v1.md');
+    if (existsSync(p)) unlinkSync(p);
+  },
   waitPoint: {
     reason: '初稿组装完成，需要用户审阅确认',
     instructions: '请审阅 assembly/merged-v1.md 初稿。确认无误后再次运行 /confwrite:write 继续定稿。',
+    // 组装必须先生成产物，否则用户会被要求审阅一个不存在的文件（Bug 10）
+    timing: 'after-execute',
   },
 };
 
@@ -455,25 +623,96 @@ export const phase7: PhaseDefinition = {
   exits: [
     { target: '8', condition: (ctx) => hasFile(ctx, 'output/finalization.json') },
   ],
+  // 清掉上次定稿的残件（Bug 28）
+  onEnter(ctx) {
+    const p = join(ctx.projectDir, 'output', 'finalization.json');
+    if (existsSync(p)) unlinkSync(p);
+  },
 };
 
 export const phase8: PhaseDefinition = {
   id: '8',
   name: '导出',
-  validate: () => ({ ok: true }),
+  // 依赖预检（Bug 16）：docx 导出需要 pandoc。
+  // 以前 checkDependencies() 是死代码，缺依赖时只会抛出难懂的
+  // execFileSync 报错，用户不知道该怎么办。
+  validate: () => {
+    const deps = new FormatConverter().checkDependencies();
+    if (!deps.pandoc.installed) {
+      return {
+        ok: false,
+        error:
+          '导出 Word 需要 pandoc，但未检测到。请先安装：\n' +
+          '  Arch:    sudo pacman -S pandoc\n' +
+          '  Debian:  sudo apt install pandoc\n' +
+          '  其他:    https://pandoc.org/installing.html\n' +
+          '安装后再次运行 /confwrite:write 继续。',
+      };
+    }
+    return { ok: true };
+  },
+  // 真正执行导出（Bug 9）
+  // 原实现只返回一个 action: 'export_docx' 描述，而 dispatcher 与
+  // EXECUTABLE_ACTIONS 都不处理它 —— 导出从未发生，出口条件永不满足，
+  // 流程空转到 MAX_TICKS（实测：29 个任务消耗 2000 次 tick）。
+  // 改为与 phase5/6/7 一致：在本阶段 execute 内直接完成工作。
   async execute(ctx) {
+    const { exportDocument } = await import('../commands/export.js');
+    const outputPath = join(ctx.projectDir, 'output', 'final.docx');
+
+    const result = await exportDocument(ctx.projectDir, {
+      format: 'docx',
+      outputPath,
+      toc: true,
+    });
+
     return {
       action: 'export_docx',
-      message: 'Phase 8: 导出 Word 文档',
-      params: { projectDir: ctx.projectDir },
+      message: result.success
+        ? `Phase 8: 导出完成 → ${outputPath}`
+        : `Phase 8: 导出失败 — ${result.error ?? '未知错误'}`,
+      params: { projectDir: ctx.projectDir, outputPath, success: result.success },
     };
   },
   exits: [
     { target: 'done', condition: (ctx) => hasFile(ctx, 'output/final.docx') },
   ],
+  // 清掉上次导出的残件（Bug 28）
+  //
+  // 实测事故：pandoc 报 YAML 解析错误（分隔符 --- 被当元数据块），
+  // 流程却仍进入 done —— 因为出口条件只有「final.docx 是否存在」，
+  // 而上次运行留了一份 552 KB 的坏文件（29 张图全变成 alt 文字）。
+  // 更隐蔽的是：出口检查在 execute **之前**，所以残件存在时
+  // phase 8 连导出都不会尝试，直接跳过。
+  onEnter(ctx) {
+    const p = join(ctx.projectDir, 'output', 'final.docx');
+    if (existsSync(p)) unlinkSync(p);
+  },
 };
 
 // ============ Phase Registry ============
+
+// 终态阶段（Bug 30）
+//
+// `done` 一直是 phase 8 的跳转目标，也是合法的 PhaseEnum 成员，
+// 但从未注册进 phases 表。后果：推进到 done 之后的下一次 tick
+// 走 `phases.get('done')` → undefined → 返回
+//   { phaseName: '未知', blocked: true, error: '未知 Phase: done' }
+// 而 index.ts 把 blocked 一律当失败，于是**一次成功的运行**在收尾时
+// 打印红色 Error 并把 stoppedReason 记成 'blocked'。
+//
+// 注册后至少让 `phases.get('done')` 有定义、名字显示正常；
+// 真正的「不再 tick」由 index.ts 循环顶部的终态检查负责。
+const phaseDone: PhaseDefinition = {
+  id: 'done',
+  name: '完成',
+  validate: () => ({ ok: true }),
+  // 不会被调用：index.ts 在 tick 之前就判定终态并退出
+  async execute() {
+    return { action: 'complete', message: '文档已完成' };
+  },
+  exits: [],
+};
 
 export const phases: Map<Phase, PhaseDefinition> = new Map([
   ['0a', phase0a],
@@ -489,4 +728,5 @@ export const phases: Map<Phase, PhaseDefinition> = new Map([
   ['6', phase6],
   ['7', phase7],
   ['8', phase8],
+  ['done', phaseDone],
 ]);
