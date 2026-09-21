@@ -200,21 +200,21 @@ export function renderSvg(input: RenderInput): string {
     const fill = node.highWeight ? darken(base, 0.3) : base;
     const strokeWidth = node.highWeight ? 2.5 : 1.5;
 
+    const startY = node.y + node.h / 2 - ((node.label.length - 1) * lineHeight) / 2 + metrics.fontSize / 3;
+    const textParts = node.label.map((line, i) =>
+      `<text x="${node.x + node.w / 2}" y="${startY + i * lineHeight}" text-anchor="middle" ` +
+        `fill="#ffffff" font-size="${metrics.fontSize}"` +
+        `${node.highWeight ? ' font-weight="600"' : ''} ` +
+        `font-family="${CJK_FONT_FAMILY}">${escapeXml(line)}</text>`,
+    );
+
     parts.push(
       `<g data-node-id="${escapeXml(node.id)}" data-node-h="${node.h}">` +
         `<rect x="${node.x}" y="${node.y}" width="${node.w}" height="${node.h}" rx="${radius}" ` +
-        `fill="${fill}" stroke="${darken(base, 0.25)}" stroke-width="${strokeWidth}"/></g>`,
+        `fill="${fill}" stroke="${darken(base, 0.25)}" stroke-width="${strokeWidth}"/>` +
+        textParts.join('') +
+        `</g>`,
     );
-
-    const startY = node.y + node.h / 2 - ((node.label.length - 1) * lineHeight) / 2 + metrics.fontSize / 3;
-    node.label.forEach((line, i) => {
-      parts.push(
-        `<text x="${node.x + node.w / 2}" y="${startY + i * lineHeight}" text-anchor="middle" ` +
-          `fill="#ffffff" font-size="${metrics.fontSize}"` +
-          `${node.highWeight ? ' font-weight="600"' : ''} ` +
-          `font-family="${CJK_FONT_FAMILY}">${escapeXml(line)}</text>`,
-      );
-    });
   }
 
   parts.push('</svg>');

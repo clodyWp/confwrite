@@ -56,6 +56,8 @@ export interface RouteOptions {
   clearance?: number;
   /** 连线标签的字号（由编排层传入最终字号，保证与渲染一致） */
   labelFontSize?: number;
+  /** 容器标签的占位框（边标签需避开） */
+  containerLabelBoxes?: Box[];
 }
 
 /**
@@ -679,9 +681,18 @@ export function routeEdges(
     const around = routeAround(from, to, allBoxes, bounds, clearance);
     if (around) return around;
 
+    // 阶梯路由：目标在上方时从顶部出发，在下方时从底部出发
+    const fromCenter = { x: from.x + from.w / 2, y: from.y + from.h / 2 };
+    const stairStart = to.y < fromCenter.y
+      ? { x: from.x + from.w / 2, y: from.y }  // 目标在上方，从顶部出发
+      : { x: from.x + from.w / 2, y: from.y + from.h };  // 目标在下方，从底部出发
+    const stairEnd = to.y < fromCenter.y
+      ? { x: to.x + to.w / 2, y: to.y + to.h }  // 目标在上方，从底部进入
+      : { x: to.x + to.w / 2, y: to.y };  // 目标在下方，从顶部进入
+
     const stair = staircaseRoute(
-      { x: from.x + from.w / 2, y: from.y + from.h },
-      { x: to.x + to.w / 2, y: to.y },
+      stairStart,
+      stairEnd,
       allBoxes,
       bounds,
       [from, to],
@@ -790,11 +801,20 @@ export function routeEdges(
       // 反向（往后指）：从右侧的自由通道绕回
       // 反向边：右侧绕行。通道从"两个端点的右边缘"开始逐格向右试探，
       // 并且校验**整条路线**（含最后横切入目标的那一段）
+      //
+      // 修复：目标在上方时从顶部出发，在下方时从底部出发，避免穿过自身节点
+      const fromAnchor = to.y < fromCenter.y 
+        ? { x: fromCenter.x, y: from.y }  // 目标在上方，从顶部出发
+        : { x: fromCenter.x, y: from.y + from.h };  // 目标在下方，从底部出发
+      const toAnchor = to.y < fromCenter.y
+        ? { x: toCenter.x, y: to.y + to.h }  // 目标在上方，从底部进入
+        : { x: toCenter.x, y: to.y };  // 目标在下方，从顶部进入
+      
       const approach = (channelX: number, fromSide: boolean, toSide: boolean): Point[] => [
-        { x: fromSide ? from.x + from.w : from.x, y: fromCenter.y },
-        { x: channelX, y: fromCenter.y },
-        { x: channelX, y: toCenter.y },
-        { x: toSide ? to.x + to.w : to.x, y: toCenter.y },
+        { x: fromSide ? from.x + from.w : from.x, y: fromAnchor.y },
+        { x: channelX, y: fromAnchor.y },
+        { x: channelX, y: toAnchor.y },
+        { x: toSide ? to.x + to.w : to.x, y: toAnchor.y },
       ];
 
       const backCandidates: Point[][] = [];
@@ -843,6 +863,8 @@ export function routeEdges(
         if (box.y < bounds.top || box.y + box.h > bounds.bottom + 24) continue;
         if (allBoxes.some(b => intersects(box, b))) continue;
         if (occupiedLabels.some(b => intersects(box, b))) continue;
+        // 避开容器标签
+        if (options.containerLabelBoxes?.some(b => intersects(box, b))) continue;
 
         chosen = candidate;
         occupiedLabels.push(box);
