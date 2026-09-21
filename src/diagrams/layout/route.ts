@@ -849,15 +849,17 @@ export function routeEdges(
       // 占位比实测宽度略大：真实字体的字宽与估算有偏差，
       // 紧贴着的两个标签在实际渲染里就会擦边（保守口径实测到 8x12px 重叠）
       const width = textWidth(text, labelFontSize) + 12;
-      const height = labelFontSize * 1.2 + 8;
+      // 渲染时文本基线在 labelAt.y - 4，文本框高度约 fontSize * 1.2
+      const height = labelFontSize * 1.2;
 
       // 逐个候选位置试探：既不压节点，也不压已放好的标签，还不能出画布
       let chosen: { at: Point; anchor: 'middle' | 'start' } | undefined;
       for (const candidate of labelCandidates(points)) {
+        // 碰撞检测框：从基线向上 height，向下 4px（与渲染一致）
         const box: Box =
           candidate.anchor === 'middle'
-            ? { x: candidate.at.x - width / 2, y: candidate.at.y - height * 0.8, w: width, h: height }
-            : { x: candidate.at.x, y: candidate.at.y - height * 0.8, w: width, h: height };
+            ? { x: candidate.at.x - width / 2, y: candidate.at.y - 4 - height, w: width, h: height + 4 }
+            : { x: candidate.at.x, y: candidate.at.y - 4 - height, w: width, h: height + 4 };
 
         if (box.x < bounds.left || box.x + box.w > bounds.right) continue;
         if (box.y < bounds.top || box.y + box.h > bounds.bottom + 24) continue;

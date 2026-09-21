@@ -105,12 +105,12 @@ describe('边标签不能与容器标签重叠', () => {
       .filter(e => e.label && e.labelAt)
       .map(e => {
         const w = e.label!.length * 11 * 0.6 + 12; // 估算宽度
-        const h = 11 * 1.2 + 8;
+        const h = 11 * 1.2; // 文本框高度
         return {
           x: e.labelAnchor === 'middle' ? e.labelAt!.x - w / 2 : e.labelAt!.x,
-          y: e.labelAt!.y - h * 0.8,
+          y: e.labelAt!.y - 4 - h, // 渲染时基线在 labelAt.y - 4，文本框向上 h
           w,
-          h,
+          h: h + 4, // 加上向下的 4px
         };
       });
 
