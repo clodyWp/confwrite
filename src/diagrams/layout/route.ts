@@ -56,6 +56,8 @@ export interface RouteOptions {
   clearance?: number;
   /** 连线标签的字号（由编排层传入最终字号，保证与渲染一致） */
   labelFontSize?: number;
+  /** 容器标签的占位框（边标签需避开） */
+  containerLabelBoxes?: Box[];
 }
 
 /**
@@ -861,6 +863,8 @@ export function routeEdges(
         if (box.y < bounds.top || box.y + box.h > bounds.bottom + 24) continue;
         if (allBoxes.some(b => intersects(box, b))) continue;
         if (occupiedLabels.some(b => intersects(box, b))) continue;
+        // 避开容器标签
+        if (options.containerLabelBoxes?.some(b => intersects(box, b))) continue;
 
         chosen = candidate;
         occupiedLabels.push(box);

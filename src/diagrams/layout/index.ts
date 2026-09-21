@@ -377,6 +377,23 @@ export function layoutDiagram(spec: DiagramSpec, style: DiagramStyle, title?: st
   }
 
   // ---- 9. 正交路由 ----
+  // 计算容器标签的占位框（边标签需避开）
+  const containerLabelBoxes = containers
+    .filter(c => c.label)
+    .map(c => {
+      const labelFontSize = Math.max(9, metrics.fontSize - 1);
+      const labelWidth = Math.min(
+        c.label.length * labelFontSize * 0.6,
+        c.w - 16
+      );
+      return {
+        x: c.x + 8,
+        y: c.y + metrics.fontSize + 4 - labelFontSize * 0.8,
+        w: labelWidth,
+        h: labelFontSize * 1.2,
+      };
+    });
+
   const edges = routeEdges(boxes, spec.edges, {
     bounds: {
       left: metrics.margin,
@@ -387,6 +404,7 @@ export function layoutDiagram(spec: DiagramSpec, style: DiagramStyle, title?: st
     clearance: 6,
     // 传最终字号，保证标签的截断宽度与渲染一致
     labelFontSize: Math.max(9, metrics.fontSize - 2),
+    containerLabelBoxes,
   });
 
   // ---- 10. 自检：让问题可见，而不是悄悄产出畸形图 ----
