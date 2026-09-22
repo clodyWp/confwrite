@@ -106,6 +106,21 @@ export async function exportDocument(
 }
 
 /**
+ * Get reference doc path for pandoc conversion
+ * Returns the path to the custom reference.docx that defines proper list styles
+ */
+function getReferenceDocPath(): string | undefined {
+  // The compiled file is at dist/commands/export.js, templates is at ../../templates/
+  const altPath = new URL('../../templates/reference.docx', import.meta.url).pathname;
+  if (existsSync(altPath)) {
+    return altPath;
+  }
+  
+  // No reference doc found, pandoc will use its default
+  return undefined;
+}
+
+/**
  * Get chapter order from outline
  */
 function getChapterOrder(projectDir: string): string[] {
@@ -228,6 +243,7 @@ function exportWithPandoc(
     options.format as 'docx',
     {
       toc: options.toc,
+      referenceDoc: getReferenceDocPath(),
     }
   );
 

@@ -37,6 +37,7 @@
   "files": [
     "dist/",
     "knowledge/",
+    "templates/",
     "SKILL.md",
     "README.md",
     "CHANGELOG.md",
