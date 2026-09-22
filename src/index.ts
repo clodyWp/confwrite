@@ -240,7 +240,10 @@ export async function runWriteLoop(
           if (outcome === 'success' && taskResult.chapterId) {
             const originalTask = scheduler.list().find(t => t.id === taskResult.id);
             if (originalTask) {
-              const validation = outputValidator.validate(originalTask, state.round);
+              // 从 task id 中提取 round (格式: write-ch001-r1)
+              const roundMatch = originalTask.id.match(/-r(\d+)$/);
+              const taskRound = roundMatch ? parseInt(roundMatch[1], 10) : state.round;
+              const validation = outputValidator.validate(originalTask, taskRound);
               if (!validation.valid) {
                 notify(`⚠️ ${OutputValidator.formatErrors(validation)}`, 'warning');
                 // 验证失败，标记任务为 failed 以便重试
