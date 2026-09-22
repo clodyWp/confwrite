@@ -323,6 +323,7 @@ const stylesPath = `${tempDir}/docx-content/word/styles.xml`;
 let stylesContent = readFileSync(stylesPath, 'utf-8');
 
 // 修改 Normal 样式（正文）
+// 使用字体回退机制：优先 Windows 字体，回退到 Noto CJK
 stylesContent = stylesContent.replace(
   /<w:style w:type="paragraph" w:default="1" w:styleId="Normal">[\s\S]*?<\/w:style>/,
   `<w:style w:type="paragraph" w:default="1" w:styleId="Normal">
@@ -333,7 +334,9 @@ stylesContent = stylesContent.replace(
       <w:spacing w:line="360" w:line-rule="auto"/>
     </w:pPr>
     <w:rPr>
-      <w:rFonts w:ascii="宋体" w:eastAsia="宋体" w:hAnsi="Times New Roman" w:cs="Times New Roman"/>
+      <w:rFonts w:ascii="Times New Roman" w:eastAsia="宋体" w:hAnsi="Times New Roman" w:cs="Times New Roman">
+        <w:altName w:val="Noto Serif CJK SC"/>
+      </w:rFonts>
       <w:sz w:val="24"/>
       <w:szCs w:val="24"/>
     </w:rPr>
@@ -341,8 +344,9 @@ stylesContent = stylesContent.replace(
 );
 
 // 添加或修改标题样式
+// 使用字体回退机制，确保跨平台兼容
 const headingStyles = `
-  <!-- 标题1：三号黑体 -->
+  <!-- 标题1：三号黑体，回退到思源黑体 -->
   <w:style w:type="paragraph" w:styleId="Heading1">
     <w:name w:val="heading 1"/>
     <w:basedOn w:val="Normal"/>
@@ -357,7 +361,9 @@ const headingStyles = `
       <w:outlineLvl w:val="0"/>
     </w:pPr>
     <w:rPr>
-      <w:rFonts w:ascii="黑体" w:eastAsia="黑体" w:hAnsi="黑体"/>
+      <w:rFonts w:ascii="黑体" w:eastAsia="黑体" w:hAnsi="黑体">
+        <w:altName w:val="Noto Sans CJK SC"/>
+      </w:rFonts>
       <w:b/>
       <w:bCs/>
       <w:sz w:val="32"/>
@@ -365,7 +371,7 @@ const headingStyles = `
     </w:rPr>
   </w:style>
   
-  <!-- 标题2：四号黑体 -->
+  <!-- 标题2：四号黑体，回退到思源黑体 -->
   <w:style w:type="paragraph" w:styleId="Heading2">
     <w:name w:val="heading 2"/>
     <w:basedOn w:val="Normal"/>
@@ -380,7 +386,9 @@ const headingStyles = `
       <w:outlineLvl w:val="1"/>
     </w:pPr>
     <w:rPr>
-      <w:rFonts w:ascii="黑体" w:eastAsia="黑体" w:hAnsi="黑体"/>
+      <w:rFonts w:ascii="黑体" w:eastAsia="黑体" w:hAnsi="黑体">
+        <w:altName w:val="Noto Sans CJK SC"/>
+      </w:rFonts>
       <w:b/>
       <w:bCs/>
       <w:sz w:val="28"/>
@@ -388,7 +396,7 @@ const headingStyles = `
     </w:rPr>
   </w:style>
   
-  <!-- 标题3：小四号黑体 -->
+  <!-- 标题3：小四号黑体，回退到思源黑体 -->
   <w:style w:type="paragraph" w:styleId="Heading3">
     <w:name w:val="heading 3"/>
     <w:basedOn w:val="Normal"/>
@@ -403,7 +411,9 @@ const headingStyles = `
       <w:outlineLvl w:val="2"/>
     </w:pPr>
     <w:rPr>
-      <w:rFonts w:ascii="黑体" w:eastAsia="黑体" w:hAnsi="黑体"/>
+      <w:rFonts w:ascii="黑体" w:eastAsia="黑体" w:hAnsi="黑体">
+        <w:altName w:val="Noto Sans CJK SC"/>
+      </w:rFonts>
       <w:b/>
       <w:bCs/>
       <w:sz w:val="24"/>
@@ -411,7 +421,7 @@ const headingStyles = `
     </w:rPr>
   </w:style>
   
-  <!-- 标题4：小四号楷体 -->
+  <!-- 标题4：小四号楷体，回退到思源黑体（Linux 通常没有楷体） -->
   <w:style w:type="paragraph" w:styleId="Heading4">
     <w:name w:val="heading 4"/>
     <w:basedOn w:val="Normal"/>
@@ -426,7 +436,9 @@ const headingStyles = `
       <w:outlineLvl w:val="3"/>
     </w:pPr>
     <w:rPr>
-      <w:rFonts w:ascii="楷体" w:eastAsia="楷体" w:hAnsi="楷体"/>
+      <w:rFonts w:ascii="楷体" w:eastAsia="楷体" w:hAnsi="楷体">
+        <w:altName w:val="Noto Sans CJK SC"/>
+      </w:rFonts>
       <w:b/>
       <w:bCs/>
       <w:sz w:val="24"/>
@@ -472,13 +484,16 @@ rmSync(tempDir, { recursive: true });
 
 console.log(`✓ 已生成参考文档：${resolvedOutputPath}`);
 console.log('');
-console.log('样式配置：');
-console.log('  - 正文：宋体/Times New Roman，小四号（12pt），1.5倍行距');
-console.log('  - 标题1：黑体，三号（16pt），加粗');
-console.log('  - 标题2：黑体，四号（14pt），加粗');
-console.log('  - 标题3：黑体，小四号（12pt），加粗');
-console.log('  - 标题4：楷体，小四号（12pt），加粗');
-console.log('  - 列表：正确的多级编号样式');
+console.log('跨平台字体配置（使用字体回退机制）：');
+console.log('  - 正文：宋体 → Noto Serif CJK SC（思源宋体）');
+console.log('  - 标题1-3：黑体 → Noto Sans CJK SC（思源黑体）');
+console.log('  - 标题4：楷体 → Noto Sans CJK SC（思源黑体）');
+console.log('  - 西文：Times New Roman');
+console.log('');
+console.log('字体回退机制说明：');
+console.log('  - Windows 系统：使用宋体、黑体、楷体');
+console.log('  - Linux 系统：自动回退到 Noto CJK 字体');
+console.log('  - macOS 系统：使用系统默认中文字体');
 console.log('');
 console.log('使用方法：');
 console.log(`  pandoc input.md -o output.docx --reference-doc=${resolvedOutputPath}`);

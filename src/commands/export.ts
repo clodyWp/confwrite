@@ -4,6 +4,7 @@ import { execFileSync } from 'node:child_process';
 import { validateShellSafe } from '../utils/paths.js';
 import { ChapterAssembler, AssemblyOptions, AssemblyResult } from '../assemble/assembler.js';
 import { FormatConverter } from '../assemble/converter.js';
+import { cleanupDuplicateStyles } from '../assemble/cleanup-docx-styles.js';
 
 /**
  * Export format
@@ -266,10 +267,13 @@ function exportWithPandoc(
     // pandoc 解析**相对图片路径**时基于进程 cwd，而文档里写的是
     // `../figures/xxx.png`（相对文档所在目录）。若继承调用方 cwd，
     // 这个相对路径会指向错误位置，pandoc 只能降级为
-    // “replacing image with description” —— 导出的 Word 里没有图。
+    // "replacing image with description" —— 导出的 Word 里没有图。
     // 实测：29 张图全部未嵌入，docx 只有 552 KB（应为 1.47 MB）。
     const cwd = dirname(tempMdPath);
     execFileSync('pandoc', args, { stdio: 'inherit', cwd });
+
+    // 清理重复的样式定义（pandoc 会保留自己的默认样式，与 reference.docx 冲突）
+    cleanupDuplicateStyles(options.outputPath);
 
     // Clean up temporary file
     unlinkSync(tempMdPath);
