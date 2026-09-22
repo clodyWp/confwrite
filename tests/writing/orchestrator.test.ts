@@ -235,8 +235,10 @@ describe('WritingOrchestrator', () => {
 
       orchestrator.updateChapterStatus(mockState, task, 'failed');
 
-      expect(mockState.chapters.ch001.status).toBe('pending');
-      expect(mockState.chapters.ch001.attempt).toBe(1);
+      // 失败次数 < 5 时，设置为 reviewed，让 fixer 在下一轮修复
+      expect(mockState.chapters.ch001.status).toBe('reviewed');
+      expect(mockState.chapters.ch001.lastReviewVerdict).toBe('revise');
+      expect(mockState.chapters.ch001.consecutiveFailures).toBe(1);
     });
   });
 

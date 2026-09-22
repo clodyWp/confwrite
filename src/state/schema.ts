@@ -42,6 +42,10 @@ export const ChapterState = Type.Object({
     Type.Literal('revise'),
     Type.Literal('reject'),
   ])),
+  // 失败处理相关字段
+  consecutiveFailures: Type.Number({ default: 0 }),
+  maxRounds: Type.Number({ default: 5 }),
+  failureReason: Type.Optional(Type.String()),
 });
 export type ChapterState = Static<typeof ChapterState>;
 

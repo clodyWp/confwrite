@@ -96,7 +96,7 @@ describe('Dispatcher — subagent integration', () => {
       expect(state.chapters.ch001.status).toBe('written');
     });
 
-    it('processTask marks task failed and reverts chapter status', async () => {
+    it('processTask marks task failed and sets chapter to reviewed', async () => {
       await dispatcher.dispatch('spawn_writers', {
         chapters: ['ch001'],
         projectDir: TEST_DIR,
@@ -111,7 +111,9 @@ describe('Dispatcher — subagent integration', () => {
       expect(failedTask?.status).toBe('failed');
 
       const state = store.load()!;
-      expect(state.chapters.ch001.status).toBe('pending');
+      // 失败次数 < 5 时，设置为 reviewed，让 fixer 在下一轮修复
+      expect(state.chapters.ch001.status).toBe('reviewed');
+      expect(state.chapters.ch001.consecutiveFailures).toBe(1);
     });
 
     it('processTask for reviewer success with accept → chapter completed', async () => {

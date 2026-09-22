@@ -1,7 +1,7 @@
 import type { ProjectState, ChapterState } from '../state/schema.js';
 import type { Task } from '../scheduler/types.js';
 import type { ReviewDecision } from './task-executor.js';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
 /**
@@ -122,14 +122,41 @@ export class WritingOrchestrator {
     const chapter = state.chapters[task.chapterId];
     if (!chapter) return;
 
+    // 初始化新字段（兼容旧状态）
+    if (chapter.consecutiveFailures === undefined) chapter.consecutiveFailures = 0;
+    if (chapter.maxRounds === undefined) chapter.maxRounds = 5;
+
     if (outcome === 'failed') {
-      // 任务失败，回退状态
-      chapter.status = 'pending';
-      chapter.attempt = chapter.attempt + 1;
+      chapter.consecutiveFailures += 1;
+      
+      // 检查是否有产物
+      const hasOutput = this.checkOutputExists(task.chapterId, chapter.round, projectDir);
+      
+      if (task.failureReason === 'rate_limited') {
+        // 429 限流：不增加轮次，等待重试
+        chapter.status = 'pending';
+      } else if (chapter.consecutiveFailures >= 5) {
+        // 连续失败 5 次
+        if (hasOutput) {
+          // 有产物：标记为 completed（降级接受）
+          chapter.status = 'completed';
+          chapter.failureReason = 'completed_with_issues';
+        } else {
+          // 无产物：标记为 failed
+          chapter.status = 'failed';
+          chapter.failureReason = 'no_output';
+        }
+      } else {
+        // 其他失败：保留产出，由 fixer 在下一轮修复
+        chapter.status = 'reviewed';
+        chapter.lastReviewVerdict = 'revise';
+      }
       return;
     }
 
     // 任务成功
+    chapter.consecutiveFailures = 0; // 成功时重置
+    
     switch (task.type) {
       case 'writer':
         chapter.status = 'written';
@@ -138,7 +165,18 @@ export class WritingOrchestrator {
       case 'reviewer': {
         const decision = this.parseReviewResult(task.result, task.chapterId, chapter.round, projectDir);
         chapter.lastReviewVerdict = decision.decision;
-        if (decision.decision === 'accept') {
+        
+        // 检查轮次限制
+        if (chapter.round >= chapter.maxRounds) {
+          const hasOutput = this.checkOutputExists(task.chapterId, chapter.round, projectDir);
+          if (hasOutput) {
+            chapter.status = 'completed';
+            chapter.failureReason = 'exceeded_max_rounds_with_output';
+          } else {
+            chapter.status = 'failed';
+            chapter.failureReason = 'exceeded_max_rounds_no_output';
+          }
+        } else if (decision.decision === 'accept') {
           chapter.status = 'completed';
         } else if (decision.decision === 'revise') {
           chapter.status = 'reviewed'; // needs fix
@@ -154,6 +192,19 @@ export class WritingOrchestrator {
         chapter.status = 'written';
         chapter.attempt = task.attempt;
         break;
+    }
+  }
+
+  /**
+   * 检查章节是否有产出文件
+   */
+  private checkOutputExists(chapterId: string, round: number, projectDir?: string): boolean {
+    if (!projectDir) return false;
+    const filePath = join(projectDir, 'drafts', 'chapters', `${chapterId}-v${round}.md`);
+    try {
+      return existsSync(filePath) && statSync(filePath).size > 0;
+    } catch {
+      return false;
     }
   }
 
