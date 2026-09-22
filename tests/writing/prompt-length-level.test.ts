@@ -71,11 +71,11 @@ describe('writer prompt 的度量层级', () => {
     expect(p).not.toMatch(/每个子节[^\n]*≥\s*5000/);
   });
 
-  it('完成标准里的字数项也是整节口径', () => {
+  it('重要提示里强调写完就结束', () => {
     const p = executor.generateWriterPrompt(baseTask, '# kit');
-    const checklist = p.split('## 完成标准')[1] ?? '';
-    expect(checklist).toMatch(/整节|整个章节/);
-    expect(checklist).not.toMatch(/每个子节/);
+    const important = p.split('## 重要提示')[1] ?? '';
+    expect(important).toMatch(/写完就结束/);
+    expect(important).toMatch(/不要检查字数/);
   });
 });
 
@@ -111,10 +111,10 @@ describe('fixer prompt 的度量层级', () => {
     expect(p).not.toMatch(/每个子节[^\n]*(5000|≥)/);
   });
 
-  it('完成标准里的字数项也是整节口径', () => {
+  it('重要提示里强调修复完就结束', () => {
     const p = executor.generateFixPrompt(baseTask, '# 正文', '# 审阅报告', 1);
-    const checklist = p.split('## 完成标准')[1] ?? '';
-    expect(checklist).toMatch(/整节|整个章节/);
-    expect(checklist).not.toMatch(/每个子节/);
+    const important = p.split('## 重要提示')[1] ?? '';
+    expect(important).toMatch(/修复完就结束/);
+    expect(important).toMatch(/不要检查字数/);
   });
 });
