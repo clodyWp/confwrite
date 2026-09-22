@@ -63,7 +63,7 @@ export interface ValidationCheck {
   detail?: string;
 }
 
-const MIN_FILE_SIZE = 1000; // 字节
+const MIN_CHAPTER_CHARS = 8000; // 章节最小字符数
 
 export class OutputValidator {
   private projectDir: string;
@@ -115,18 +115,22 @@ export class OutputValidator {
       return; // 后续检查无意义
     }
 
-    // 2. 文件大小
-    const stat = statSync(filePath);
-    const sizeOk = stat.size >= MIN_FILE_SIZE;
-    result.checks.push({ name: '文件大小', passed: sizeOk, detail: `${stat.size} bytes (min ${MIN_FILE_SIZE})` });
-    if (!sizeOk) {
-      result.errors.push(`草稿文件过小: ${stat.size} bytes < ${MIN_FILE_SIZE} bytes`);
-    }
-
-    // 3. 可读性（防编码损坏）
+    // 2. 字数统计（替代文件大小检查）
     try {
-      const content = readFileSync(filePath, 'utf-8').substring(0, 500);
-      const hasCorruption = /[\uFFFD]/.test(content) || /[\x00-\x08\x0B\x0C\x0E-\x1F]/.test(content);
+      const content = readFileSync(filePath, 'utf-8');
+      const charCount = content.length;
+      const charOk = charCount >= MIN_CHAPTER_CHARS;
+      result.checks.push({ 
+        name: '字数统计', 
+        passed: charOk, 
+        detail: `${charCount} 字 (min ${MIN_CHAPTER_CHARS})` 
+      });
+      if (!charOk) {
+        result.errors.push(`草稿字数不足: ${charCount} 字 < ${MIN_CHAPTER_CHARS} 字`);
+      }
+
+      // 3. 可读性（防编码损坏）
+      const hasCorruption = /[\uFFFD]/.test(content.substring(0, 500)) || /[\x00-\x08\x0B\x0C\x0E-\x1F]/.test(content.substring(0, 500));
       result.checks.push({ name: '文件可读', passed: !hasCorruption });
       if (hasCorruption) {
         result.errors.push('草稿文件编码损坏（包含替换字符或控制字符）');
@@ -198,24 +202,28 @@ export class OutputValidator {
       return;
     }
 
-    // 2. 文件大小
-    const stat = statSync(filePath);
-    const sizeOk = stat.size >= MIN_FILE_SIZE;
-    result.checks.push({ name: '文件大小', passed: sizeOk, detail: `${stat.size} bytes` });
-    if (!sizeOk) {
-      result.errors.push(`修复后文件过小: ${stat.size} bytes`);
-    }
-
-    // 3. 可读性
+    // 2. 字数统计（替代文件大小检查）
     try {
-      const content = readFileSync(filePath, 'utf-8').substring(0, 500);
-      const hasCorruption = /[\uFFFD]/.test(content);
+      const content = readFileSync(filePath, 'utf-8');
+      const charCount = content.length;
+      const charOk = charCount >= MIN_CHAPTER_CHARS;
+      result.checks.push({ 
+        name: '字数统计', 
+        passed: charOk, 
+        detail: `${charCount} 字 (min ${MIN_CHAPTER_CHARS})` 
+      });
+      if (!charOk) {
+        result.errors.push(`修复后字数不足: ${charCount} 字 < ${MIN_CHAPTER_CHARS} 字`);
+      }
+
+      // 3. 可读性
+      const hasCorruption = /[\uFFFD]/.test(content.substring(0, 500));
       result.checks.push({ name: '文件可读', passed: !hasCorruption });
       if (hasCorruption) {
         result.errors.push('修复后文件编码损坏');
       }
     } catch (err) {
-      result.checks.push({ name: '文件可读', passed: false });
+      result.checks.push({ name: '文件可读', passed: false, detail: String(err) });
       result.errors.push(`无法读取修复后文件: ${err}`);
     }
   }

@@ -34,12 +34,12 @@ describe('OutputValidator', () => {
   });
 
   describe('Writer output validation', () => {
-    it('should pass when file exists, large enough, and readable', () => {
+    it('should pass when file exists, enough characters, and readable', () => {
       const validator = new OutputValidator(tmpDir);
       const task = makeTask('writer', 'ch001');
       
-      // Create a valid draft file
-      const content = '# Chapter 1\n\n' + 'A'.repeat(2000);
+      // Create a valid draft file with >= 8000 characters
+      const content = '# Chapter 1\n\n' + '中文字符测试'.repeat(2000);
       writeFileSync(join(tmpDir, 'drafts', 'chapters', 'ch001-v1.md'), content);
       
       const result = validator.validate(task, 1);
@@ -47,7 +47,7 @@ describe('OutputValidator', () => {
       expect(result.valid).toBe(true);
       expect(result.errors).toHaveLength(0);
       expect(result.checks.find(c => c.name === '文件存在')?.passed).toBe(true);
-      expect(result.checks.find(c => c.name === '文件大小')?.passed).toBe(true);
+      expect(result.checks.find(c => c.name === '字数统计')?.passed).toBe(true);
       expect(result.checks.find(c => c.name === '文件可读')?.passed).toBe(true);
     });
 
@@ -62,7 +62,7 @@ describe('OutputValidator', () => {
       expect(result.errors[0]).toContain('不存在');
     });
 
-    it('should fail when file is too small', () => {
+    it('should fail when character count is too low', () => {
       const validator = new OutputValidator(tmpDir);
       const task = makeTask('writer', 'ch001');
       
@@ -71,7 +71,7 @@ describe('OutputValidator', () => {
       const result = validator.validate(task, 1);
       
       expect(result.valid).toBe(false);
-      expect(result.errors.some(e => e.includes('过小'))).toBe(true);
+      expect(result.errors.some(e => e.includes('字数不足'))).toBe(true);
     });
 
     it('should fail when file has encoding corruption', () => {
@@ -176,8 +176,8 @@ describe('OutputValidator', () => {
       const validator = new OutputValidator(tmpDir);
       const task = makeTask('fixer', 'ch001');
       
-      // Fixer outputs v2 (round 1 → round 2)
-      const content = '# Fixed Chapter\n\n' + 'B'.repeat(2000);
+      // Fixer outputs v2 (round 1 → round 2) with >= 8000 characters
+      const content = '# Fixed Chapter\n\n' + '中文字符测试'.repeat(2000);
       writeFileSync(join(tmpDir, 'drafts', 'chapters', 'ch001-v2.md'), content);
       
       const result = validator.validate(task, 1);
@@ -196,7 +196,7 @@ describe('OutputValidator', () => {
       expect(result.errors[0]).toContain('不存在');
     });
 
-    it('should fail when new version is too small', () => {
+    it('should fail when new version character count is too low', () => {
       const validator = new OutputValidator(tmpDir);
       const task = makeTask('fixer', 'ch001');
       
@@ -205,7 +205,7 @@ describe('OutputValidator', () => {
       const result = validator.validate(task, 1);
       
       expect(result.valid).toBe(false);
-      expect(result.errors.some(e => e.includes('过小'))).toBe(true);
+      expect(result.errors.some(e => e.includes('字数不足'))).toBe(true);
     });
   });
 
