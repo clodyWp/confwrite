@@ -28,4 +28,5 @@ export interface Task {
   result?: string;
   startedAt?: number;
   completedAt?: number;
+  failureReason?: 'budget_exceeded' | 'loop_detected' | 'validation_failed' | 'rate_limited' | 'other';
 }
