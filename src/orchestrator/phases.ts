@@ -363,7 +363,9 @@ export const phase4b: PhaseDefinition = {
         const chapters = Object.values(ctx.state.chapters);
         const needsReview = chapters.some(ch => ['written', 'reviewing'].includes(ch.status));
         const hasProcessed = chapters.some(ch => ['reviewed', 'completed', 'failed', 'skipped'].includes(ch.status));
-        return !needsReview && hasProcessed;
+        // 必须有至少一个章节完成或待审阅，才能推进到 4c
+        const hasProgress = chapters.some(ch => ['completed', 'reviewed'].includes(ch.status));
+        return !needsReview && hasProcessed && hasProgress;
       },
     },
   ],
@@ -418,9 +420,13 @@ export const phase4c: PhaseDefinition = {
     },
     {
       target: '5',
-      condition: (ctx) => Object.values(ctx.state.chapters).every(
-        ch => ['completed', 'skipped', 'failed'].includes(ch.status),
-      ),
+      condition: (ctx) => {
+        const chapters = Object.values(ctx.state.chapters);
+        // 必须有至少一个章节完成，才能推进到 phase 5
+        const hasCompleted = chapters.some(ch => ch.status === 'completed');
+        const allDone = chapters.every(ch => ['completed', 'skipped', 'failed'].includes(ch.status));
+        return hasCompleted && allDone;
+      },
     },
   ],
 };
