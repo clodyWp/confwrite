@@ -69,6 +69,8 @@ export function syncChaptersFromOutline(
         version: 0,
         round: 1,
         attempt: 0,
+        consecutiveFailures: 0,
+        maxRounds: 5,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
