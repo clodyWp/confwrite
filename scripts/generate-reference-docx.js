@@ -2,8 +2,10 @@
 /**
  * 生成 Word 参考文档模板
  * 
- * 该脚本创建一个自定义的 reference.docx，用于 pandoc 转换时
- * 正确映射多级列表样式到 Word 的编号系统。
+ * 该脚本创建一个自定义的 reference.docx，包含：
+ * 1. 正确的多级列表样式（无序/有序）
+ * 2. 完整的文档样式（字体、字号、行距、标题等）
+ * 3. 适合中文技术文档的排版规范
  * 
  * 使用方法：
  *   node scripts/generate-reference-docx.js [output-path]
@@ -316,12 +318,123 @@ const customNumberingXml = `<?xml version="1.0" encoding="UTF-8"?>
 
 writeFileSync(`${tempDir}/docx-content/word/numbering.xml`, customNumberingXml);
 
-// 创建自定义 styles.xml - 添加 List Paragraph 样式
+// 读取并修改 styles.xml
 const stylesPath = `${tempDir}/docx-content/word/styles.xml`;
 let stylesContent = readFileSync(stylesPath, 'utf-8');
 
-// 在 </w:styles> 之前插入 List Paragraph 样式
-const listParagraphStyle = `
+// 修改 Normal 样式（正文）
+stylesContent = stylesContent.replace(
+  /<w:style w:type="paragraph" w:default="1" w:styleId="Normal">[\s\S]*?<\/w:style>/,
+  `<w:style w:type="paragraph" w:default="1" w:styleId="Normal">
+    <w:name w:val="Normal"/>
+    <w:qFormat/>
+    <w:pPr>
+      <w:widowControl w:val="0"/>
+      <w:spacing w:line="360" w:line-rule="auto"/>
+    </w:pPr>
+    <w:rPr>
+      <w:rFonts w:ascii="宋体" w:eastAsia="宋体" w:hAnsi="Times New Roman" w:cs="Times New Roman"/>
+      <w:sz w:val="24"/>
+      <w:szCs w:val="24"/>
+    </w:rPr>
+  </w:style>`
+);
+
+// 添加或修改标题样式
+const headingStyles = `
+  <!-- 标题1：三号黑体 -->
+  <w:style w:type="paragraph" w:styleId="Heading1">
+    <w:name w:val="heading 1"/>
+    <w:basedOn w:val="Normal"/>
+    <w:next w:val="Normal"/>
+    <w:link w:val="Heading1Char"/>
+    <w:uiPriority w:val="9"/>
+    <w:qFormat/>
+    <w:pPr>
+      <w:keepNext/>
+      <w:keepLines/>
+      <w:spacing w:before="340" w:after="330" w:line="578" w:line-rule="auto"/>
+      <w:outlineLvl w:val="0"/>
+    </w:pPr>
+    <w:rPr>
+      <w:rFonts w:ascii="黑体" w:eastAsia="黑体" w:hAnsi="黑体"/>
+      <w:b/>
+      <w:bCs/>
+      <w:sz w:val="32"/>
+      <w:szCs w:val="32"/>
+    </w:rPr>
+  </w:style>
+  
+  <!-- 标题2：四号黑体 -->
+  <w:style w:type="paragraph" w:styleId="Heading2">
+    <w:name w:val="heading 2"/>
+    <w:basedOn w:val="Normal"/>
+    <w:next w:val="Normal"/>
+    <w:link w:val="Heading2Char"/>
+    <w:uiPriority w:val="9"/>
+    <w:qFormat/>
+    <w:pPr>
+      <w:keepNext/>
+      <w:keepLines/>
+      <w:spacing w:before="260" w:after="260" w:line="416" w:line-rule="auto"/>
+      <w:outlineLvl w:val="1"/>
+    </w:pPr>
+    <w:rPr>
+      <w:rFonts w:ascii="黑体" w:eastAsia="黑体" w:hAnsi="黑体"/>
+      <w:b/>
+      <w:bCs/>
+      <w:sz w:val="28"/>
+      <w:szCs w:val="28"/>
+    </w:rPr>
+  </w:style>
+  
+  <!-- 标题3：小四号黑体 -->
+  <w:style w:type="paragraph" w:styleId="Heading3">
+    <w:name w:val="heading 3"/>
+    <w:basedOn w:val="Normal"/>
+    <w:next w:val="Normal"/>
+    <w:link w:val="Heading3Char"/>
+    <w:uiPriority w:val="9"/>
+    <w:qFormat/>
+    <w:pPr>
+      <w:keepNext/>
+      <w:keepLines/>
+      <w:spacing w:before="220" w:after="220" w:line="360" w:line-rule="auto"/>
+      <w:outlineLvl w:val="2"/>
+    </w:pPr>
+    <w:rPr>
+      <w:rFonts w:ascii="黑体" w:eastAsia="黑体" w:hAnsi="黑体"/>
+      <w:b/>
+      <w:bCs/>
+      <w:sz w:val="24"/>
+      <w:szCs w:val="24"/>
+    </w:rPr>
+  </w:style>
+  
+  <!-- 标题4：小四号楷体 -->
+  <w:style w:type="paragraph" w:styleId="Heading4">
+    <w:name w:val="heading 4"/>
+    <w:basedOn w:val="Normal"/>
+    <w:next w:val="Normal"/>
+    <w:link w:val="Heading4Char"/>
+    <w:uiPriority w:val="9"/>
+    <w:qFormat/>
+    <w:pPr>
+      <w:keepNext/>
+      <w:keepLines/>
+      <w:spacing w:before="200" w:after="200" w:line="360" w:line-rule="auto"/>
+      <w:outlineLvl w:val="3"/>
+    </w:pPr>
+    <w:rPr>
+      <w:rFonts w:ascii="楷体" w:eastAsia="楷体" w:hAnsi="楷体"/>
+      <w:b/>
+      <w:bCs/>
+      <w:sz w:val="24"/>
+      <w:szCs w:val="24"/>
+    </w:rPr>
+  </w:style>
+  
+  <!-- 列表段落样式 -->
   <w:style w:type="paragraph" w:styleId="ListParagraph">
     <w:name w:val="List Paragraph"/>
     <w:basedOn w:val="Normal"/>
@@ -342,7 +455,9 @@ const listParagraphStyle = `
   </w:style>
 `;
 
-stylesContent = stylesContent.replace('</w:styles>', `${listParagraphStyle}\n</w:styles>`);
+// 在 </w:styles> 之前插入标题样式
+stylesContent = stylesContent.replace('</w:styles>', `${headingStyles}\n</w:styles>`);
+
 writeFileSync(stylesPath, stylesContent);
 
 // 重新打包为 docx
@@ -356,6 +471,14 @@ execSync(`cp "${tempDir}/custom-reference.docx" "${resolvedOutputPath}"`);
 rmSync(tempDir, { recursive: true });
 
 console.log(`✓ 已生成参考文档：${resolvedOutputPath}`);
+console.log('');
+console.log('样式配置：');
+console.log('  - 正文：宋体/Times New Roman，小四号（12pt），1.5倍行距');
+console.log('  - 标题1：黑体，三号（16pt），加粗');
+console.log('  - 标题2：黑体，四号（14pt），加粗');
+console.log('  - 标题3：黑体，小四号（12pt），加粗');
+console.log('  - 标题4：楷体，小四号（12pt），加粗');
+console.log('  - 列表：正确的多级编号样式');
 console.log('');
 console.log('使用方法：');
 console.log(`  pandoc input.md -o output.docx --reference-doc=${resolvedOutputPath}`);
