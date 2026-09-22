@@ -144,6 +144,76 @@ export interface ProgressReportEvent {
 }
 
 /**
+ * 工具调用事件
+ */
+export interface ToolCallEvent {
+  type: 'tool.call';
+  taskId: string;
+  toolName: string;           // 'bash' | 'read' | 'write' | 'edit'
+  commandPrefix?: string;     // bash 命令的前 100 字符
+  targetFile?: string;        // 目标文件路径
+  callCount: number;          // 当前任务的第 N 次调用
+}
+
+/**
+ * 预算警告事件
+ */
+export interface BudgetWarningEvent {
+  type: 'budget.warning';
+  taskId: string;
+  warningType: 'approaching_limit';
+  currentCount: number;       // 当前调用次数
+  limit: number;              // 预算上限（30）
+}
+
+/**
+ * 预算超出事件
+ */
+export interface BudgetExceededEvent {
+  type: 'budget.exceeded';
+  taskId: string;
+  totalCalls: number;
+  limit: number;
+  action: 'completed_with_warning';  // 保留产出，标记完成
+}
+
+/**
+ * 循环检测事件
+ */
+export interface LoopDetectedEvent {
+  type: 'loop.detected';
+  taskId: string;
+  toolName: string;
+  commandPrefix: string;
+  consecutiveCount: number;   // 连续次数（3=警告，5=终止）
+  action: 'warning' | 'terminated';
+}
+
+/**
+ * 章节失败事件
+ */
+export interface ChapterFailedEvent {
+  type: 'chapter.failed';
+  chapterId: string;
+  round: number;
+  failureReason: 'exceeded_max_rounds' | 'too_many_failures' | 'no_output';
+  hasOutput: boolean;         // 是否有产物
+  finalAction: 'completed' | 'failed';  // 最终处理
+}
+
+/**
+ * 轮次超限事件
+ */
+export interface RoundExceededEvent {
+  type: 'round.exceeded';
+  chapterId: string;
+  currentRound: number;
+  maxRounds: number;
+  hasOutput: boolean;
+  finalAction: 'completed' | 'failed';
+}
+
+/**
  * 所有事件的联合类型
  */
 export type LogEvent =
@@ -155,7 +225,13 @@ export type LogEvent =
   | DiagramScanEvent
   | DiagramGenerateEvent
   | RateLimitEvent
-  | ProgressReportEvent;
+  | ProgressReportEvent
+  | ToolCallEvent
+  | BudgetWarningEvent
+  | BudgetExceededEvent
+  | LoopDetectedEvent
+  | ChapterFailedEvent
+  | RoundExceededEvent;
 
 /**
  * 事件类型字符串
