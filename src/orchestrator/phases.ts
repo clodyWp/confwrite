@@ -328,7 +328,7 @@ export const phase4a: PhaseDefinition = {
       condition: (ctx) => {
         const chapters = Object.values(ctx.state.chapters);
         return chapters.length > 0 && chapters.every(
-          ch => ['written', 'completed', 'failed', 'skipped'].includes(ch.status),
+          ch => ['written', 'reviewed', 'completed', 'failed', 'skipped'].includes(ch.status),
         );
       },
     },
