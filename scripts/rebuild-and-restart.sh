@@ -30,12 +30,17 @@ echo "4. 验证 pi 状态..."
 STATUS=$(herdr agent list 2>&1 | jq -r '.result.agents[] | select(.pane_id == "wK:p1") | .agent_status')
 echo "   状态: $STATUS"
 
-if [ "$STATUS" = "idle" ]; then
-  echo "✓ 验证完成"
-else
+if [ "$STATUS" != "idle" ]; then
   echo "✗ 验证失败"
   exit 1
 fi
+echo "✓ pi 已就绪"
+
+# 5. 验证版本
+echo ""
+echo "5. 验证加载版本..."
+herdr agent prompt wK:p1 "请运行 npm run version 显示当前加载的 confwrite 版本" --wait --timeout 15000 > /dev/null 2>&1
+echo "✓ 版本信息已显示"
 
 echo ""
 echo "=== 完成 ==="

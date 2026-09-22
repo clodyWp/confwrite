@@ -10,7 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "pack": "npm pack",
-    "install-pi": "bash scripts/install.sh"
+    "install-pi": "bash scripts/install.sh",
+    "version": "node scripts/version.js"
   },
   "pi": {
     "extensions": [
