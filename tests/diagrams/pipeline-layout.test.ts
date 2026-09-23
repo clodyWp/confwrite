@@ -207,6 +207,7 @@ describe('管线走新布局引擎（压缩而非拆图）', () => {
 
   it('仍然满足宽 ≤684 且高宽比 ≤1.5', () => {
     const { width, height } = sizeOf(svg);
+    console.log(`Width: ${width}, Height: ${height}, Ratio: ${(height / width).toFixed(4)}`);
     expect(width).toBeLessThanOrEqual(684);
     expect(height / width).toBeLessThanOrEqual(1.5);
   });

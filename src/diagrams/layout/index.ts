@@ -237,9 +237,9 @@ export function layoutDiagram(spec: DiagramSpec, style: DiagramStyle, title?: st
     ? base.containerLabelHeight + base.containerPad * 2 + crosscutStep * crosscutDrafts.length
     : 0;
 
-  // 相邻层都有容器时，层间距必须装得下容器标签区 + 两侧边距
+  // 相邻层都有容器时，层间距必须装得下容器标签区 + 两侧边距 + 容器间距（原则 7：≥30px）
   const minLayerGap = hasFlowContainer
-    ? base.containerPad * 2 + base.containerLabelHeight + 8
+    ? base.containerPad * 2 + base.containerLabelHeight + 29
     : undefined;
 
   const size = solveCanvas({
