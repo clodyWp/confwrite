@@ -354,12 +354,23 @@ export default function (pi: ExtensionAPI) {
   pi.registerCommand('confwrite:organize', {
     description: '整理项目素材（扫描、索引、生成素材包）',
     handler: async (args, ctx) => {
-      const projectDir = args ? resolve(ctx.cwd || process.cwd(), args) : ctx.cwd || process.cwd();
+      const workspaceDir = ctx.cwd || process.cwd();
+      const projectDir = args ? resolve(workspaceDir, 'projects', args) : workspaceDir;
 
       try {
         ctx.ui.notify('开始整理素材...', 'info');
         
         const result = await organizeMaterials(projectDir);
+        
+        // 更新项目状态：从 0a 推进到 0b
+        const store = new ProjectStore(projectDir);
+        const state = store.load();
+        if (state && state.currentPhase === '0a') {
+          state.currentPhase = '0b';
+          state.status = 'organizing';
+          state.lastUpdated = new Date().toISOString();
+          store.save(state);
+        }
         
         const message = [
           '素材整理完成！',
@@ -383,7 +394,8 @@ export default function (pi: ExtensionAPI) {
   pi.registerCommand('confwrite:write', {
     description: '推进写作流程（自动执行任务）',
     handler: async (args, ctx) => {
-      const projectDir = args ? resolve(ctx.cwd || process.cwd(), args) : ctx.cwd || process.cwd();
+      const workspaceDir = ctx.cwd || process.cwd();
+      const projectDir = args ? resolve(workspaceDir, 'projects', args) : workspaceDir;
       
       herdrBlock(pi, true, 'ConfWrite 写作中');
       try {
@@ -412,7 +424,8 @@ export default function (pi: ExtensionAPI) {
   pi.registerCommand('confwrite:status', {
     description: '查看项目进度',
     handler: async (args, ctx) => {
-      const projectDir = args ? resolve(ctx.cwd || process.cwd(), args) : ctx.cwd || process.cwd();
+      const workspaceDir = ctx.cwd || process.cwd();
+      const projectDir = args ? resolve(workspaceDir, 'projects', args) : workspaceDir;
       const machine = new StateMachine(projectDir);
       const status = machine.status();
 
@@ -447,7 +460,8 @@ export default function (pi: ExtensionAPI) {
   pi.registerCommand('confwrite:resume', {
     description: '恢复中断的项目（等同于 /confwrite:write）',
     handler: async (args, ctx) => {
-      const projectDir = args ? resolve(ctx.cwd || process.cwd(), args) : ctx.cwd || process.cwd();
+      const workspaceDir = ctx.cwd || process.cwd();
+      const projectDir = args ? resolve(workspaceDir, 'projects', args) : workspaceDir;
       const machine = new StateMachine(projectDir);
       const status = machine.status();
       if (!status) {
