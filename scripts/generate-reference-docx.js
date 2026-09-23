@@ -334,9 +334,7 @@ stylesContent = stylesContent.replace(
       <w:spacing w:line="360" w:line-rule="auto"/>
     </w:pPr>
     <w:rPr>
-      <w:rFonts w:ascii="Times New Roman" w:eastAsia="宋体" w:hAnsi="Times New Roman" w:cs="Times New Roman">
-        <w:altName w:val="Noto Serif CJK SC"/>
-      </w:rFonts>
+      <w:rFonts w:ascii="Times New Roman" w:eastAsia="宋体" w:hAnsi="Times New Roman" w:cs="Times New Roman"/>
       <w:sz w:val="24"/>
       <w:szCs w:val="24"/>
     </w:rPr>
@@ -361,9 +359,7 @@ const headingStyles = `
       <w:outlineLvl w:val="0"/>
     </w:pPr>
     <w:rPr>
-      <w:rFonts w:ascii="黑体" w:eastAsia="黑体" w:hAnsi="黑体">
-        <w:altName w:val="Noto Sans CJK SC"/>
-      </w:rFonts>
+      <w:rFonts w:ascii="黑体" w:eastAsia="黑体" w:hAnsi="黑体"/>
       <w:b/>
       <w:bCs/>
       <w:sz w:val="32"/>
@@ -386,9 +382,7 @@ const headingStyles = `
       <w:outlineLvl w:val="1"/>
     </w:pPr>
     <w:rPr>
-      <w:rFonts w:ascii="黑体" w:eastAsia="黑体" w:hAnsi="黑体">
-        <w:altName w:val="Noto Sans CJK SC"/>
-      </w:rFonts>
+      <w:rFonts w:ascii="黑体" w:eastAsia="黑体" w:hAnsi="黑体"/>
       <w:b/>
       <w:bCs/>
       <w:sz w:val="28"/>
@@ -411,9 +405,7 @@ const headingStyles = `
       <w:outlineLvl w:val="2"/>
     </w:pPr>
     <w:rPr>
-      <w:rFonts w:ascii="黑体" w:eastAsia="黑体" w:hAnsi="黑体">
-        <w:altName w:val="Noto Sans CJK SC"/>
-      </w:rFonts>
+      <w:rFonts w:ascii="黑体" w:eastAsia="黑体" w:hAnsi="黑体"/>
       <w:b/>
       <w:bCs/>
       <w:sz w:val="24"/>
@@ -436,9 +428,7 @@ const headingStyles = `
       <w:outlineLvl w:val="3"/>
     </w:pPr>
     <w:rPr>
-      <w:rFonts w:ascii="楷体" w:eastAsia="楷体" w:hAnsi="楷体">
-        <w:altName w:val="Noto Sans CJK SC"/>
-      </w:rFonts>
+      <w:rFonts w:ascii="楷体" w:eastAsia="楷体" w:hAnsi="楷体"/>
       <w:b/>
       <w:bCs/>
       <w:sz w:val="24"/>
