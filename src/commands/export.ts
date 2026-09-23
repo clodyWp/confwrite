@@ -218,11 +218,11 @@ function exportHtml(
 /**
  * Export with pandoc (DOCX/PDF)
  */
-function exportWithPandoc(
+async function exportWithPandoc(
   assemblyResult: AssemblyResult,
   converter: FormatConverter,
   options: ExportOptions
-): ExportResult {
+): Promise<ExportResult> {
   // First save as temporary markdown
   const tempMdPath = options.outputPath.replace(/\.\w+$/, '.tmp.md');
 
@@ -273,7 +273,8 @@ function exportWithPandoc(
     execFileSync('pandoc', args, { stdio: 'inherit', cwd });
 
     // 清理重复的样式定义（pandoc 会保留自己的默认样式，与 reference.docx 冲突）
-    cleanupDuplicateStyles(options.outputPath);
+    // 使用 JSZip 原生库，不依赖系统命令行工具
+    await cleanupDuplicateStyles(options.outputPath);
 
     // Clean up temporary file
     unlinkSync(tempMdPath);
