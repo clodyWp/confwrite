@@ -369,13 +369,26 @@ export function layoutDiagram(spec: DiagramSpec, style: DiagramStyle, title?: st
     const maxX = Math.max(...members.map(m => m.x + m.w));
     const maxY = Math.max(...members.map(m => m.y + m.h));
 
+    // 计算容器的初始位置和大小
+    let cx = Math.round(minX - metrics.containerPad);
+    let cy = Math.round(minY - metrics.containerPad - metrics.containerLabelHeight);
+    let cw = Math.round(maxX - minX + metrics.containerPad * 2);
+    let ch = Math.round(maxY - minY + metrics.containerPad * 2 + metrics.containerLabelHeight);
+
+    // 确保容器的左边界不小于 margin
+    if (cx < metrics.margin) {
+      const diff = metrics.margin - cx;
+      cx = metrics.margin;
+      cw -= diff;
+    }
+
     containers.push({
       id: container.id,
       label: container.label,
-      x: Math.round(minX - metrics.containerPad),
-      y: Math.round(minY - metrics.containerPad - metrics.containerLabelHeight),
-      w: Math.round(maxX - minX + metrics.containerPad * 2),
-      h: Math.round(maxY - minY + metrics.containerPad * 2 + metrics.containerLabelHeight),
+      x: cx,
+      y: cy,
+      w: cw,
+      h: ch,
       crosscut: false,
     });
   }
