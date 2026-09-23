@@ -431,10 +431,26 @@ export function layoutDiagram(spec: DiagramSpec, style: DiagramStyle, title?: st
 
   if (crossings > 2) warnings.push(`连线交叉 ${crossings} 处（上限 2）`);
 
+  // 计算容器的实际边界，确保画布足够大
+  const maxContainerY = containers.length > 0
+    ? Math.max(...containers.map(c => c.y + c.h))
+    : 0;
+  const maxContainerX = containers.length > 0
+    ? Math.max(...containers.map(c => c.x + c.w))
+    : 0;
+
   const width = Math.round(
-    metrics.margin * 2 + contentWidth + (crosscutWidth ? metrics.rowGap + crosscutWidth : 0),
+    Math.max(
+      metrics.margin * 2 + contentWidth + (crosscutWidth ? metrics.rowGap + crosscutWidth : 0),
+      maxContainerX + metrics.margin
+    )
   );
-  const height = Math.round(metrics.margin * 2 + titleHeight + contentHeight);
+  const height = Math.round(
+    Math.max(
+      metrics.margin * 2 + titleHeight + contentHeight,
+      maxContainerY + metrics.margin
+    )
+  );
 
   if (width > TARGET_WIDTH || height > MAX_HEIGHT) {
     warnings.push(`画布 ${Math.round(width)}x${Math.round(height)} 超出页面框 ${TARGET_WIDTH}x${MAX_HEIGHT}`);
