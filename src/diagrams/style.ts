@@ -20,6 +20,60 @@ export interface ColorScheme {
 }
 
 /**
+ * 场景参数（参考 svg-diagram-v3）
+ */
+export interface SceneParams {
+  canvasWidth: number;
+  canvasHeight: number;
+  nodeWidth: number;
+  nodeHeight: number;
+  nodeFontSize: number;
+  nodeFontWeight: number;
+  titleFontSize: number;
+  lineWidth: number;
+  outerMargin: number;
+}
+
+/**
+ * 场景参数预设
+ */
+export const SCENE_PARAMS: Record<string, SceneParams> = {
+  pptx: {
+    canvasWidth: 1280,
+    canvasHeight: 720,
+    nodeWidth: 180,
+    nodeHeight: 80,
+    nodeFontSize: 18,
+    nodeFontWeight: 600,
+    titleFontSize: 28,
+    lineWidth: 2.5,
+    outerMargin: 60,
+  },
+  word: {
+    canvasWidth: 680,
+    canvasHeight: 900,
+    nodeWidth: 140,
+    nodeHeight: 60,
+    nodeFontSize: 13,  // 保持与原来一致
+    nodeFontWeight: 500,
+    titleFontSize: 18,
+    lineWidth: 1.5,
+    outerMargin: 40,
+  },
+  generic: {
+    canvasWidth: 1200,
+    canvasHeight: 800,
+    nodeWidth: 160,
+    nodeHeight: 70,
+    nodeFontSize: 14,
+    nodeFontWeight: 500,
+    titleFontSize: 22,
+    lineWidth: 2,
+    outerMargin: 60,
+  },
+};
+
+/**
  * 图表风格配置
  */
 export interface DiagramStyle {
@@ -31,6 +85,8 @@ export interface DiagramStyle {
   layoutDirection: 'top-to-bottom' | 'left-to-right';
   /** 字体大小: compact/normal/spacious */
   fontSize: 'compact' | 'normal' | 'spacious';
+  /** 目标场景: pptx/word/generic */
+  scene: 'pptx' | 'word' | 'generic';
   /** 自定义颜色（当 colorScheme 为 custom 时使用） */
   customColors: ColorScheme | null;
   /**
@@ -113,6 +169,7 @@ export function getDefaultDiagramStyle(): DiagramStyle {
     nodeShape: 'rounded',
     layoutDirection: 'top-to-bottom',
     fontSize: 'normal',
+    scene: 'word',  // 默认使用 Word 场景（文档友好）
     customColors: null,
     layerPalette: [...DEFAULT_LAYER_PALETTE],
   };
@@ -167,6 +224,7 @@ export function loadDiagramStyle(projectDir: string): DiagramStyle {
       nodeShape: parsed.nodeShape || defaults.nodeShape,
       layoutDirection: parsed.layoutDirection || defaults.layoutDirection,
       fontSize: parsed.fontSize || defaults.fontSize,
+      scene: parsed.scene || defaults.scene,
       customColors: parsed.customColors || defaults.customColors,
       // 旧项目文件没有 layerPalette 字段 → 回退默认（避免升级后图表变单色）
       layerPalette:
@@ -222,11 +280,18 @@ export function describeDiagramStyle(style: DiagramStyle): string {
     normal: '标准',
     spacious: '宽松',
   };
+
+  const sceneNames: Record<string, string> = {
+    pptx: 'PPTX 演示',
+    word: 'Word 文档',
+    generic: '通用',
+  };
   
   return [
     `配色方案: ${colorNames[style.colorScheme] || style.colorScheme}`,
     `节点形状: ${shapeNames[style.nodeShape] || style.nodeShape}`,
     `布局方向: ${directionNames[style.layoutDirection] || style.layoutDirection}`,
     `字体大小: ${fontSizeNames[style.fontSize] || style.fontSize}`,
+    `目标场景: ${sceneNames[style.scene] || style.scene}`,
   ].join('\n');
 }

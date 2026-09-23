@@ -106,24 +106,11 @@ export function renderSvg(input: RenderInput): string {
       `width="${input.width}" height="${input.height}">`,
   );
 
-  // 箭头尺寸必须用 userSpaceOnUse 固定住。
-  //
-  // 默认 markerUnits="strokeWidth" 会让箭头按线宽缩放：
-  // markerWidth=10 × stroke-width=1.5 实际是 15px 长，而不少连线只有
-  // 20~30px —— 整条线几乎被箭头吃掉，箭头与线段、节点的关系就乱了。
-  // 这里固定成 7x6 的实心三角，箭头尖端正好落在端点（refX=7）。
+  // PPT 兼容性：禁止 <marker>，手动画箭头
+  // svg-diagram-v3 的兼容性规则要求不使用 marker，因为 PPT 不支持
   const arrow = 7;
   const arrowHalf = 3;
-  parts.push(
-    `<defs>` +
-      `<marker id="arrowhead" markerUnits="userSpaceOnUse" markerWidth="${arrow}" ` +
-      `markerHeight="${arrowHalf * 2}" refX="${arrow}" refY="${arrowHalf}" orient="auto">` +
-      `<polygon points="0 0, ${arrow} ${arrowHalf}, 0 ${arrowHalf * 2}" fill="${lineColor}"/></marker>` +
-      `<marker id="arrowhead-start" markerUnits="userSpaceOnUse" markerWidth="${arrow}" ` +
-      `markerHeight="${arrowHalf * 2}" refX="0" refY="${arrowHalf}" orient="auto">` +
-      `<polygon points="${arrow} 0, 0 ${arrowHalf}, ${arrow} ${arrowHalf * 2}" fill="${lineColor}"/></marker>` +
-      `</defs>`,
-  );
+  // 不再使用 <defs> 和 <marker>，改为在每条连线末端手绘箭头
 
   parts.push(`<rect width="100%" height="100%" fill="#ffffff"/>`);
 
@@ -173,14 +160,51 @@ export function renderSvg(input: RenderInput): string {
   for (const edge of input.edges) {
     const path = edge.points.map(p => `${p.x},${p.y}`).join(' ');
     const dash = dashArray(edge.style);
-    const startMarker = edge.bidirectional ? ' marker-start="url(#arrowhead-start)"' : '';
-    // data-* 钩子：测试与 SVG 审查工具据此识别元素，不必绑死内部标记格式
+    // PPT 兼容性：不使用 marker-end/marker-start，改为手绘箭头
     parts.push(
       `<polyline points="${path}" ` +
         `data-edge-from="${escapeXml(edge.from)}" data-edge-to="${escapeXml(edge.to)}" ` +
-        `fill="none" stroke="${lineColor}" stroke-width="1.5"${dash}` +
-        ` marker-end="url(#arrowhead)"${startMarker}/>`,
+        `fill="none" stroke="${lineColor}" stroke-width="1.5"${dash}/>`,
     );
+
+    // 手绘箭头（PPT 兼容性）
+    if (edge.points.length >= 2) {
+      const last = edge.points[edge.points.length - 1];
+      const prev = edge.points[edge.points.length - 2];
+      const dx = last.x - prev.x;
+      const dy = last.y - prev.y;
+      const len = Math.sqrt(dx * dx + dy * dy);
+      if (len > 0) {
+        const ux = dx / len;
+        const uy = dy / len;
+        // 箭头三角形的三个顶点
+        const tip = last;
+        const left = { x: last.x - arrow * ux + arrowHalf * uy, y: last.y - arrow * uy - arrowHalf * ux };
+        const right = { x: last.x - arrow * ux - arrowHalf * uy, y: last.y - arrow * uy + arrowHalf * ux };
+        parts.push(
+          `<polygon points="${tip.x},${tip.y} ${left.x},${left.y} ${right.x},${right.y}" fill="${lineColor}"/>`,
+        );
+      }
+    }
+
+    // 双向箭头的起始端
+    if (edge.bidirectional && edge.points.length >= 2) {
+      const first = edge.points[0];
+      const next = edge.points[1];
+      const dx = first.x - next.x;
+      const dy = first.y - next.y;
+      const len = Math.sqrt(dx * dx + dy * dy);
+      if (len > 0) {
+        const ux = dx / len;
+        const uy = dy / len;
+        const tip = first;
+        const left = { x: first.x - arrow * ux + arrowHalf * uy, y: first.y - arrow * uy - arrowHalf * ux };
+        const right = { x: first.x - arrow * ux - arrowHalf * uy, y: first.y - arrow * uy + arrowHalf * ux };
+        parts.push(
+          `<polygon points="${tip.x},${tip.y} ${left.x},${left.y} ${right.x},${right.y}" fill="${lineColor}"/>`,
+        );
+      }
+    }
 
     if (edge.label && edge.labelAt) {
       // 白描边做底，避免标签压在连线上看不清。

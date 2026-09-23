@@ -15,6 +15,7 @@ import type { DiagramSpec, SpecNode } from '../structured-parser.js';
 import { assignLayers, countCrossings, type CrossableEdge } from './graph.js';
 import {
   DEFAULT_METRICS,
+  getDefaultMetrics,
   solveCanvas,
   textWidth,
   wrapIntoRows,
@@ -27,6 +28,7 @@ import {
 } from './metrics.js';
 import { renderSvg, type PlacedContainer, type PlacedNode } from './render.js';
 import { isOrthogonal, routeEdges, type Box, type RoutedEdge } from './route.js';
+import { validateLayout } from './validate.js';
 
 export interface LayoutResult {
   svg: string;
@@ -83,9 +85,11 @@ const STYLE_FONT_SIZE: Record<DiagramStyle['fontSize'], number> = {
 
 export function layoutDiagram(spec: DiagramSpec, style: DiagramStyle, title?: string): LayoutResult {
   const warnings: string[] = [];
+  // 使用场景参数
+  const sceneMetrics = getDefaultMetrics(style.scene);
   const base = {
-    ...DEFAULT_METRICS,
-    fontSize: STYLE_FONT_SIZE[style.fontSize] ?? DEFAULT_METRICS.fontSize,
+    ...sceneMetrics,
+    fontSize: STYLE_FONT_SIZE[style.fontSize] ?? sceneMetrics.fontSize,
   };
 
   // 图表必须保持 ≤1 页的可读宽度，因此不支持横向布局。
@@ -412,14 +416,17 @@ export function layoutDiagram(spec: DiagramSpec, style: DiagramStyle, title?: st
     if (!isOrthogonal(edge.points)) warnings.push(`连线 ${edge.from}→${edge.to} 不是正交折线`);
   }
 
-  for (let i = 0; i < placed.length; i++) {
-    for (let j = i + 1; j < placed.length; j++) {
-      const a = placed[i];
-      const b = placed[j];
-      if (a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h) {
-        warnings.push(`节点重叠：${a.id} 与 ${b.id}`);
-      }
-    }
+  // 集成 SVG 校验（参考 svg-diagram-v3）
+  const validationIssues = validateLayout({
+    nodes: placed,
+    containers,
+    edges,
+    width: Math.round(metrics.margin * 2 + contentWidth + (crosscutWidth ? metrics.rowGap + crosscutWidth : 0)),
+    height: Math.round(metrics.margin * 2 + titleHeight + contentHeight),
+    fontSize: metrics.fontSize,
+  });
+  for (const issue of validationIssues) {
+    warnings.push(`[${issue.type}] ${issue.message}`);
   }
 
   if (crossings > 2) warnings.push(`连线交叉 ${crossings} 处（上限 2）`);

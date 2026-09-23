@@ -21,6 +21,9 @@
  * 注意：本模块只做几何，不产出任何坐标 —— 坐标由 render 阶段决定。
  */
 
+import type { DiagramStyle } from '../style.js';
+import { SCENE_PARAMS } from '../style.js';
+
 /** 画布宽上限（知识库 680px 的可读性推导一致） */
 export const TARGET_WIDTH = 680;
 
@@ -70,19 +73,45 @@ export interface LayoutMetrics {
   containerLabelHeight: number;
 }
 
-export const DEFAULT_METRICS: LayoutMetrics = {
-  fontSize: 13,
-  paddingX: 10,
-  paddingY: 10,
-  minNodeWidth: 96,
-  maxNodeWidth: 220,
-  rowGap: 20,
-  subRowGap: 16,
-  layerGap: 40,
-  margin: 32,
-  containerPad: 14,
-  containerLabelHeight: 22,
-};
+/**
+ * 根据场景获取默认布局参数
+ * 如果不指定场景，返回原来的默认值以保持向后兼容
+ */
+export function getDefaultMetrics(scene?: string): LayoutMetrics {
+  if (!scene || scene === 'word') {
+    // 保持原来的默认值
+    return {
+      fontSize: 13,
+      paddingX: 10,
+      paddingY: 10,
+      minNodeWidth: 96,
+      maxNodeWidth: 220,
+      rowGap: 20,
+      subRowGap: 16,
+      layerGap: 40,
+      margin: 32,
+      containerPad: 14,
+      containerLabelHeight: 22,
+    };
+  }
+  
+  const params = SCENE_PARAMS[scene] || SCENE_PARAMS.word;
+  return {
+    fontSize: params.nodeFontSize,
+    paddingX: 10,
+    paddingY: 10,
+    minNodeWidth: Math.round(params.nodeWidth * 0.7),
+    maxNodeWidth: params.nodeWidth,
+    rowGap: Math.round(params.outerMargin * 0.5),
+    subRowGap: Math.round(params.outerMargin * 0.4),
+    layerGap: Math.round(params.outerMargin * 1.0),
+    margin: Math.round(params.outerMargin * 0.8),
+    containerPad: Math.round(params.outerMargin * 0.35),
+    containerLabelHeight: Math.round(params.nodeFontSize * 1.7),
+  };
+}
+
+export const DEFAULT_METRICS: LayoutMetrics = getDefaultMetrics();
 
 /**
  * 文本像素宽
