@@ -1406,3 +1406,34 @@ herdr agent prompt wD:p1 "/confwrite:write projects/LmERP2"
 
 **本轮最重要的一条不是代码 bug，是流程 bug（#40）**：引擎写好了、测试全绿、
 真实数据 0 几何问题 —— 但**没有接进产品**。测试全绿 ≠ 用户拿到好东西。
+
+---
+
+## 第七轮：大纲解析与章节同步问题（v0.11.0+）
+
+sylmerp2项目（230章节）在organize阶段丢失了34个章节（ch197-ch230），导致writer只处理了196个章节。
+
+| # | 问题 | 根因 | 临时方案 | 长期方案 | 状态 |
+|---|------|------|----------|----------|------|
+| 48 | outline.md中有多个`#`级别标题导致章节丢失 | `OutlineParser`在遇到第二个`#`标题时，stack被清空（因为level=1与根节点同级），后续的ch标记无法找到父节点被丢弃 | 手动将`# 十、技术支持资料`等改为`##`级别 | 1. 在`OutlineParser`中添加警告：当遇到多个同级`#`标题时提示用户<br>2. 或者改为更宽容的解析策略：允许文档中有多个顶级章节<br>3. 在`organize`命令中添加验证：检查解析出的章节数是否与outline.md中的ch标记数一致，不一致时报错 | 待修复 |
+| 49 | package路径解析错误 | t4的settings.json中`packages: ["../confidenceWriter"]`从`.pi/`目录出发解析到错误路径 | 改为`../../confidenceWriter` | 在`confwrite:init`或首次加载时验证package路径是否正确，提供明确的错误提示 | 已修复 |
+| 50 | 审阅报告写入错误目录（审阅反馈丢失） | Review prompt 只写相对路径 `review/${chapterId}-r${round}.json`，未锚定项目根。reviewer 子代理为读取任务文件先 `cd .confwrite-tasks`，随后按相对路径写入 → 落到 `.confwrite-tasks/review/` 而非 `review/`。真实数据：ch019、ch027 报告错位 | 手动把错位报告复制回 `review/`（2 个文件） | 1. prompt 中改用**绝对路径** `${projectDir}/review/${chapterId}-r${round}.json`<br>2. 明确告知 reviewer 以项目根为工作目录<br>3. `dispatchFixers` 的 `readReviewReport` 找不到报告时应**报错/重试**，而不是静默返回空反馈 | 临时已缓解，长期待修复 |
+| 51 | **revise 循环无轮次递增，`maxRounds` 守护失效（潜在死循环）** | `writing/orchestrator.ts` 中：`fixer` → `chapter.status='written'`；`reviewer` 判 `revise` → `chapter.status='reviewed'`。**两者都不递增 `chapter.round`**，只有 `reject` 才 `chapter.round += 1`（phases.ts:388）。而轮次守护是 `if (chapter.round >= chapter.maxRounds)`（maxRounds=5）—— `1 >= 5` 永远为 false。只要 reviewer 持续判 revise，fix→review 循环就没有终止条件 | 无（依赖 reviewer 最终 accept） | 1. `revise` 分支也应递增轮次（或单独维护 `fixRound`）<br>2. 轮次守护改为基于**实际复审次数**而非 `chapter.round`<br>3. 超限后按现有降级策略标记 `completed_with_issues`，并记录告警 | 待修复 |
+
+**关键发现**：
+- outline-parser对`#`级别标题的处理过于严格，导致复杂文档结构时丢失章节
+- 需要在organize阶段添加章节数量验证，确保所有ch标记都被正确解析
+- 当前临时方案（手动修改outline.md）可以工作，但不够健壮
+
+**Bug 50 补充（sylmerp2 全流程运行中发现）**：
+- 现象：pi 输出 `⚠️ 验证失败 (reviewer ch019): ❌ 审阅报告不存在`，批次计数 `254/230` 溢出
+- 直接后果：`dispatchFixers` → `readReviewReport()` 读不到文件时返回空串，修复者拿不到任何具体问题
+- 影响面：本轮 230 章中命中 2 章（约 0.9%），随文档规模增大风险上升
+- 根因分类：与 Bug 41 同源 —— **prompt 里的路径是相对路径，而子代理的 cwd 不可控**
+
+**Bug 51 补充（同一轮运行中发现）**：
+- 现象：ch001 修复出 v2 后，复审（21:26）仍判 `revise`（5 个问题），状态回到 `reviewed` —— 这已经是第二轮
+- 设计缺陷：`review/ch001-r1.json` 被复审**覆写**（round 恒为 1），因此磁盘上只剩最后一版报告，历史轮次不可追溯
+- 修复产物同样受影响：`dispatchFixers` 的 `outputFile = chXXX-v${round+1}.md`，round 恒为 1 → 总是输出 **v2**，二次修复会**覆写 v2**
+- 风险评估：内容确实在改进（accept 率明显：已复审的 ch002/ch003 均 accept），所以多数章节能收敛；但**无终止保证**，遇到持续挑刺的 reviewer 会无限循环
+- 验证方法：统计「已有 v2 且状态回到 reviewed」的章节数。若同一章节反复回到 reviewed，则循环在发生
