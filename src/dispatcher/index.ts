@@ -130,7 +130,7 @@ export class Dispatcher {
         prompt: '',
         dependencies: [],
       };
-      task.prompt = this.taskExecutor.generateReviewerPrompt(task, draftContent, baseline, round, knowledgeContent);
+      task.prompt = this.taskExecutor.generateReviewerPrompt(task, draftContent, baseline, round, knowledgeContent, this.projectDir);
       sequence++;
       tasks.push(task);
       this.scheduler.submit(task);

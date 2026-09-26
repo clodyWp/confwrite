@@ -191,6 +191,7 @@ export class WritingOrchestrator {
       case 'fixer':
         chapter.status = 'written';
         chapter.attempt = task.attempt;
+        chapter.round += 1;  // Bug 51: 递增轮次，确保 maxRounds 守护生效
         break;
     }
   }
