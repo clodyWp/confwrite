@@ -52,7 +52,7 @@ CONFWRITE_REAL_DRAFTS=/path/to/project/drafts/chapters npm test
 pi install npm:confwrite
 
 # 方式 2: 从 GitHub 安装
-pi install git:github.com/user/confwrite
+pi install git:github.com/clodyWp/confwrite
 
 # 方式 3: 从本地目录安装
 pi install ./confidenceWriter
@@ -61,6 +61,16 @@ pi install ./confidenceWriter
 bash scripts/install.sh      # Linux/macOS
 .\scripts\install.ps1        # Windows PowerShell
 ```
+
+**注意**：从 GitHub 安装时，需要手动构建：
+
+```bash
+cd .pi/git/github.com/clodyWp/confwrite  # 项目本地安装路径
+npm install  # 安装所有依赖（包括 devDependencies）
+npm run build  # 构建 TypeScript
+```
+
+这是因为 pi 对 git 包使用 `npm install --omit=dev`，跳过了构建所需的 typescript。
 
 ## 使用
 
