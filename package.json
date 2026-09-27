@@ -5,8 +5,10 @@
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "keywords": ["pi-package"],
   "scripts": {
     "build": "node ./node_modules/typescript/bin/tsc",
+    "prepare": "npm run build",
     "test": "vitest run",
     "test:watch": "vitest",
     "pack": "npm pack",

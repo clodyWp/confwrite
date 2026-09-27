@@ -1,5 +1,5 @@
 import { writeFileSync, existsSync, mkdirSync } from 'node:fs';
-import { dirname } from 'node:path';
+import { dirname, join } from 'node:path';
 import type { ChapterMapping } from './chapter-mapper.js';
 import type { DataBaseline } from './baseline-extractor.js';
 import type { KnowledgeLoader } from '../knowledge/loader.js';
@@ -147,7 +147,7 @@ export class KitGenerator {
     const results: GenerationResult[] = [];
 
     for (const mapping of mappings) {
-      const outputPath = `${outputDir}/${mapping.chapterId}.md`;
+      const outputPath = join(outputDir, `${mapping.chapterId}.md`);
       
       try {
         this.generateAndSave(mapping, baseline, outputPath);

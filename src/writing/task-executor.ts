@@ -7,6 +7,7 @@
  * - Fixer: 读取上一版本，输出新版本 drafts/chapters/${chapterId}-v${round+1}.md
  */
 import type { Task } from '../scheduler/types.js';
+import { join } from 'node:path';
 
 /**
  * 审阅决定
@@ -437,7 +438,7 @@ ${requirementsList || '无'}
 
 ## 输出格式（极其重要）
 
-将审阅报告写入文件：**${projectDir ? `${projectDir}/review/${task.chapterId}-r${round}.json` : `review/${task.chapterId}-r${round}.json`}**
+将审阅报告写入文件：**${projectDir ? join(projectDir, 'review', `${task.chapterId}-r${round}.json`) : `review/${task.chapterId}-r${round}.json`}**
 
 **必须严格遵守以下 JSON 格式规则**：
 1. 使用严格的 JSON 格式（不要添加注释）

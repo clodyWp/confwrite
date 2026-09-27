@@ -37,11 +37,27 @@ CONFWRITE_REAL_DRAFTS=/path/to/project/drafts/chapters npm test
 
 ## 安装
 
+### 前置依赖
+
+- **Node.js** >= 18
+- **pandoc** (可选，仅导出 DOCX/PDF 时需要)
+  - macOS: `brew install pandoc`
+  - Ubuntu/Debian: `sudo apt install pandoc`
+  - Windows: `choco install pandoc` 或从 https://pandoc.org/installing.html 下载
+
+### 安装方式
+
 ```bash
-# 方式 1: 从本地目录安装（推荐）
+# 方式 1: 从 npm 安装（推荐）
+pi install npm:confwrite
+
+# 方式 2: 从 GitHub 安装
+pi install git:github.com/user/confwrite
+
+# 方式 3: 从本地目录安装
 pi install ./confidenceWriter
 
-# 方式 2: 使用安装脚本（自动编译）
+# 方式 4: 使用安装脚本（自动编译）
 bash scripts/install.sh      # Linux/macOS
 .\scripts\install.ps1        # Windows PowerShell
 ```
