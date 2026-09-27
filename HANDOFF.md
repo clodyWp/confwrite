@@ -1,234 +1,332 @@
-# 交接状态（ConfWrite）
+# Handoff Document - ConfWrite 项目
 
-> 记录时间：2026-09-20 16:35
-> 分支：`fix/diagram-block-formats` @ `3029c8a`
-> 测试：**790 通过 / 89 文件**（连跑两次稳定）
-> 本文档目的是**跨 compaction 存活** —— 恢复时先读它
+> 生成时间: 2026-09-27
+> 最后更新: 2026-09-27
 
----
+## 📋 项目概述
 
-## 1. 当前目标（用户最后确认的方向）
+**ConfWrite** 是一个基于 pi-coding-agent 的长文档生成扩展，支持从素材整理到最终导出的完整工作流。
 
-用户选了「**装 mmdc，拿到 23 张图的完整版 Word**」。
+**核心能力:**
+- 多章节长文档生成（支持 100+ 章节，百万字级别）
+- 自动化写作-审阅-修复循环
+- 图表生成和嵌入
+- 多格式导出（Markdown/HTML/DOCX）
 
-已完成的部分：mmdc 已装好、能独立渲染 ✓
-未完成的部分：**流程（pi 扩展）里仍然报 mmdc 不可用** ✗ —— 正在诊断
-
----
-
-## 2. 绝对事实清单（可直接引用，不必重新验证）
-
-### 2.1 已完成的代码工作（都已提交）
-
-```
-3029c8a  docs: BUGS.md 补充第四轮发现的 Bug 31–35
-f3b2e62  fix: 图表两种格式端到端不一致 + 孤儿图 + 缺 mmdc 静默降级（33/34/35）
-ef378a7  fix: 素材包与大纲不对应时会静默拿到别的章节的素材（31）
-c215db8  docs: 同步「职责分离已合入并修正」到四份文档
-e6e6fe6  merge: 合入职责分离，并保留 ch 级篇幅口径（修正其层级笔误）
-a2414e0  chore: 发布 v0.8.0（tag v0.8.0）  ← 22 个修复
-```
-
-分支链（后者包含前者全部提交）：
-
-```
-master
- └── … → fix/diagram-and-export       @ a2414e0 (tag v0.8.0) → c215db8
-       └── fix/material-kit-sync      @ ef378a7   (Bug 31)
-             └── fix/diagram-block-formats @ 3029c8a ← 当前 (Bug 33/34/35)
-```
-
-### 2.2 未提交的改动（**重要：compaction 不会丢文件，但这些尚未提交**）
-
-```
- M src/assemble/converter.ts      pandoc 探测带 env
- M src/commands/export.ts         pandoc 调用带 env
- M src/diagrams/pipeline.ts       checkMmdc → resolveMmdc（用 findExecutable）
- M src/orchestrator/phases.ts     phase 5 结果落盘到 logs/diagram-pipeline.json
- M vitest.config.ts               testTimeout: 15000（e2e 并行时 5s 太紧）
-?? src/utils/process-env.ts       buildToolEnv / findExecutable
-?? tests/utils/process-env.test.ts   9 例，全过
-```
-
-这组改动的目的：**扩展运行时不能依赖 PATH**（见 §4）。
-已被验证：`790 通过` ✓。但**尚未解决 mmdc 问题**（见 §3）。
-
-### 2.3 LmERP2 项目现状
-
-```
-phase: 6 (assembling) | 章节: 8 章全部 completed
-figures: 20 PNG（缺 ch001 的 3 张）
-output/final.docx: 无（被清空，等待重新导出）
-```
-
-产物备份（未受影响）：
-- `/home/water/Projects/t3/projects/LmERP2-20图版本备份-*` ← 20 图的完整版（docx 639,366 B）
-- `/home/water/Projects/t3/projects/LmERP2-v0.8.0-交付备份-*` ← 15 章版（docx 1,472,671 B）
-- `project-state.json.bak-*` 若干
+**技术栈:**
+- TypeScript + Node.js
+- pi-coding-agent 扩展框架
+- pandoc（DOCX 导出）
+- sharp（图片处理）
 
 ---
 
-## 3. 进行中：mmdc 在扩展里「不可用」
+## ✅ 当前状态
 
-### 3.1 已确认的事实
+### 版本信息
+- **当前版本**: v0.12.0
+- **发布状态**: ✅ 已发布到 GitHub
+- **仓库地址**: https://github.com/clodyWp/confwrite
+- **测试状态**: ✅ 端到端测试通过
 
-| 项 | 值 |
-|---|---|
-| mmdc 已安装 | `/home/water/.local/share/mise/installs/node/26.7.0/bin/mmdc`（11.17.0）✓ |
-| puppeteer 自带浏览器 | `/home/water/.cache/puppeteer/chrome-headless-shell/...` ✓ |
-| 交互式 shell 渲染 | ✓ 成功（`/tmp/mmdtest` 里产出 SVG） |
-| **pi 进程内渲染** | ✓ 成功（通过 pi 的 bash 工具跑 mmdc，`render-OK`） |
-| **我的 shell 直接跑管线** | ✓ **23/23 全部生成** |
-| **流程（扩展）里跑 phase 5** | ✗ **只生成 20，ch001 的 3 个 mermaid 全部降级** |
+### 最近完成的工作（2026-09-27）
 
-### 3.2 诊断日志（新增的持久化记录）
+1. **跨平台路径修复**
+   - 修复 `kit-generator.ts` 中的路径拼接问题
+   - 修复 `task-executor.ts` 中的审阅报告路径问题
+   - 添加 `prepare` 脚本支持自动构建
+   - 添加 `keywords: ["pi-package"]` 支持 pi 包发现
 
-`LmERP2/logs/diagram-pipeline.json` 会记录每次 phase 5 的完整结果：
+2. **文档完善**
+   - 创建 LICENSE 文件
+   - 创建 CHANGELOG.md
+   - 更新 README.md 安装说明
 
-```json
-{
-  "at": "...", "runtimePath": "<扩展进程的 process.env.PATH>",
-  "total": 23, "generated": 20, "skipped": 0, "failed": 0,
-  "mermaidKeptAsCode": 3,
-  "errors": [], "warnings": [{ "diagramId": "ch001-fig1", "warnings": ["未渲染为图片（mmdc 不可用）…"] }]
+3. **发布和部署**
+   - 提交代码到 GitHub
+   - 在远程 c2 工作区完成端到端测试
+   - 验证完整工作流：安装 → 初始化 → 写作 → 导出
+
+4. **端到端测试结果**
+   ```
+   ✅ pi install -l git:github.com/clodyWp/confwrite
+   ✅ /confwrite:init e2e-test
+   ✅ /confwrite:organize e2e-test
+   ✅ /confwrite:write e2e-test
+   ✅ 写作-审阅-修复循环（8 章节，多轮迭代）
+   ✅ 图表生成（27 张图表）
+   ✅ 导出 DOCX（651K，13 张图片，6 个表格）
+   ✅ 导出 HTML（344K）
+   ✅ 导出 Markdown（333K）
+   ```
+
+---
+
+## 🎯 待办事项
+
+### 高优先级
+
+1. **配置系统**
+   - [ ] 实现用户可配置的并发参数
+   - [ ] 添加 `/confwrite:config` 命令
+   - [ ] 支持配置文件（confwrite.config.json）
+   - 当前状态：参数硬编码在 `DEFAULT_SCHEDULER_CONFIG` 中
+
+2. **性能优化**
+   - [ ] 当前并发数为 1（串行），大项目耗时长
+   - [ ] 测试并发写入的稳定性
+   - [ ] 优化审阅-修复循环的收敛速度
+
+3. **错误处理**
+   - [ ] 改进 429 错误的自动恢复机制
+   - [ ] 添加更详细的错误日志
+   - [ ] 实现任务失败的部分恢复
+
+### 中优先级
+
+4. **功能增强**
+   - [ ] 支持自定义图表样式
+   - [ ] 添加文档模板系统
+   - [ ] 支持增量更新（只更新变化的章节）
+
+5. **文档完善**
+   - [ ] 添加用户指南
+   - [ ] 添加开发者文档
+   - [ ] 添加常见问题 FAQ
+
+### 低优先级
+
+6. **测试覆盖**
+   - [ ] 增加单元测试覆盖率
+   - [ ] 添加集成测试
+   - [ ] 添加性能基准测试
+
+---
+
+## 🏗️ 技术架构
+
+### 核心模块
+
+```
+src/
+├── commands/           # 命令实现
+│   ├── init.ts        # 项目初始化
+│   ├── organize.ts    # 素材整理
+│   ├── write.ts       # 写作流程
+│   └── export.ts      # 文档导出
+├── writing/           # 写作核心逻辑
+│   ├── orchestrator.ts      # 写作协调器
+│   ├── task-executor.ts     # 任务执行器
+│   └── output-validator.ts  # 输出验证器
+├── scheduler/         # 任务调度
+│   ├── index.ts       # 调度器主逻辑
+│   ├── runner.ts      # 任务运行器
+│   └── pi-executor.ts # pi 子代理执行器
+├── diagrams/          # 图表生成
+│   ├── generator.ts   # 图表生成器
+│   ├── pipeline.ts    # 图表处理管线
+│   └── png-converter.ts # PNG 转换
+└── state/             # 状态管理
+    ├── schema.ts      # 状态模式定义
+    └── store.ts       # 状态持久化
+```
+
+### 工作流程
+
+```
+Phase 0a: 项目初始化
+  ↓
+Phase 0b: 素材整理（扫描→转换→索引→基线→素材包）
+  ↓
+Phase 1: 需求分析（可选）
+  ↓
+Phase 2: 大纲规划
+  ↓
+Phase 3: 素材准备
+  ↓
+Phase 4a: 写作（writer 子代理）
+  ↓
+Phase 4b: 审阅（reviewer 子代理）
+  ↓
+Phase 4c: 决策（accept/revise/reject）
+  ↓
+Phase 4d: 修复（fixer 子代理）→ 回到 4b
+  ↓
+Phase 5: 图表生成
+  ↓
+Phase 6: 组装
+  ↓
+Phase 7: 定稿
+  ↓
+Phase 8: 导出（pandoc）
+```
+
+### 关键配置
+
+**调度器配置** (`src/state/schema.ts`):
+```typescript
+DEFAULT_SCHEDULER_CONFIG = {
+  maxConcurrency: 1,           // 并发数（当前串行）
+  tokenBucketSize: 10,         // 令牌桶大小
+  tokenRefillRate: 0.5,        // 令牌补充速率
+  taskTimeoutMs: 600000,       // 任务超时 10 分钟
+  maxTurnsPerTask: 40,         // 单任务最大轮次
+  rateLimitDelayMs: 60000,     // 429 限流等待 60 秒
 }
 ```
 
-### 3.3 已经排除的假设
-
-| 假设 | 结论 |
-|---|---|
-| 环境变量差异 | ✗ 排除 —— pi 进程的 env 与我的 shell 几乎相同（`comm` 对比：pi 独有键 0 个） |
-| PATH 缺 mmdc 目录 | ✗ **排除** —— 日志里 `runtimePath` **包含** `/home/water/.local/share/mise/installs/node/26.7.0/bin` |
-| 浏览器缺失 | ✗ 排除 —— puppeteer 自带浏览器已装且可用 |
-| cwd 依赖（puppeteer 配置） | ✗ 已不相关（现在用自带浏览器，不再需要 `.puppeteerrc.cjs`，那两个文件已删除） |
-| pi 没加载新 dist | ⚠️ **未确认** —— 最近两次重启的 `agent start` 输出被重定向到 /dev/null，没检查是否真的重启成功 |
-
-> 早期一次日志显示 `runtimePath` 为空，后来又显示完整路径 —— **前后不一致，未解释**。
-> 可能是「某次 pi 未真正重启、跑了旧 dist」造成的。
-
-### 3.4 下一步（按顺序做）
-
-1. **确认 pi 真的加载了新 dist**
-   ```bash
-   # 启动时不要吞掉输出
-   timeout 15 herdr agent send-keys wD:p1 ctrl+d; sleep 4
-   timeout 60 herdr agent start pi --kind pi --pane wD:p1 --timeout 45000   # 看返回，确认不是 agent_name_taken
-   ```
-   并用 dist 标记确认：`grep -c 'resolveMmdc' dist/diagrams/pipeline.js` → >0
-
-2. **增强诊断日志**：把下面三项也写进 `logs/diagram-pipeline.json`
-   - `process.execPath`（判断 mmdc 是否与 node 同目录）
-   - `findExecutable('mmdc')` 的返回值（null 还是绝对路径）
-   - `resolveMmdc()` 里 `mmdc --version` 的异常信息（含 stderr）
-
-   最小实现：在 `resolveMmdc()` 的 catch 里把错误存到一个字段，phase 5 落盘时带上。
-
-3. **根据结果二选一**
-   - 若 `findExecutable` 返回 null → 说明候选目录都不对，扩 `extraDirs`
-   - 若返回路径但 `--version` 抛错 → 是子进程环境问题，检查 `buildToolEnv()` 传的 env
-
-4. 修好后重跑：`rm -rf figures/* && 状态置 phase 5 && 发命令` → 应得 23 张
-5. 再走 `6 →（人工确认）→ 7 → 8` 出 docx，验证 **23 张内嵌图**
-
 ---
 
-## 4. 本轮（8 章全量重跑）发现的 bug
+## 🔧 开发环境
 
-见 `BUGS.md` §1c，共 5 个：**31、32、33、34、35**（31/33/34/35 已修，32 未修）。
-
-而正在处理的 mmdc 问题 **尚未编号**，若最终确认为代码缺陷，可记为 **Bug 36**：
-
-> **扩展运行时不能依赖 PATH，也不保证外部工具可解析**
-> 现象：`execFileSync('mmdc')` 在扩展里失败，同一台机器在 shell 里正常。
-> 已排除 PATH 缺失（PATH 里就有），待定位。
-
----
-
-## 5. 环境关键事实（恢复时直接用）
-
-### 5.1 路径
-
-```
-扩展仓库      /home/water/Projects/confidenceWriter
-LmERP2 项目   /home/water/Projects/t3/projects/LmERP2
-pi 会话工作区 /home/water/Projects/t3        ← pi 进程的 cwd（pid 用 /proc 查）
-herdr 面板    wC:p1 = confidenceWriter（我）   wD:p1 = t3（被控）
-```
-
-### 5.2 外部依赖
-
-| 工具 | 位置 | 状态 |
-|---|---|---|
-| pandoc | `/usr/bin/pandoc` (3.10.2) | ✓ |
-| mmdc | `~/.local/share/mise/installs/node/26.7.0/bin/mmdc` (11.17.0) | ✓ 装好 |
-| puppeteer 浏览器 | `~/.cache/puppeteer/chrome-headless-shell/linux-153.0.8010.36/...` | ✓ |
-| chromium | `/usr/bin/chromium` | ✓（现在用不到，puppeteer 用自带的） |
-
-**由我创建、事后可删的文件**（都已删除，此处仅备注）：
-`/home/water/.puppeteerrc.cjs`、`/home/water/Projects/t3/.puppeteerrc.cjs` —— 已 `rm`。
-
-### 5.3 常用命令
+### 本地开发
 
 ```bash
-# 构建 + 测试
-cd /home/water/Projects/confidenceWriter && npm run build && npm test
+# 安装依赖
+npm install
 
-# 控制 t3 的 pi
-timeout 15 herdr agent list
-timeout 15 herdr agent read wD:p1 --lines 40
-timeout 15 herdr agent send-keys wD:p1 ctrl+d      # 退出（ctrl+c 无效）
-timeout 60 herdr agent start pi --kind pi --pane wD:p1 --timeout 45000
-timeout 30 herdr agent prompt wD:p1 "/confwrite:write projects/LmERP2"
+# 构建
+npm run build
 
-# 重置到 phase 5 重跑（先清产物）
-cd /home/water/Projects/t3/projects/LmERP2
-rm -rf figures/* assembly/* output/*
-python3 -c "
-import json;p='project-state.json';s=json.load(open(p))
-s['currentPhase']='5';s['status']='writing';s['waitPoint']=None
-s['executionLog']=[e for e in s.get('executionLog',[]) if e.get('phase') not in ('6','7','8','done')]
-json.dump(s,open(p,'w'),ensure_ascii=False,indent=2)"
+# 测试
+npm test
+
+# 本地安装到 pi
+pi install ./confidenceWriter
 ```
 
-### 5.4 恢复上下文时注意
+### 远程测试
 
-- **不要用 `sed 's/^/  /'` 查看缩进** —— 它会加 2 个空格，我已经因此两次误判缩进、改错文件。用 `python3 -c "print(repr(...))"`。
-- **phase 5 的出口条件是 `hasFile('figures/manifest.json')`** —— 想让它重跑必须先删 manifest 或整个 figures/。
-- **`notify()` 的内容不进 pi 会话转录**（只是 UI 通知），TUI 重绘后就看不到 —— 所以要看过程信息必须落盘。
-- 提交信息里含反引号时**不要用 `git commit -m "..."`**（会被 shell 吃掉），用 `git commit -F 文件`。
+```bash
+# 推送到远程 c2 工作区
+bash scripts/push-to-remote.sh
+
+# 远程工作区信息
+# 机器: water@8.160.160.85
+# 目录: /home/water/proj/c2
+# pane: w8:p1
+```
+
+### 代理配置
+
+Git 需要使用代理访问 GitHub:
+```bash
+git config --global http.proxy http://127.0.0.1:10809
+git config --global https.proxy http://127.0.0.1:10809
+```
 
 ---
 
-## 6. 待办总览（按用户上次确认的优先级）
+## 🐛 已知问题
 
-| # | 事项 | 状态 |
-|---|---|---|
-| 1 | **修好 mmdc 在扩展里不可用** → 拿到 23 张图的完整 Word | 🔄 进行中（见 §3.4） |
-| 2 | 对齐图表格式约定（知识库要求 mermaid vs 项目用 diagram-start） | ⬜ 未做 |
-| 3 | Bug 32（turn 预算耗尽无条件判失败）+ Bug 3（4c 死锁 `round>1`） | ⬜ 未做 |
-| 4 | 方案 B（知识库驱动的图表布局；ch003/ch004 被判「33 节点超出布局能力」） | ⬜ 未做 |
-| 5 | 删除已合入的 `feat/responsibility-separation`（已是祖先，安全） | ⬜ 未做 |
-| 6 | 合并到 master（v0.8.0 目前在功能分支上） | ⬜ 未做 |
+### Bug 50: 审阅报告路径问题（已修复）
+- **问题**: 审阅报告写入错误目录
+- **原因**: 相对路径 + 子代理 cwd 不可控
+- **修复**: 使用绝对路径 `join(projectDir, 'review', ...)`
+
+### Bug 51: revise 循环无轮次递增（已修复）
+- **问题**: 潜在无限循环风险
+- **原因**: fixer 完成后不递增 `chapter.round`
+- **修复**: 在 fixer case 中添加 `chapter.round += 1`
+
+### 待解决
+- 并发配置不支持用户自定义
+- 大项目串行执行耗时长
+- 429 错误恢复机制不够智能
 
 ---
 
-## 7. 已修 bug 的历史提交（备查）
+## 📚 相关资源
 
-```
-beccb97  17 分层配色 + 18 跨平台字体
-32a6238  19 全角冒号 + 20 列表前缀 + 21 多跳链
-ebae90b  14 init 复制错目录
-ed05a4d  12 图表注入 + 15 path-adjuster 死代码
-1c438a8  10 waitPoint 跳过 execute + 22 组装缺文档标题
-8e06fcf  9 phase8 真导出 + 16 依赖预检
-a43dece  1 熔断空转 + 2 stoppedReason 被覆盖
-54897b3  18 漏网（连接线标签字体）
-d449a45  23 TOC 锚点 + 24 标题层级 + 25 分隔符致 pandoc 失败
-17db496  26 图片未嵌入 + 27 导出未传 title
-b9b119f  28 残留产物让阶段跳过自己的工作
-637e8b9  29 图表缓存不查产物是否存在
-1f1a17c  30 done 之后收尾报错
-ef378a7  31 素材包与大纲不对应
-f3b2e62  33/34/35 图表格式不一致 / 孤儿图 / 缺 mmdc 静默降级
-```
+### 文档
+- [README.md](./README.md) - 项目说明
+- [CHANGELOG.md](./CHANGELOG.md) - 变更日志
+- [BUGS.md](./BUGS.md) - Bug 记录
+- [SKILL.md](./SKILL.md) - Skill 定义
+
+### 测试项目
+- **t3 工作区**: `/home/water/Projects/t3`
+  - LmERP2-regression: 完整回归测试（230 章节）
+- **t4 工作区**: `/home/water/Projects/t4`
+  - sylmerp2: 实际项目（230 章节，184 万字）
+- **c2 远程工作区**: `water@8.160.160.85:/home/water/proj/c2`
+  - e2e-test: 端到端测试项目
+
+### 外部依赖
+- [pi-coding-agent](https://github.com/earendil-works/pi-coding-agent) - 核心框架
+- [pandoc](https://pandoc.org/) - 文档转换
+- [sharp](https://sharp.pixelplumbing.com/) - 图片处理
+
+---
+
+## 💡 接手建议
+
+### 快速开始
+
+1. **了解项目**
+   - 阅读 README.md
+   - 查看 CHANGELOG.md 了解最近变更
+   - 运行 `npm test` 确保环境正常
+
+2. **测试现有功能**
+   ```bash
+   # 在本地创建测试项目
+   /confwrite:init test-project
+   
+   # 添加测试素材
+   # 将一些 markdown 文件放入 reference_material/
+   
+   # 运行完整流程
+   /confwrite:organize test-project
+   /confwrite:write test-project
+   ```
+
+3. **查看待办事项**
+   - 优先处理"高优先级"任务
+   - 配置系统是最需要的功能
+
+### 注意事项
+
+1. **构建后再测试**
+   - 修改代码后必须 `npm run build`
+   - pi 加载的是 `dist/` 目录的编译产物
+
+2. **代理配置**
+   - Git 操作需要配置代理
+   - 远程机器访问需要 SSH 密钥
+
+3. **测试环境**
+   - 本地测试用小项目（5-10 章节）
+   - 完整测试用远程 c2 工作区
+
+4. **版本发布**
+   - 修改 `package.json` 版本号
+   - 更新 CHANGELOG.md
+   - 提交并推送到 GitHub
+   - 创建 git tag
+
+---
+
+## 📞 联系信息
+
+- **GitHub**: https://github.com/clodyWp/confwrite
+- **问题反馈**: 在 GitHub 创建 Issue
+- **远程机器**: water@8.160.160.85
+
+---
+
+## 🔄 更新日志
+
+### 2026-09-27
+- ✅ 完成跨平台路径修复
+- ✅ 发布 v0.12.0
+- ✅ 完成端到端测试
+- ✅ 创建 handoff 文档
+
+### 2026-09-26
+- ✅ 修复 Bug 50 和 Bug 51
+- ✅ 推送到 GitHub
+- ✅ 在远程 c2 工作区测试安装
+
+### 更早
+- 见 CHANGELOG.md
