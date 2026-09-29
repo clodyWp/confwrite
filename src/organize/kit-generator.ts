@@ -51,6 +51,13 @@ export class KitGenerator {
     }
     lines.push('');
 
+    // 章节描述（来自大纲）
+    if (mapping.description) {
+      lines.push('## 章节描述');
+      lines.push(mapping.description);
+      lines.push('');
+    }
+
     // 相关文件
     if (mapping.relatedFiles.length > 0) {
       lines.push('## 相关文件');

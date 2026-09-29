@@ -218,6 +218,51 @@ ch001 背景
     });
   });
 
+  describe('description collection', () => {
+    it('collects description text between ch markers', () => {
+      const content = `# 技术方案
+
+## 1. 项目概述
+ch001 项目背景
+
+本章需要覆盖以下内容：
+- 项目发起的背景和原因
+- 当前业务痛点分析
+
+ch002 需求分析
+`;
+
+      const parser = new OutlineParser();
+      const outline = parser.parse(content);
+      const chapters = outline.getAllChapters();
+
+      expect(chapters).toHaveLength(2);
+      expect(chapters[0].id).toBe('ch001');
+      expect(chapters[0].description).toContain('本章需要覆盖以下内容');
+      expect(chapters[0].description).toContain('项目发起的背景和原因');
+      expect(chapters[1].id).toBe('ch002');
+      expect(chapters[1].description).toBeUndefined();
+    });
+
+    it('stops collecting description at next heading', () => {
+      const content = `# 文档
+ch001 标题
+
+这是描述内容
+
+## 下一个标题
+ch002 另一个标题
+`;
+
+      const parser = new OutlineParser();
+      const outline = parser.parse(content);
+      const chapters = outline.getAllChapters();
+
+      expect(chapters[0].description).toContain('这是描述内容');
+      expect(chapters[0].description).not.toContain('下一个标题');
+    });
+  });
+
   describe('OutlineNode.getAllChapters', () => {
     it('returns all chapters in order', () => {
       const content = `

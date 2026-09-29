@@ -81,6 +81,27 @@ describe('KitGenerator', () => {
       expect(content).toContain('## 写作提示');
     });
 
+    it('includes chapter description when available', () => {
+      const mapping = createMockMapping('ch001', '系统概述');
+      mapping.description = '本章需要覆盖系统总体架构和技术选型';
+      const baseline = createMockBaseline();
+
+      const content = generator.generate(mapping, baseline);
+
+      expect(content).toContain('本章需要覆盖系统总体架构和技术选型');
+    });
+
+    it('omits description section when description is undefined', () => {
+      const mapping = createMockMapping('ch001', '系统概述');
+      // description is undefined by default from createMockMapping
+      const baseline = createMockBaseline();
+
+      const content = generator.generate(mapping, baseline);
+
+      // Should not contain a dedicated description section
+      expect(content).not.toContain('## 章节描述');
+    });
+
     it('handles empty related files', () => {
       const mapping = createMockMapping('ch001', '系统概述', []);
       const baseline = createMockBaseline();
