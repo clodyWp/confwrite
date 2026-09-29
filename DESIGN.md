@@ -1,7 +1,7 @@
 # ConfWrite 详细设计文档
 
-> **版本**: v0.7.2  
-> **日期**: 2025-06  
+> **版本**: v0.12.1  
+> **日期**: 2026-09  
 > **状态**: 全链路可用，已发布就绪  
 > **作者**: ConfWrite Team
 
@@ -186,7 +186,7 @@ ConfWrite 是一个 **pi 原生扩展包**（Extension + Skill），用于生成
 
 ```
 src/
-├── index.ts                          # Extension 入口，注册 6 个命令
+├── index.ts                          # Extension 入口，注册 7 个命令
 ├── state/
 │   ├── schema.ts                     # TypeBox 类型定义 (ProjectState, ChapterState, etc.)
 │   └── store.ts                      # 原子化 JSON 持久化 (write-to-temp → rename)
@@ -199,7 +199,9 @@ src/
 │   ├── executor.ts                   # SubagentExecutor 接口 (隔离调度器与执行环境)
 │   ├── mock-executor.ts              # MockSubagentExecutor (测试用，写模拟文件)
 │   ├── pi-executor.ts                # PiSubagentExecutor (真实 pi SDK 桥接)
-│   └── runner.ts                     # SchedulerRunner (执行循环: 就绪→执行→标记)
+│   ├── runner.ts                     # SchedulerRunner (执行循环: 就绪→执行→标记)
+│   ├── loop-detector.ts              # 任务循环检测
+│   └── turn-budget.ts                # Turn 预算控制
 ├── organize/
 │   ├── scanner.ts                    # 资料文件扫描 + 自动分类 + 中文关键词提取
 │   ├── converter.ts                  # HTML/PDF/DOCX → Markdown 转换 (mammoth + pdf-parse)
@@ -208,16 +210,44 @@ src/
 │   ├── outline-parser.ts             # 大纲解析 + ch 标记识别
 │   ├── chapter-mapper.ts             # 章节-资料映射
 │   ├── chapter-syncer.ts             # 大纲→状态自动同步 (G1)
-│   └── kit-generator.ts              # 章节素材包生成 (scoped baseline)
+│   ├── kit-generator.ts              # 章节素材包生成 (scoped baseline)
+│   └── kit-validator.ts              # 素材包校验
 ├── writing/
 │   ├── task-executor.ts              # Prompt 构建 + 审阅结果解析 (JSON + free text fallback)
+│   ├── content-validator.ts          # 内容深度验证
+│   ├── output-validator.ts           # 输出格式验证
 │   └── orchestrator.ts               # 写作阶段编排器 (lastReviewVerdict 过滤)
 ├── dispatcher/
 │   └── index.ts                      # Dispatcher: action → 读素材 → 生成 prompt → 提交任务 → 处理结果
 ├── assemble/
 │   ├── assembler.ts                  # 章节组装器
 │   ├── converter.ts                  # Markdown → HTML/DOCX/PDF 转换 (execFileSync 安全调用)
-│   └── finalizer.ts                  # 定稿处理 (统计+一致性检查) (G5)
+│   ├── finalizer.ts                  # 定稿处理 (统计+一致性检查) (G5)
+│   └── cleanup-docx-styles.ts        # DOCX 样式清理
+├── diagrams/                         # 结构化图表 + 内置布局引擎
+│   ├── extractor.ts                  # 图表代码块提取
+│   ├── description-parser.ts         # 图表描述解析（分层/节点/连接）
+│   ├── structured-parser.ts          # 结构化格式解析 (containers/nodes/edges)
+│   ├── style.ts                      # 配色/字体/尺寸风格（可配置）
+│   ├── cache.ts                      # 源哈希缓存（含产物存在性校验）
+│   ├── injector.ts                   # 把生成的图表注入组装产物
+│   ├── pipeline.ts                   # 渲染管线
+│   ├── png-converter.ts              # SVG → PNG 转换
+│   ├── path-adjuster.ts              # 图表路径调整
+│   ├── validator.ts                  # 图表结构校验
+│   └── layout/                       # 内置布局引擎
+│       ├── index.ts                  # 布局入口
+│       ├── graph.ts                  # 图构建
+│       ├── metrics.ts                # 几何度量
+│       ├── route.ts                  # 正交连线路由
+│       ├── render.ts                 # SVG 渲染
+│       └── validate.ts               # 布局校验
+├── logging/                          # 日志系统
+│   ├── index.ts                      # 日志入口
+│   ├── logger.ts                     # 日志记录器
+│   ├── event-bus.ts                  # 事件总线
+│   ├── stats.ts                      # 统计汇总
+│   └── types.ts                      # 日志类型定义
 ├── orchestrator/
 │   ├── phases.ts                     # 14 个阶段声明式定义
 │   └── state-machine.ts              # 确定性状态机
@@ -228,7 +258,8 @@ src/
 ├── knowledge/
 │   └── loader.ts                     # 知识库加载器 (图表规范/选型指南/Writer注入)
 └── utils/
-    └── paths.ts                      # 路径安全工具 (防遍历 + validateShellSafe)
+    ├── paths.ts                      # 路径安全工具 (防遍历 + validateShellSafe)
+    └── dedent.ts                     # 字符串缩进处理
 ```
 
 ---

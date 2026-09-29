@@ -617,7 +617,7 @@ export const phase7: PhaseDefinition = {
 
     return {
       action: 'finalize',
-      message: `Phase 7: 定稿完成 — ${report.stats.words} 字, ${report.stats.chapters} 章, 一致性 ${report.consistency.termConsistency}`,
+      message: `Phase 7: 定稿完成 — ${report.stats.words} 字, ${report.stats.level2Headings} 个二级标题, 一致性 ${report.consistency.termConsistency}`,
       params: {
         projectDir: ctx.projectDir,
         stats: report.stats,

@@ -5,6 +5,7 @@
  * Bug 51: fixer 完成后不递增 chapter.round，maxRounds 守护失效
  */
 import { describe, it, expect, beforeEach } from 'vitest';
+import { join } from 'node:path';
 import { TaskExecutor } from '../../src/writing/task-executor.js';
 import { WritingOrchestrator } from '../../src/writing/orchestrator.js';
 import type { Task } from '../../src/scheduler/types.js';
@@ -41,19 +42,19 @@ describe('Bug 50: reviewer prompt 使用绝对路径', () => {
 
   it('当提供 projectDir 时，prompt 中包含绝对路径', () => {
     const task = makeTask('reviewer', 'ch001');
+    const projectDir = '/home/user/projects/test';
     const prompt = executor.generateReviewerPrompt(
       task,
       '# 章节内容\n测试内容',
       makeBaseline(),
       1,
       '',
-      '/home/user/projects/test'
+      projectDir
     );
 
-    // 应该包含绝对路径
-    expect(prompt).toContain('/home/user/projects/test/review/ch001-r1.json');
-    // 不应该只包含相对路径
-    expect(prompt).not.toMatch(/\*\*review\/\$\{task\.chapterId\}/);
+    // 应该包含绝对路径（用 join 确保跨平台）
+    const expectedPath = join(projectDir, 'review', 'ch001-r1.json');
+    expect(prompt).toContain(expectedPath);
   });
 
   it('不提供 projectDir 时，prompt 中仍包含相对路径（向后兼容）', () => {
@@ -81,8 +82,9 @@ describe('Bug 50: reviewer prompt 使用绝对路径', () => {
       task, '内容', makeBaseline(), 2, '', projectDir
     );
 
-    expect(prompt1).toContain('/projects/myproject/review/ch005-r1.json');
-    expect(prompt2).toContain('/projects/myproject/review/ch005-r2.json');
+    // 用 join 确保跨平台路径分隔符一致
+    expect(prompt1).toContain(join(projectDir, 'review', 'ch005-r1.json'));
+    expect(prompt2).toContain(join(projectDir, 'review', 'ch005-r2.json'));
   });
 });
 

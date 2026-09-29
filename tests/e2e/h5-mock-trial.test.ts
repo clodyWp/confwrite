@@ -272,7 +272,7 @@ describe('H5: Mock Project Trial', () => {
 
     // G5: Finalize
     const report = finalize(projectDir);
-    expect(report.stats.chapters).toBeGreaterThanOrEqual(3); // 3+ (mock content has sub-headings)
+    expect(report.stats.level2Headings).toBeGreaterThanOrEqual(3); // 3+ (mock content has sub-headings)
     expect(report.stats.characters).toBeGreaterThan(100);
     expect(report.stats.words).toBeGreaterThan(0);
     expect(report.readyForExport).toBe(true);
@@ -352,7 +352,7 @@ describe('H5: Mock Project Trial', () => {
     // 4. Finalize (G5)
     const finalReport = finalize(projectDir);
     expect(finalReport.readyForExport).toBe(true);
-    expect(finalReport.stats.chapters).toBeGreaterThanOrEqual(3);
+    expect(finalReport.stats.level2Headings).toBeGreaterThanOrEqual(3);
 
     // 5. Export
     const exportResult = await exportDocument(projectDir, {

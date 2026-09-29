@@ -151,7 +151,7 @@ describe('H5 自测: runWriteLoop + MockSubagentExecutor', () => {
     // 6. Finalize (G5)
     const report = finalize(projectDir);
     expect(report.readyForExport).toBe(true);
-    expect(report.stats.chapters).toBeGreaterThanOrEqual(3);
+    expect(report.stats.level2Headings).toBeGreaterThanOrEqual(3);
     expect(report.stats.words).toBeGreaterThan(0);
     expect(existsSync(join(projectDir, 'output', 'finalization.json'))).toBe(true);
 

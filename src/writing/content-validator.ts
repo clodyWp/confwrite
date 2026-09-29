@@ -3,8 +3,8 @@
  * 
  * 验证 Writer 输出是否符合深度要求：
  * 1. 每个子节（## 或 ### 下）整体 ≥ 5000 字
- * 2. 每个独立段落 ≥ 300 字
- * 3. 图表前后有描述/总结段落
+ * 2. 图表前后有描述/总结段落
+ * （段落级 300 字检查已移除，见 Bug 4/5/6 修复）
  */
 
 export interface ValidationResult {
@@ -19,23 +19,21 @@ export interface ValidationResult {
 
 export class ContentValidator {
   private readonly MIN_SECTION_CHARS = 5000;
-  private readonly MIN_PARAGRAPH_CHARS = 300;
 
   /**
    * 验证内容是否符合深度要求
    */
   validate(content: string): ValidationResult {
     const shortSections = this.validateSectionLength(content);
-    const shortParagraphs = this.validateParagraphLength(content);
     const diagramIssues = this.validateDiagramFormat(content);
 
     return {
       sectionLengthValid: shortSections.length === 0,
-      paragraphLengthValid: shortParagraphs.length === 0,
+      paragraphLengthValid: true,
       diagramFormatValid: diagramIssues.length === 0,
-      isValid: shortSections.length === 0 && shortParagraphs.length === 0 && diagramIssues.length === 0,
+      isValid: shortSections.length === 0 && diagramIssues.length === 0,
       shortSections,
-      shortParagraphs,
+      shortParagraphs: [],
       diagramIssues,
     };
   }
@@ -70,36 +68,6 @@ export class ContentValidator {
     }
     
     return shortSections;
-  }
-
-  /**
-   * 验证每个独立段落是否 ≥ 300 字
-   */
-  private validateParagraphLength(content: string): Array<{ paragraph: string; charCount: number }> {
-    const shortParagraphs: Array<{ paragraph: string; charCount: number }> = [];
-    
-    // 按双换行分割段落
-    const paragraphs = content.split(/\n\n+/).map(p => p.trim()).filter(p => p);
-    
-    for (const para of paragraphs) {
-      // 跳过标题、代码块、列表项、表格
-      if (para.match(/^#{1,6}\s/)) continue;
-      if (para.startsWith('```')) continue;
-      if (para.match(/^[-*]\s/)) continue;
-      if (para.match(/^\d+\.\s/)) continue;
-      if (para.startsWith('|')) continue; // 跳过表格
-      
-      const charCount = para.replace(/\s/g, '').length;
-      
-      if (charCount > 0 && charCount < this.MIN_PARAGRAPH_CHARS) {
-        shortParagraphs.push({ 
-          paragraph: para.substring(0, 50) + (para.length > 50 ? '...' : ''), 
-          charCount 
-        });
-      }
-    }
-    
-    return shortParagraphs;
   }
 
   /**

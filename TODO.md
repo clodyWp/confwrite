@@ -1,10 +1,9 @@
 # 待办与交接（ConfWrite）
 
-> 最后更新：2026-09-20（第三轮：重跑打通，收尾干净）
-> 当前分支：`fix/diagram-and-export` @ `89153fd`
-> 基线：`feat/ch-level-length` @ `39fdf88`
-> 测试：**735 通过**（84 文件）
-> Bug 详情见 **`BUGS.md`**（30 个，22 已修）——本文档只记「现在在哪 / 下一步做什么」
+> 最后更新：2026-09-28（文档瘦身 + 更新）
+> 当前分支：`dev`
+> 测试：**112 个测试文件**
+> 本文档只记「现在在哪 / 下一步做什么」
 
 ---
 
@@ -380,8 +379,8 @@ PiSubagentExecutor 构造时只传 {projectDir, maxTurnsPerTask}，没有 model
 ## 8. 恢复工作的方法
 
 ```bash
-cd /home/water/Projects/confidenceWriter
-git branch --show-current      # 应为 fix/diagram-and-export
+cd /path/to/confwrite
+git branch --show-current      # 应为 dev
 git status --short             # 应为空
 
 # ① 确认 dist 是新版（dist/ 不被 git 跟踪，切分支后不 build 会静默跑旧代码）
@@ -391,7 +390,7 @@ grep -c 'injectDiagrams'          dist/assemble/assembler.js       # >0
 grep -c 'exportDocument'          dist/orchestrator/phases.js      # >0
 
 # ② 构建与测试
-npm run build && npm test      # 735 通过
+npm run build && npm test
 
 # ③ 直接复现导出（不跑整个流程）
 node -e "
@@ -443,8 +442,8 @@ npm run build     # ← 必须，dist/ 不被 git 跟踪
 
 | 文件 | 内容 |
 |------|------|
-| **`BUGS.md`** | **27 个 bug 的证据、根因、修复状态（19 已修）** |
-| `GIT-GUIDE.md` | Git 分支操作指南（面向不熟悉 git 者） |
-| `PLAN-tool-least-privilege.md` | 旧计划（**其前提已被推翻**，见 §6.3） |
-| `ITERATION-PLAN-v0.7.3.md` | 上一轮迭代计划 |
-| `ITERATION-COMPLETE-v0.7.3.md` | 上一轮迭代完成报告 |
+| **`BUGS.md`** | Bug 证据、根因、修复状态 |
+| `README.md` | 项目入口 + 使用 + 架构概览 |
+| `DESIGN.md` | 详细设计文档 |
+| `CHANGELOG.md` | 版本变更记录 |
+| `SKILL.md` | pi 框架 Skill 定义 |

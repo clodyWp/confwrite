@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.12.1] - 2026-09-28
+
+### Changed
+- Documentation cleanup: removed 10 outdated/redundant markdown files
+- Updated README.md project stats and structure tree
+- Updated SKILL.md to reflect structured diagram format (replaced mermaid references)
+- Updated DESIGN.md to v0.12.1 with current module listing
+
 ## [0.12.0] - 2024-09-26
 
 ### Fixed

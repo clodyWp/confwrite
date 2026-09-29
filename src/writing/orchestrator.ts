@@ -132,20 +132,19 @@ export class WritingOrchestrator {
       // 检查是否有产物
       const hasOutput = this.checkOutputExists(task.chapterId, chapter.round, projectDir);
       
-      if (task.failureReason === 'rate_limited') {
-        // 429 限流：不增加轮次，等待重试
-        chapter.status = 'pending';
-      } else if (chapter.consecutiveFailures >= 5) {
-        // 连续失败 5 次
-        if (hasOutput) {
-          // 有产物：标记为 completed（降级接受）
-          chapter.status = 'completed';
-          chapter.failureReason = 'completed_with_issues';
-        } else {
-          // 无产物：标记为 failed
-          chapter.status = 'failed';
-          chapter.failureReason = 'no_output';
-        }
+      // Bug 32 修复：产物已存在且有效时，即使任务失败也降级接受
+      // （典型场景：turn 预算耗尽，但审阅报告/章节草稿已正确写出）
+      if (hasOutput) {
+        chapter.status = 'completed';
+        chapter.failureReason = 'completed_with_issues';
+        chapter.consecutiveFailures = 0;
+        return;
+      }
+      
+      if (chapter.consecutiveFailures >= 5) {
+        // 连续失败 5 次且无产物
+        chapter.status = 'failed';
+        chapter.failureReason = 'no_output';
       } else {
         // 其他失败：保留产出，由 fixer 在下一轮修复
         chapter.status = 'reviewed';

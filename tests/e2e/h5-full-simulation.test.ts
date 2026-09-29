@@ -256,7 +256,7 @@ describe('H5: Full Project Simulation', () => {
     // === Phase 7: Finalize (G5) ===
     const report = finalize(projectDir);
     expect(report.readyForExport).toBe(true);
-    expect(report.stats.chapters).toBeGreaterThanOrEqual(3);
+    expect(report.stats.level2Headings).toBeGreaterThanOrEqual(3);
     expect(report.stats.characters).toBeGreaterThan(100);
     expect(report.stats.words).toBeGreaterThan(0);
     expect(existsSync(join(projectDir, 'output', 'finalization.json'))).toBe(true);
@@ -363,7 +363,7 @@ ch002 系统架构设计
     const report = finalize(projectDir);
 
     expect(report.readyForExport).toBe(true);
-    expect(report.stats.chapters).toBe(2);
+    expect(report.stats.level2Headings).toBe(2);
     expect(report.stats.words).toBeGreaterThan(50);
     expect(report.consistency.baselineMatches).toBeGreaterThan(0);
   });

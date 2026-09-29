@@ -98,8 +98,39 @@ describe('WritingOrchestrator - Failure Handling', () => {
     expect(state.chapters.ch001.failureReason).toBe('no_output');
   });
 
-  it('should mark chapter as completed after 5 consecutive failures with output', () => {
-    state.chapters.ch001.consecutiveFailures = 4;
+  it('should mark chapter as completed_with_issues when output exists on first failure', () => {
+    // Bug 32: 产物已存在时，第一次失败就降级接受，无需等到 5 次
+    const task: Task = {
+      id: 'write-ch001-r1',
+      type: 'writer',
+      chapterId: 'ch001',
+      priority: 1,
+      sequence: 1,
+      status: 'queued',
+      attempt: 0,
+      prompt: '',
+      dependencies: [],
+      failureReason: 'budget_exceeded',
+    };
+
+    // Mock file exists
+    vi.mocked(existsSync).mockReturnValue(true);
+    vi.mocked(statSync).mockReturnValue({ size: 1000 } as any);
+
+    orchestrator.updateChapterStatus(state, task, 'failed', '/tmp/test');
+
+    expect(state.chapters.ch001.status).toBe('completed');
+    expect(state.chapters.ch001.failureReason).toBe('completed_with_issues');
+    expect(state.chapters.ch001.consecutiveFailures).toBe(0); // reset on accept
+
+    // Restore
+    vi.mocked(existsSync).mockReset();
+    vi.mocked(statSync).mockReset();
+  });
+
+  it('should mark chapter as completed_with_issues when output exists after prior failures', () => {
+    // Bug 32: 即使之前已有失败记录，只要产物存在就立即降级接受
+    state.chapters.ch001.consecutiveFailures = 3;
 
     const task: Task = {
       id: 'write-ch001-r1',
@@ -122,31 +153,11 @@ describe('WritingOrchestrator - Failure Handling', () => {
 
     expect(state.chapters.ch001.status).toBe('completed');
     expect(state.chapters.ch001.failureReason).toBe('completed_with_issues');
+    expect(state.chapters.ch001.consecutiveFailures).toBe(0);
 
     // Restore
     vi.mocked(existsSync).mockReset();
     vi.mocked(statSync).mockReset();
-  });
-
-  it('should not increment round on rate_limited failure', () => {
-    const task: Task = {
-      id: 'write-ch001-r1',
-      type: 'writer',
-      chapterId: 'ch001',
-      priority: 1,
-      sequence: 1,
-      status: 'queued',
-      attempt: 0,
-      prompt: '',
-      dependencies: [],
-      failureReason: 'rate_limited',
-    };
-
-    const initialRound = state.chapters.ch001.round;
-    orchestrator.updateChapterStatus(state, task, 'failed', '/tmp/test');
-
-    expect(state.chapters.ch001.round).toBe(initialRound);
-    expect(state.chapters.ch001.status).toBe('pending');
   });
 
   it('should mark chapter as failed when exceeding max rounds without output', () => {

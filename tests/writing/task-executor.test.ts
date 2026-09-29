@@ -70,7 +70,8 @@ describe('TaskExecutor', () => {
       expect(prompt).toContain('输出格式');
       // 验证深度要求（篇幅为 ch 级，见 prompt-length-level.test.ts）
       expect(prompt).toContain(`${MIN_CHAPTER_CHARS} 字`);
-      expect(prompt).toContain('300 字');
+      // Bug 4/5/6 fix: paragraph-level 300 char rule removed
+      expect(prompt).not.toContain('每个独立成段的段落不少于 300 字');
       expect(prompt).toContain('描述→画图→总结');
     });
 

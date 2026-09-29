@@ -231,9 +231,8 @@ npm run test:watch
 
 | 指标 | 数值 |
 |------|------|
-| 源文件 | 35 个 TypeScript 文件 |
-| 测试文件 | 51 个 |
-| 测试用例 | 433 个 |
+| 源文件 | 62 个 TypeScript 文件 |
+| 测试文件 | 112 个 |
 | 依赖 | mammoth, pdf-parse, sharp, marked, docx, @sinclair/typebox |
 
 ### 项目结构
@@ -257,7 +256,10 @@ src/
 │   ├── token-bucket.ts       # 令牌桶
 │   ├── window-limiter.ts     # 滑动窗口速率限制
 │   ├── priority-queue.ts     # 优先级队列
-│   └── retry.ts              # 重试引擎
+│   ├── retry.ts              # 重试引擎
+│   ├── loop-detector.ts      # 任务循环检测
+│   ├── turn-budget.ts        # Turn 预算控制
+│   └── types.ts              # 调度器类型定义
 ├── organize/                 # 素材整理
 │   ├── scanner.ts            # 资料扫描
 │   ├── converter.ts          # 格式转换 (mammoth + pdf-parse)
@@ -266,35 +268,55 @@ src/
 │   ├── outline-parser.ts     # 大纲解析
 │   ├── chapter-mapper.ts     # 章节-索引映射
 │   ├── chapter-syncer.ts     # 大纲→状态同步
-│   └── kit-generator.ts      # 素材包生成
+│   ├── kit-generator.ts      # 素材包生成
+│   └── kit-validator.ts      # 素材包校验
 ├── writing/                  # 写作管线
 │   ├── task-executor.ts      # Prompt 构建 + 审阅解析
 │   ├── content-validator.ts  # 内容深度验证
+│   ├── output-validator.ts   # 输出格式验证
 │   └── orchestrator.ts       # 写作阶段编排
 ├── dispatcher/               # 任务分发
 │   └── index.ts              # action → prompt → 提交任务
 ├── assemble/                 # 组装与导出
 │   ├── assembler.ts          # 章节组装
 │   ├── converter.ts          # 格式转换 (MD→HTML/DOCX)
-│   └── finalizer.ts          # 定稿处理 (统计+一致性)
-├── diagrams/                 # 图表管线
-│   ├── extractor.ts          # mermaid 提取
+│   ├── finalizer.ts          # 定稿处理 (统计+一致性)
+│   └── cleanup-docx-styles.ts # DOCX 样式清理
+├── diagrams/                 # 图表管线（结构化格式 + 内置布局引擎）
+│   ├── extractor.ts          # 图表代码块提取
 │   ├── description-parser.ts # 图表描述解析（分层/节点/连接）
-│   ├── generator.ts          # mermaid → SVG/PNG（分层配色 + 跨平台字体）
+│   ├── structured-parser.ts  # 结构化格式解析 (containers/nodes/edges)
 │   ├── style.ts              # 配色/字体/尺寸风格（可配置，支持项目覆盖）
 │   ├── cache.ts              # 源哈希缓存（含产物存在性校验）
 │   ├── injector.ts           # 把生成的图表注入组装产物
-│   └── pipeline.ts           # 渲染管线
+│   ├── pipeline.ts           # 渲染管线
+│   ├── png-converter.ts      # SVG → PNG 转换
+│   ├── path-adjuster.ts      # 图表路径调整
+│   ├── validator.ts          # 图表结构校验
+│   └── layout/               # 内置布局引擎
+│       ├── index.ts          # 布局入口
+│       ├── graph.ts          # 图构建
+│       ├── metrics.ts        # 几何度量
+│       ├── route.ts          # 正交连线路由
+│       ├── render.ts         # SVG 渲染
+│       └── validate.ts       # 布局校验
+├── logging/                  # 日志系统
+│   ├── index.ts              # 日志入口
+│   ├── logger.ts             # 日志记录器
+│   ├── event-bus.ts          # 事件总线
+│   ├── stats.ts              # 统计汇总
+│   └── types.ts              # 日志类型定义
 ├── knowledge/                # 知识库加载
 │   └── loader.ts             # 知识库加载+注入
 ├── state/                    # 状态管理
 │   ├── schema.ts             # TypeBox schema
 │   └── store.ts              # 原子化持久化
 └── utils/
-    └── paths.ts              # 路径安全
+    ├── paths.ts              # 路径安全
+    └── dedent.ts             # 字符串缩进处理
 
 knowledge/diagrams/           # 内置图表知识库 (16 个 MD 文件)
-tests/                        # 735 个测试用例
+tests/                        # 112 个测试文件
 ```
 
 ### 设计原则

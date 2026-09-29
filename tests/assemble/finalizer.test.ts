@@ -52,7 +52,7 @@ describe('finalize', () => {
 
     const report = finalize(projectDir);
 
-    expect(report.stats.chapters).toBe(2);
+    expect(report.stats.level2Headings).toBe(2);
     expect(report.stats.headings).toBeGreaterThanOrEqual(2);
     expect(report.stats.tables).toBeGreaterThanOrEqual(1);
     expect(report.stats.mermaidBlocks).toBe(1);

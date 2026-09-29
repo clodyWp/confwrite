@@ -1,8 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdtempSync, rmSync, existsSync, readdirSync } from 'node:fs';
-import { join } from 'node:path';
-import { tmpdir } from 'node:os';
+import { join, normalize, sep } from 'node:path';
+import { tmpdir, platform } from 'node:os';
 import { initProject, resolveKnowledgeDir } from '../../src/commands/init.js';
+
+// resolveKnowledgeDir 使用 fileURLToPath，在 Windows 上不接受 POSIX 路径
+// 这些测试验证的是 POSIX 路径解析逻辑，在 Windows 上跳过
+const isWindows = platform() === 'win32';
 
 /**
  * 知识库复制（Bug 14）
@@ -26,25 +30,26 @@ import { initProject, resolveKnowledgeDir } from '../../src/commands/init.js';
  */
 
 describe('resolveKnowledgeDir（Bug 14）', () => {
-  it('dist 布局：dist/commands/init.js → 包根/knowledge', () => {
+  // 这些测试使用 POSIX 风格的 file:// URL，在 Windows 上 fileURLToPath 会拒绝
+  (isWindows ? it.skip : it)('dist 布局：dist/commands/init.js → 包根/knowledge', () => {
     const dir = resolveKnowledgeDir('file:///pkg/dist/commands/init.js');
-    expect(dir).toBe('/pkg/knowledge');
+    expect(dir).toBe(normalize('/pkg/knowledge'));
   });
 
-  it('src 布局：src/commands/init.ts → 包根/knowledge', () => {
+  (isWindows ? it.skip : it)('src 布局：src/commands/init.ts → 包根/knowledge', () => {
     const dir = resolveKnowledgeDir('file:///root/src/commands/init.ts');
-    expect(dir).toBe('/root/knowledge');
+    expect(dir).toBe(normalize('/root/knowledge'));
   });
 
-  it('绝不解析到 dist/ 下面（回归守卫）', () => {
+  (isWindows ? it.skip : it)('绝不解析到 dist/ 下面（回归守卫）', () => {
     const dir = resolveKnowledgeDir('file:///pkg/dist/commands/init.js');
-    expect(dir).not.toContain('/dist/');
-    expect(dir.endsWith('/knowledge')).toBe(true);
+    expect(dir).not.toContain(`${sep}dist${sep}`);
+    expect(dir.endsWith(`${sep}knowledge`) || dir.endsWith('/knowledge')).toBe(true);
   });
 
-  it('正确处理 URL 编码的路径（含空格）', () => {
+  (isWindows ? it.skip : it)('正确处理 URL 编码的路径（含空格）', () => {
     const dir = resolveKnowledgeDir('file:///my%20pkg/dist/commands/init.js');
-    expect(dir).toBe('/my pkg/knowledge');
+    expect(dir).toBe(normalize('/my pkg/knowledge'));
   });
 });
 

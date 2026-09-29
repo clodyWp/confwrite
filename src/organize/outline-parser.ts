@@ -62,6 +62,7 @@ export class OutlineParser {
     
     // 找到第一个标题作为根节点
     let root: OutlineNode | null = null;
+    let virtualRoot: OutlineNode | null = null;
     const stack: OutlineNode[] = [];
 
     for (const line of lines) {
@@ -95,6 +96,20 @@ export class OutlineParser {
           continue;
         }
 
+        // Bug 48 修复：多个同级 # 标题平级存在
+        if (level === 1) {
+          if (!virtualRoot) {
+            virtualRoot = new OutlineNode(0, '');
+            virtualRoot.children.push(root!);
+            root!.parent = virtualRoot;
+          }
+          virtualRoot.children.push(node);
+          node.parent = virtualRoot;
+          stack.length = 0;
+          stack.push(node);
+          continue;
+        }
+
         // 找到合适的父节点
         while (stack.length > 0 && stack[stack.length - 1].level >= level) {
           stack.pop();
@@ -125,6 +140,6 @@ export class OutlineParser {
     }
 
     // 如果没有找到任何标题，返回空根节点
-    return root || new OutlineNode(0, '');
+    return virtualRoot || root || new OutlineNode(0, '');
   }
 }

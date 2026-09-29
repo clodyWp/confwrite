@@ -58,9 +58,13 @@ describe('限流熔断后的终止（Bug 1、2）', () => {
     rmSync(projectDir, { recursive: true, force: true });
   });
 
+  // Bug 8 修复后 runAll() 会等待 pausedUntil，测试需要用小延迟避免超时
+  const fastBackoffConfig = { rateLimitDelayMs: 10 };
+
   it('终止原因应为 circuit_breaker，而不是被覆盖成 max_ticks（Bug 2）', async () => {
     const result = await runWriteLoop(projectDir, () => {}, {
       executorOverride: new Always429Executor(),
+      configOverride: fastBackoffConfig,
     });
 
     expect(result.stoppedReason).toBe('circuit_breaker');
@@ -69,6 +73,7 @@ describe('限流熔断后的终止（Bug 1、2）', () => {
   it('熔断后不得空转到 MAX_TICKS（Bug 1）', async () => {
     const result = await runWriteLoop(projectDir, () => {}, {
       executorOverride: new Always429Executor(),
+      configOverride: fastBackoffConfig,
     });
 
     // 熔断应在极少次推进内完成；空转旧行为会达到 2000
@@ -78,6 +83,7 @@ describe('限流熔断后的终止（Bug 1、2）', () => {
   it('熔断时 completed 应为 false', async () => {
     const result = await runWriteLoop(projectDir, () => {}, {
       executorOverride: new Always429Executor(),
+      configOverride: fastBackoffConfig,
     });
 
     expect(result.completed).toBe(false);
@@ -88,7 +94,7 @@ describe('限流熔断后的终止（Bug 1、2）', () => {
     await runWriteLoop(
       projectDir,
       msg => messages.push(msg),
-      { executorOverride: new Always429Executor() },
+      { executorOverride: new Always429Executor(), configOverride: fastBackoffConfig },
     );
 
     expect(messages.length).toBeLessThan(200);

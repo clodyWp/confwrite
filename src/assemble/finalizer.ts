@@ -12,7 +12,7 @@ export interface FinalizationReport {
   documentPath: string;
   /** 文档统计 */
   stats: {
-    chapters: number;
+    level2Headings: number;  // 重命名：原 chapters 实际是 ## 标题数
     characters: number;
     words: number;
     headings: number;
@@ -91,7 +91,7 @@ export function finalize(projectDir: string): FinalizationReport {
  * 计算文档统计信息
  */
 function computeStats(content: string): FinalizationReport['stats'] {
-  const chapters = (content.match(/^## /gm) || []).length;
+  const level2Headings = (content.match(/^## /gm) || []).length;
   const characters = content.length;
   // 中文按字符计，英文按空格分词
   const chineseChars = (content.match(/[\u4e00-\u9fff]/g) || []).length;
@@ -105,7 +105,7 @@ function computeStats(content: string): FinalizationReport['stats'] {
   const links = (content.match(/\[.*?\]\(.*?\)/g) || []).length - images;
 
   return {
-    chapters,
+    level2Headings,
     characters,
     words,
     headings,

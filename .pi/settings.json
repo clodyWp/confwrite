@@ -1,7 +1,5 @@
 {
   "packages": [
-    "npm:pi-subagents",
-    "npm:pi-web-access",
-    ".."
+    "npm:pi-subagents"
   ]
 }

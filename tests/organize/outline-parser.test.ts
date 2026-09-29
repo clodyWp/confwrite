@@ -150,6 +150,31 @@ ch001 背景详情
       expect(ch001?.parent?.parent?.number).toBe('1');
     });
 
+    it('parses outline with multiple top-level # headings', () => {
+      const content = `
+# 一、项目概述
+## 1.1 背景
+ch001 项目背景
+ch002 需求分析
+
+# 二、技术方案
+## 2.1 架构设计
+ch003 总体架构
+ch004 详细设计
+
+# 三、实施计划
+## 3.1 时间线
+ch005 里程碑
+`;
+
+      const parser = new OutlineParser();
+      const outline = parser.parse(content);
+
+      const chapters = outline.getAllChapters();
+      expect(chapters.length).toBe(5);
+      expect(chapters.map(c => c.id)).toEqual(['ch001', 'ch002', 'ch003', 'ch004', 'ch005']);
+    });
+
     it('handles empty outline', () => {
       const parser = new OutlineParser();
       const outline = parser.parse('');

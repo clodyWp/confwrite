@@ -40,7 +40,7 @@ export class SchedulerRunner {
   private maxTaskRetries: number;
   private pausedUntil = 0;
   private consecutiveRateLimits = 0;
-  private maxConsecutiveRateLimits = 5; // 连续 429 次数上限
+  private maxConsecutiveRateLimits = 7; // 连续 429 次数上限（阶段1: 2次 + 阶段2: 5次）
   private circuitBroken = false; // run 级熔断标志
   private eventBus?: EventBus;
 
@@ -76,6 +76,12 @@ export class SchedulerRunner {
         skipped: 0,
         tasks: [],
       };
+    }
+
+    // 等待 429 退避（Bug 8 修复）
+    if (this.pausedUntil > Date.now()) {
+      const waitMs = this.pausedUntil - Date.now();
+      await new Promise(resolve => setTimeout(resolve, waitMs));
     }
 
     const readyTasks = this.scheduler.getReadyTasks();
@@ -181,10 +187,16 @@ export class SchedulerRunner {
     if (isRateLimitError(output)) {
       this.consecutiveRateLimits++;
 
-      // 计算指数退避延迟：60s, 120s, 240s, 480s, 960s (最大 16 分钟)
-      const exponentialDelay = this.rateLimitDelayMs * Math.pow(2, this.consecutiveRateLimits - 1);
-      const maxDelay = this.rateLimitDelayMs * 16; // 最大 16 分钟
-      const actualDelay = Math.min(exponentialDelay, maxDelay);
+      // 两阶段退避（Bug 8 修复）
+      // 阶段 1: 前 2 次，间隔 2 分钟（覆盖偶发抖动）
+      // 阶段 2: 第 3-7 次，间隔 12 分钟（覆盖 1 小时恢复）
+      // 以 rateLimitDelayMs 为基准（默认 60s → 阶段1=2min, 阶段2=12min）
+      const phase1Retries = 2;
+      const phase1Delay = this.rateLimitDelayMs * 2;    // 生产: 120s (2分钟)
+      const phase2Delay = this.rateLimitDelayMs * 12;   // 生产: 720s (12分钟)
+      const actualDelay = this.consecutiveRateLimits <= phase1Retries
+        ? phase1Delay
+        : phase2Delay;
 
       // 全局暂停
       this.pausedUntil = Date.now() + actualDelay;

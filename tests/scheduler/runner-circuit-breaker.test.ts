@@ -102,11 +102,12 @@ describe('SchedulerRunner Circuit Breaker', () => {
     expect(localRunner.isCircuitBroken()).toBe(true);
 
     // 实际执行的任务数应该远小于 30
-    // maxConsecutiveRateLimits=5:
+    // maxConsecutiveRateLimits=7:
     //   batch 1: t1-t3 → consecutiveRateLimits=1,2,3 → retrying
-    //   batch 2: t1-t3 → consecutiveRateLimits=4,5,6 → t4/t5 retrying, t6 fails + circuit breaker
-    //   → 熔断触发，t7-t30 不再执行
-    // 实际执行: batch1(3) + batch2(3) = 6 次
+    //   batch 2: t1-t3 → consecutiveRateLimits=4,5,6 → retrying
+    //   batch 3: t1-t3 → consecutiveRateLimits=7(retrying),8,9 → circuit breaker
+    //   → 熔断触发，t4-t30 不再执行
+    // 实际执行: batch1(3) + batch2(3) + batch3(3) = 9 次
     expect(executor.callCount).toBeLessThan(30);
     expect(executor.callCount).toBeLessThanOrEqual(9); // 最多 3 批
   });

@@ -5,8 +5,8 @@
  * 
  * 验证 Writer 输出是否符合：
  * 1. 每个子节（## 或 ### 下）整体 ≥ 5000 字
- * 2. 每个独立段落 ≥ 300 字
- * 3. 图表前后有描述/总结段落
+ * 2. 图表前后有描述/总结段落
+ * （段落级 300 字检查已移除，见 Bug 4/5/6 修复）
  */
 import { describe, it, expect } from 'vitest';
 import { ContentValidator, type ValidationResult } from '../../src/writing/content-validator.js';
@@ -44,37 +44,20 @@ ${para2}
     });
   });
 
-  describe('validateParagraphLength', () => {
-    it('所有段落 ≥ 300 字时通过', () => {
-      // 每个段落用空行分隔，每个段落足够长
-      const para1 = '这是一段足够长的内容，用于测试段落长度验证功能，需要满足300字要求。'.repeat(20);
-      const para2 = '这是另一段足够长的内容，继续填充文字以满足段落长度要求。'.repeat(20);
-      const content = `# 章节标题
-
-## 子节1
-
-${para1}
-
-${para2}
-`;
-      const validator = new ContentValidator();
-      const result = validator.validate(content);
-      expect(result.paragraphLengthValid).toBe(true);
-    });
-
-    it('有段落 < 300 字时失败', () => {
+  describe('paragraphLengthValid (Bug 4/5/6 fix)', () => {
+    it('始终为 true，不再检查段落级 300 字', () => {
       const content = `# 章节标题
 
 ## 子节1
 
 这是短段落。
 
-这是另一个短段落。
+这也是短段落。
 `;
       const validator = new ContentValidator();
       const result = validator.validate(content);
-      expect(result.paragraphLengthValid).toBe(false);
-      expect(result.shortParagraphs.length).toBeGreaterThan(0);
+      expect(result.paragraphLengthValid).toBe(true);
+      expect(result.shortParagraphs).toEqual([]);
     });
   });
 
@@ -176,6 +159,7 @@ diagram-end -->
 
     it('所有内容符合要求时 isValid 为 true', () => {
       // 生成足够长的段落，超过 5000 字
+      // 段落级 300 字检查已移除，短段落不影响 isValid
       const para1 = '这是一段足够长的描述性文字，用于填充内容并满足长度要求，需要生成足够多的文字。'.repeat(200);
       const para2 = '这是另一段足够长的内容，继续填充文字以满足所有验证要求。'.repeat(200);
       const content = `# 章节标题
@@ -189,6 +173,7 @@ ${para2}
       const validator = new ContentValidator();
       const result = validator.validate(content);
       expect(result.isValid).toBe(true);
+      expect(result.paragraphLengthValid).toBe(true);
     });
   });
 });

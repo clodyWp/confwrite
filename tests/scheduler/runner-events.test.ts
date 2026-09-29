@@ -135,7 +135,7 @@ describe('SchedulerRunner with EventBus', () => {
       expect(failListener).toHaveBeenCalled();
       const firstEvent = failListener.mock.calls[0][0] as TaskFailEvent;
       expect(firstEvent.willRetry).toBe(true);
-      expect(firstEvent.retryDelay).toBe(100);
+      expect(firstEvent.retryDelay).toBe(200); // 两阶段退避：phase1 = rateLimitDelayMs * 2
     }, 10000);
 
     it('should include concurrency info in task.start event', async () => {

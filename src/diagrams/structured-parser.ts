@@ -173,7 +173,8 @@ interface RawItem {
  * 三种情形都能覆盖：块整体缩进、只有内部缩进、完全没缩进。
  */
 function normalizeSections(raw: string): string {
-  const lines = raw.split('\n');
+  // 统一行尾为 \n，避免 Windows \r\n 导致正则匹配失败
+  const lines = raw.replace(/\r\n?/g, '\n').split('\n');
   let base = Number.POSITIVE_INFINITY;
 
   for (const line of lines) {

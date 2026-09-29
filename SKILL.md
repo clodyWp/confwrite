@@ -27,11 +27,11 @@ Phase 0b: 素材整理       → 扫描资料 → 格式转换(PDF/DOCX/HTML→M
 Phase 1:  需求分析       → researcher subagent（可选）
 Phase 2:  大纲规划       → 人机协作多轮迭代
 Phase 3:  素材准备       → 素材索引（如 0b 未完成）
-Phase 4a: 写作           → writer subagent 批量（Writer 直接写 mermaid 图表）
+Phase 4a: 写作           → writer subagent 批量（Writer 在草稿中写结构化图表）
 Phase 4b: 审阅           → reviewer subagent 批量
 Phase 4c: 决策           → 自动判断 accept/revise/reject
 Phase 4d: 修复           → fixer subagent 批量
-Phase 5:  图表处理       → 提取 mermaid 代码块 → .mmd → SVG → PNG → 替换草稿
+Phase 5:  图表处理       → 提取结构化图表 → 内置布局引擎渲染 → SVG → PNG → 替换草稿
 Phase 6:  组装           → 合并章节 → final.md
 Phase 7:  定稿           → 文档统计 + 数据基线一致性检查 → finalization.json
 Phase 8:  导出           → MD / HTML / DOCX
@@ -115,12 +115,13 @@ Writer → Reviewer → 决策:
 
 ## 图表
 
-Writer 在草稿中直接写 ` ```mermaid ` 代码块。Phase 5 自动：
-1. 提取所有 mermaid 代码块
-2. 写入 `figures/*.mmd`
-3. 用 mmdc 渲染 SVG（如可用）
-4. 用 sharp 转换 PNG（如可用）
-5. 替换草稿中的 mermaid 为 `![图表](figures/xxx.png)`
+Writer 在草稿中写结构化图表格式（`containers / nodes / edges`）。Phase 5 自动：
+1. 提取所有结构化图表代码块
+2. 内置布局引擎渲染（正交连线 + 分层配色 + 自适应压缩）
+3. 生成 SVG → 用 sharp 转换 PNG
+4. 替换草稿中的图表代码为 `![图表](figures/xxx.png)`
+
+布局引擎详见 `src/diagrams/layout/`（graph → metrics → route → render → validate）。
 
 ## 定稿检查 (Phase 7)
 
