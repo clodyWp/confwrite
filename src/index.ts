@@ -21,6 +21,7 @@ import { WritingOrchestrator } from './writing/orchestrator.js';
 import { OutputValidator } from './writing/output-validator.js';
 import { ProjectStore } from './state/store.js';
 import { LoggingSystem } from './logging/index.js';
+import { loadConfig } from './config/loader.js';
 import { resolve } from 'node:path';
 
 export type NotifyLevel = 'info' | 'error' | 'warning';
@@ -80,6 +81,9 @@ export async function runWriteLoop(
 
   const config = { ...DEFAULT_SCHEDULER_CONFIG, ...configOverride };
   
+  // 加载用户配置文件（confwrite.config.json）
+  const userConfig = loadConfig(projectDir);
+  
   // 初始化日志系统（启用文件日志）
   const loggingSystem = new LoggingSystem(notify, {
     enabled: options?.fileLogEnabled ?? true,
@@ -102,10 +106,10 @@ export async function runWriteLoop(
     config.maxTaskRetries,
     loggingSystem.eventBus, // 传递 EventBus
   );
-  const taskExecutor = new TaskExecutor();
+  const taskExecutor = new TaskExecutor(userConfig);
   const writingOrchestrator = new WritingOrchestrator();
   const dispatcher = new Dispatcher(projectDir, store, scheduler, taskExecutor, writingOrchestrator);
-  const outputValidator = new OutputValidator(projectDir);
+  const outputValidator = new OutputValidator(projectDir, userConfig);
 
   const EXECUTABLE_ACTIONS = new Set(['spawn_writers', 'spawn_reviewers', 'spawn_fixers']);
   const MAX_TICKS = 2000;  // 足够支持 85 章节 × 3+ 轮

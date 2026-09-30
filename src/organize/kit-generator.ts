@@ -105,6 +105,17 @@ export class KitGenerator {
       lines.push('');
     }
 
+    // 写作风格注入（从知识库）
+    if (this.knowledgeLoader) {
+      const styleContent = this.knowledgeLoader.generateWritingStyleInjection(
+        mapping.relatedCategories,
+        mapping.title
+      );
+      if (styleContent) {
+        lines.push(styleContent);
+      }
+    }
+
     // 写作提示
     lines.push('## 写作提示');
     lines.push('1. 仔细阅读相关文件，理解上下文');

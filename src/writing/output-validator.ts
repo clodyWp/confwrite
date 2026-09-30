@@ -1,7 +1,7 @@
 /**
  * OutputValidator — 即时验证 subagent 输出
  * 
- * 参考 bailian-agent/doc-chapters-v6 的"Writer 完成后即时验证"模式：
+ * 参考 bailian-agent/doc-chapters-v6 的“Writer 完成后即时验证”模式：
  * - Writer: 检查草稿文件存在、大小 > 1000 字节、可读性
  * - Reviewer: 检查 JSON 存在、可解析、verdict 合法
  * - Fixer: 检查新版本文件存在、大小 > 1000 字节
@@ -9,6 +9,8 @@
 import { existsSync, statSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Task } from '../scheduler/types.js';
+import type { ConfWriteConfig } from '../config/loader.js';
+import { DEFAULT_CONFIG } from '../config/loader.js';
 
 /**
  * 尝试修复常见的 JSON 格式错误
@@ -63,13 +65,15 @@ export interface ValidationCheck {
   detail?: string;
 }
 
-const MIN_CHAPTER_CHARS = 8000; // 章节最小字符数
+export const MIN_CHAPTER_CHARS = 8000; // 章节最小字符数（默认值）
 
 export class OutputValidator {
   private projectDir: string;
+  private config: ConfWriteConfig;
 
-  constructor(projectDir: string) {
+  constructor(projectDir: string, config?: ConfWriteConfig) {
     this.projectDir = projectDir;
+    this.config = config ?? DEFAULT_CONFIG;
   }
 
   /**
@@ -119,14 +123,15 @@ export class OutputValidator {
     try {
       const content = readFileSync(filePath, 'utf-8');
       const charCount = content.length;
-      const charOk = charCount >= MIN_CHAPTER_CHARS;
+      const minChars = this.config.writing.minChapterChars;
+      const charOk = charCount >= minChars;
       result.checks.push({ 
         name: '字数统计', 
         passed: charOk, 
-        detail: `${charCount} 字 (min ${MIN_CHAPTER_CHARS})` 
+        detail: `${charCount} 字 (min ${minChars})` 
       });
       if (!charOk) {
-        result.errors.push(`草稿字数不足: ${charCount} 字 < ${MIN_CHAPTER_CHARS} 字`);
+        result.errors.push(`草稿字数不足: ${charCount} 字 < ${minChars} 字`);
       }
 
       // 3. 可读性（防编码损坏）
@@ -206,14 +211,15 @@ export class OutputValidator {
     try {
       const content = readFileSync(filePath, 'utf-8');
       const charCount = content.length;
-      const charOk = charCount >= MIN_CHAPTER_CHARS;
+      const minChars = this.config.writing.minChapterChars;
+      const charOk = charCount >= minChars;
       result.checks.push({ 
         name: '字数统计', 
         passed: charOk, 
-        detail: `${charCount} 字 (min ${MIN_CHAPTER_CHARS})` 
+        detail: `${charCount} 字 (min ${minChars})` 
       });
       if (!charOk) {
-        result.errors.push(`修复后字数不足: ${charCount} 字 < ${MIN_CHAPTER_CHARS} 字`);
+        result.errors.push(`修复后字数不足: ${charCount} 字 < ${minChars} 字`);
       }
 
       // 3. 可读性

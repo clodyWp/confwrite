@@ -87,9 +87,11 @@ function parseFrontmatter(content: string): { frontmatter: KnowledgeFrontmatter;
  */
 export class KnowledgeLoader {
   private knowledgeDir: string;
+  private writingStylesDir: string;
 
   constructor(projectDir: string) {
     this.knowledgeDir = join(projectDir, 'knowledge', 'diagrams');
+    this.writingStylesDir = join(projectDir, 'knowledge', 'writing-styles');
   }
 
   /**
@@ -302,5 +304,76 @@ export class KnowledgeLoader {
     const { frontmatter, body } = parseFrontmatter(raw);
 
     return { filename, content: body.trim(), frontmatter };
+  }
+
+  /**
+   * 加载写作风格指南
+   * 优先按 matchCategories 匹配，其次按 tags 与标题关键词匹配
+   */
+  loadWritingStyleGuide(categories: string[], title: string): KnowledgeFile | null {
+    if (!existsSync(this.writingStylesDir)) {
+      return null;
+    }
+
+    const entries = readdirSync(this.writingStylesDir).filter(f => f.endsWith('.md') && f !== 'README.md');
+    if (entries.length === 0) {
+      return null;
+    }
+
+    const categoryText = categories.join(' ').toLowerCase();
+    const titleLower = title.toLowerCase();
+
+    // 第一轮：按 matchCategories 匹配
+    for (const filename of entries.sort()) {
+      const filePath = join(this.writingStylesDir, filename);
+      const raw = readFileSync(filePath, 'utf-8');
+      const { frontmatter, body } = parseFrontmatter(raw);
+
+      const matchCategories = frontmatter.matchCategories;
+      if (Array.isArray(matchCategories) && matchCategories.length > 0) {
+        const matched = matchCategories.some((cat: string) => 
+          categoryText.includes(cat.toLowerCase())
+        );
+        if (matched) {
+          return { filename, content: body.trim(), frontmatter };
+        }
+      }
+    }
+
+    // 第二轮：按 tags 与标题关键词匹配
+    for (const filename of entries.sort()) {
+      const filePath = join(this.writingStylesDir, filename);
+      const raw = readFileSync(filePath, 'utf-8');
+      const { frontmatter, body } = parseFrontmatter(raw);
+
+      const tags = frontmatter.tags;
+      if (Array.isArray(tags) && tags.length > 0) {
+        const matched = tags.some((tag: string) => 
+          titleLower.includes(tag.toLowerCase())
+        );
+        if (matched) {
+          return { filename, content: body.trim(), frontmatter };
+        }
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * 生成写作风格注入内容
+   */
+  generateWritingStyleInjection(categories: string[], title: string): string {
+    const style = this.loadWritingStyleGuide(categories, title);
+    if (!style) {
+      return '';
+    }
+
+    const parts: string[] = [];
+    parts.push(`## 写作风格：${style.frontmatter.title || style.filename}\n`);
+    parts.push(style.content);
+    parts.push('');
+
+    return parts.join('\n');
   }
 }

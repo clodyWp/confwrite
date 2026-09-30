@@ -8,6 +8,8 @@
  */
 import type { Task } from '../scheduler/types.js';
 import { join } from 'node:path';
+import type { ConfWriteConfig } from '../config/loader.js';
+import { DEFAULT_CONFIG } from '../config/loader.js';
 
 /**
  * 审阅决定
@@ -31,7 +33,7 @@ export interface ReviewBaseline {
  * 任务执行器
  */
 /**
- * 单节（ch）正文合计字数下限。
+ * 单节（ch）正文合计字数下限（默认值）。
  *
  * 度量层级为 **ch**，不是 ch 内部的小节。
  * 历史事故：曾写「每个子节 ≥ 5000 字」，一个 ch 约 27 个小节，
@@ -41,6 +43,11 @@ export interface ReviewBaseline {
 export const MIN_CHAPTER_CHARS = 8000;
 
 export class TaskExecutor {
+  private config: ConfWriteConfig;
+
+  constructor(config?: ConfWriteConfig) {
+    this.config = config ?? DEFAULT_CONFIG;
+  }
   /**
    * 生成 Writer subagent 的 prompt
    * 
@@ -87,11 +94,11 @@ ${kitContent}
 ## 深度要求（强制执行，不可降级）
 
 ### 1. 篇幅要求（强制，按 ch 级衡量）
-- **本次任务产出的整个章节（本 ch）正文合计不少于 ${MIN_CHAPTER_CHARS} 字**
+- **本次任务产出的整个章节（本 ch）正文合计不少于 ${this.config.writing.minChapterChars} 字**
 - 字数按**整节合计**衡量，**不按**内部小节（## 或 ###）分别计算
 - **图表前后必须有独立段落说明**（见第 3 条）
 - 宁可写得详细充分，不要写得简略空洞
-- 达到 ${MIN_CHAPTER_CHARS} 字通常需要多个段落、多个示例、多个分析维度
+- 达到 ${this.config.writing.minChapterChars} 字通常需要多个段落、多个示例、多个分析维度
 - **不允许通过重复、废话、空洞论述凑字数**——每句话都要有信息量
 
 **职责分工**：写完本章后**直接结束任务**，不要检查字数、不要反复编辑补充。
@@ -376,7 +383,7 @@ ${requirementsList || '无'}
 
 - **最多 5 个问题**：只关注最重要的问题，不要列举所有小问题
 - **优先级**：
-  1. 字数是否达标（≥ ${MIN_CHAPTER_CHARS} 字符）
+  1. 字数是否达标（≥ ${this.config.writing.minChapterChars} 字符）
   2. 图表是否规范（diagram-start 格式、前后说明）
   3. 数据是否与基线一致
   4. 内容深度是否足够
@@ -394,7 +401,7 @@ ${requirementsList || '无'}
 ### 3. 内容深度（重点检查）
 
 **篇幅检查**（Reviewer 核心职责）：
-- **本节（整个章节）正文合计是否 ≥ ${MIN_CHAPTER_CHARS} 字** —— 按整节合计衡量，**不按**内部小节（## 或 ###）分别计算
+- **本节（整个章节）正文合计是否 ≥ ${this.config.writing.minChapterChars} 字** —— 按整节合计衡量，**不按**内部小节（## 或 ###）分别计算
 - 如果整节合计不足，必须标记为 revise，并给出**实际字数与差额**，明确指出**需要扩充多少字**
 - 示例："本节当前约 5000 字，距下限还差约 3000 字，可补充采集流程、技术选型、性能优化等内容"
   （注意：**按整节合计判断**，不要把「某个小节没写够」当作不达标的理由）
