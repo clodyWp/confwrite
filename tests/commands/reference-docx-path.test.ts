@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { existsSync } from 'node:fs';
 import { resolve, normalize } from 'node:path';
 import { platform } from 'node:os';
+import { fileURLToPath } from 'node:url';
 
 // fileURLToPath 在 Windows 上不接受 POSIX 风格的 file:// URL
 const isWindows = platform() === 'win32';

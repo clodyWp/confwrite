@@ -91,19 +91,27 @@ export async function runWriteLoop(
     filename: 'confwrite-log.json',
   });
   
-  const scheduler = new SubagentScheduler(config);
+  // 合并用户配置到调度配置
+  const schedulerConfig = {
+    ...config,
+    maxConcurrency: userConfig.scheduler?.maxConcurrency ?? config.maxConcurrency,
+    maxTurnsPerTask: userConfig.scheduler?.maxTurnsPerTask ?? config.maxTurnsPerTask,
+    maxTaskRetries: userConfig.scheduler?.maxTaskRetries ?? config.maxTaskRetries,
+  };
+  
+  const scheduler = new SubagentScheduler(schedulerConfig);
   const executor = executorOverride ?? new PiSubagentExecutor({
     projectDir,
-    maxTurnsPerTask: config.maxTurnsPerTask,
+    maxTurnsPerTask: schedulerConfig.maxTurnsPerTask,
   });
   const runner = new SchedulerRunner(
     scheduler,
     executor,
-    config.maxConcurrency,
+    schedulerConfig.maxConcurrency,
     config.rateLimitWindowMs,
     config.rateLimitMaxTasks,
     config.rateLimitDelayMs,
-    config.maxTaskRetries,
+    schedulerConfig.maxTaskRetries,
     loggingSystem.eventBus, // 传递 EventBus
   );
   const taskExecutor = new TaskExecutor(userConfig);
