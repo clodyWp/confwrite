@@ -2,6 +2,48 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.13.0] - 2026-10-08
+
+### Added
+- **大纲生成工具**：完整的文档大纲自动生成系统
+  - Phase 1: 需求提取（RequirementExtractor）
+  - Phase 2: 大纲规划（OutlineGenerator）
+  - /confwrite:outline 命令
+- **知识库系统**：
+  - 章节类型知识库（7种默认类型 + 3种自定义扩展）
+  - 大纲模板知识库（技术方案、投标文档）
+  - 需求分类知识库（6个分类）
+- **篇幅控制**：
+  - 字数预算系统（规划参考）
+  - 软门控逻辑（可配置容差）
+  - 篇幅统计与报告（WordCountAnalyzer）
+- **需求追溯**：
+  - 需求标记机制（RequirementMarker）
+  - 需求追溯工具（RequirementTracer）
+  - 需求覆盖检查
+- **上下文注入**：
+  - KitGenerator支持注入前后章节大纲
+  - Writer prompt中增加字数预算参考
+- **配置扩展**：
+  - 新增 minChapterCharsTolerance 配置项
+  - 支持软门控容差配置
+
+### Changed
+- ChapterState schema 扩展：新增 type/wordBudget/importance/description/style 字段
+- OutputValidator 实现软门控逻辑
+- TaskExecutor 支持字数预算参考
+
+### Fixed
+- 需求提取完整性检查
+- 大纲生成时的需求分配逻辑
+- 字数预算与门控的协调
+
+### Technical Details
+- 新增 15 个核心模块
+- 新增 100+ 个测试用例
+- 总测试数：1128 passed, 12 skipped
+- 严格遵循 TDD 开发流程
+
 ## [0.12.1] - 2026-09-28
 
 ### Changed
