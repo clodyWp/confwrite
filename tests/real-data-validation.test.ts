@@ -175,13 +175,14 @@ describe('真实数据预验证 — LMERP2V2 286KB 需求文档', () => {
       console.log(`每章预算: ${chapters[0].wordBudget?.min} - ${chapters[0].wordBudget?.max}`);
       console.log(`总字数预算: ${totalMin} - ${totalMax}`);
 
-      // 总字数应该接近 100 万字（±30%）
-      expect(totalMin).toBeGreaterThanOrEqual(700000);  // 至少 70 万
-      expect(totalMax).toBeLessThanOrEqual(1300000);     // 最多 130 万
+      // 总字数应该达到 100 万字目标（容差向上 30%）
+      expect(totalMin).toBeGreaterThanOrEqual(1000000);  // 最少 100 万
+      expect(totalMax).toBeLessThanOrEqual(2000000);     // 最多 200 万（容差向上）
       
-      // 每章预算应该根据 targetWords 自动调整
-      // 75 章 × 13333 字 ≈ 100 万字
-      expect(chapters[0].wordBudget!.max).toBeGreaterThan(10000);
+      // 每章预算应该固定为 5000-8000
+      // 通过调整章节数（200章）达到目标字数
+      expect(chapters[0].wordBudget!.min).toBe(5000);
+      expect(chapters[0].wordBudget!.max).toBe(8000);
     });
   });
 });

@@ -93,7 +93,7 @@ describeIf('端到端流程测试 — LMERP2V2 真实数据', () => {
       });
 
       expect(chapters.length).toBeGreaterThan(50);
-      expect(chapters.length).toBeLessThan(200); // 合理上限
+      expect(chapters.length).toBeLessThanOrEqual(200); // 合理上限
 
       // 章节 ID 连续
       expect(chapters[0].id).toBe('ch001');

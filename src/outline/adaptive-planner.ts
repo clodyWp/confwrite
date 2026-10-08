@@ -54,26 +54,16 @@ export class AdaptiveOutlinePlanner {
 
     // Step 3: 计算目标章节数
     // 目标：每章 5000-8000 字，总字数达到 targetWords
-    // 章节数 = targetWords / wordBudget.max（向下取整，确保每章字数充足）
-    const targetChapterCount = Math.max(1, Math.floor(targetWords / wordBudget.max));
+    // 章节数 = targetWords / wordBudget.min（向上取整，确保最少字数达到目标）
+    const targetChapterCount = Math.max(1, Math.ceil(targetWords / wordBudget.min));
 
     // Step 4: 如果叶子数 > 目标章节数，合并到目标数量
     if (chapters.length > targetChapterCount) {
       chapters = this.mergeToTargetCount(chapters, targetChapterCount);
     }
 
-    // Step 5: 根据最终章节数计算每章预算
-    // 容差向上：保证最少达到 targetWords
-    const chapterCount = chapters.length;
-    const targetPerChapter = Math.floor(targetWords / chapterCount);
-    
-    // 每章预算：targetPerChapter - targetPerChapter * 1.3
-    // 最少：targetPerChapter（保证总字数达到 targetWords）
-    // 最多：targetPerChapter * 1.3（容差向上 30%）
-    const adjustedMin = Math.max(wordBudget.min, targetPerChapter);
-    const adjustedMax = Math.max(wordBudget.max, Math.floor(targetPerChapter * 1.3));
-
-    // Step 6: 分配 chapter ID
+    // Step 5: 每个 chapter 使用固定的字数预算
+    // 通过调整 chapter 数量来达到目标字数
     return chapters.map((ch, index) => {
       const id = `ch${String(index + 1).padStart(3, '0')}`;
       return {
@@ -81,8 +71,8 @@ export class AdaptiveOutlinePlanner {
         title: ch.title,
         type: 'functional',
         wordBudget: {
-          min: adjustedMin,
-          max: adjustedMax,
+          min: wordBudget.min,
+          max: wordBudget.max,
         },
         importance: 3,
         description: ch.description,
