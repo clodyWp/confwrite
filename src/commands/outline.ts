@@ -50,22 +50,17 @@ export async function outlineCommand(
 
   // 3. 生成大纲
   const generator = new OutlineGenerator(projectDir);
-  const outline = await generator.generate(template, requirements);
+  const outline = await generator.generate(template, requirements, targetWords);
 
-  // 4. 如果指定了目标字数，更新大纲
-  if (targetWords) {
-    outline.targetWords = targetWords;
-  }
-
-  // 5. 评估字数
+  // 4. 评估字数
   const evaluation = generator.evaluateWordCount(outline);
 
-  // 6. 生成大纲文件
+  // 5. 生成大纲文件
   const outlinePath = join(projectDir, 'outline.md');
   const outlineContent = generateOutlineMarkdown(outline, evaluation);
   writeFileSync(outlinePath, outlineContent, 'utf-8');
 
-  // 7. 生成评估报告
+  // 6. 生成评估报告
   const assetsDir = join(projectDir, 'assets');
   if (!existsSync(assetsDir)) {
     mkdirSync(assetsDir, { recursive: true });
@@ -75,7 +70,7 @@ export async function outlineCommand(
   const reportContent = generateEvaluationReport(outline, evaluation);
   writeFileSync(reportPath, reportContent, 'utf-8');
 
-  // 8. 更新项目状态
+  // 7. 更新项目状态
   const store = new ProjectStore(projectDir);
   const state = store.load();
   if (state) {

@@ -45,9 +45,12 @@ export class OutlineGenerator {
    * Wave 3 改进：如果存在 inputs/requirements.md，使用 AdaptiveOutlinePlanner
    * 根据需求文档的标题层级智能生成章节。否则回退到模板方式。
    */
-  async generate(templateName: string, requirements: Requirement[]): Promise<Outline> {
+  async generate(templateName: string, requirements: Requirement[], targetWords?: number): Promise<Outline> {
     // 1. 加载模板
     const template = this.templateLoader.loadTemplate(templateName);
+    
+    // 使用传入的 targetWords，如果没有则使用模板的 targetWords
+    const effectiveTargetWords = targetWords || template.targetWords;
 
     // 2. 尝试使用自适应规划器（Wave 3）
     const requirementsDocPath = join(this.projectDir, 'inputs', 'requirements.md');
@@ -60,7 +63,7 @@ export class OutlineGenerator {
         if (headingTree.children.length > 0) {
           const planner = new AdaptiveOutlinePlanner();
           const chapters = planner.plan(headingTree, {
-            targetWords: template.targetWords,
+            targetWords: effectiveTargetWords,
             wordBudget: { min: 5000, max: 8000 },
             tolerance: 0.2,
           });
@@ -71,7 +74,7 @@ export class OutlineGenerator {
 
             return {
               title: template.name,
-              targetWords: template.targetWords,
+              targetWords: effectiveTargetWords,
               chapters,
               createdAt: new Date().toISOString(),
               version: '1.0.0',
@@ -114,7 +117,7 @@ export class OutlineGenerator {
 
     return {
       title: template.name,
-      targetWords: template.targetWords,
+      targetWords: effectiveTargetWords,
       chapters,
       createdAt: new Date().toISOString(),
       version: '1.0.0',
