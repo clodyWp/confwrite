@@ -18,6 +18,22 @@ import type { SubagentExecutor } from './scheduler/executor.js';
 import { DEFAULT_SCHEDULER_CONFIG, type SchedulerConfig } from './state/schema.js';
 import { Dispatcher } from './dispatcher/index.js';
 import { TaskExecutor } from './writing/task-executor.js';
+import { readFileSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+function getConfWriteVersion(): string {
+  try {
+    const packagePath = join(__dirname, '..', '..', 'package.json');
+    const pkg = JSON.parse(readFileSync(packagePath, 'utf-8'));
+    return pkg.version || 'unknown';
+  } catch {
+    return 'unknown';
+  }
+}
 import { WritingOrchestrator } from './writing/orchestrator.js';
 import { OutputValidator } from './writing/output-validator.js';
 import { ProjectStore } from './state/store.js';
@@ -494,7 +510,9 @@ export default function (pi: ExtensionAPI) {
       const failed = chapters.filter(ch => ch.status === 'failed').length;
       const writing = chapters.filter(ch => ['writing', 'reviewing', 'fixing'].includes(ch.status)).length;
 
-      let msg = `📊 项目: ${state.project}\n`;
+      const version = getConfWriteVersion();
+      let msg = `📦 ConfWrite v${version}\n`;
+      msg += `📊 项目: ${state.project}\n`;
       msg += `阶段: ${status.phase} (${status.name})\n`;
       msg += `状态: ${status.status}\n`;
       msg += `章节: ${completed}/${total} 完成`;
