@@ -1,12 +1,12 @@
 /**
  * AdaptiveOutlinePlanner — 自适应大纲规划器
  *
- * 核心策略（修正版）：
+ * 核心策略：
  * 1. 先展开到所有叶子节点
- * 2. 如果总字数 > 目标，向上合并叶子（同父优先）
- * 3. 根据最终章节数计算每章预算 = targetWords / chapterCount
- *
- * 这样保证：章节数 × 每章预算 ≈ targetWords
+ * 2. 如果叶子数 > 目标章节数，合并到目标数量
+ * 3. 如果叶子数 < 目标章节数，保持原样（不强行拆分）
+ * 4. 每章使用固定的字数预算（wordBudget.min - wordBudget.max）
+ * 5. 通过调整章节数量来达到目标字数
  */
 
 import type { HeadingNode } from './heading-tree.js';
@@ -57,8 +57,12 @@ export class AdaptiveOutlinePlanner {
     // 章节数 = targetWords / wordBudget.min（向上取整，确保最少字数达到目标）
     const targetChapterCount = Math.max(1, Math.ceil(targetWords / wordBudget.min));
 
-    // Step 4: 如果叶子数 > 目标章节数，合并到目标数量
-    if (chapters.length > targetChapterCount) {
+    // Step 4: 计算叶子节点的总 estimatedWords
+    const totalEstimated = chapters.reduce((sum, c) => sum + c.estimatedWords, 0);
+    const maxAllowed = targetWords * (1 + tolerance);
+
+    // Step 5: 如果叶子数 > 目标章节数，或者总字数 > 目标字数，合并到目标数量
+    if (chapters.length > targetChapterCount || totalEstimated > maxAllowed) {
       chapters = this.mergeToTargetCount(chapters, targetChapterCount);
     }
 
@@ -190,83 +194,6 @@ export class AdaptiveOutlinePlanner {
         
         // 位置越近越好
         score += (j - i) * 100;
-
-        if (score < bestScore) {
-          bestScore = score;
-          bestPair = [a, b];
-        }
-      }
-    }
-
-    return bestPair;
-  }
-
-  /**
-   * 合并章节（贪心算法）
-   *
-   * 策略：
-   * 1. 同一父节点下的叶子优先合并
-   * 2. 合并后字数不超过 targetPerChapter * 2
-   * 3. 重复直到总字数 <= targetWords * (1 + tolerance)
-   */
-  private mergeChapters(
-    chapters: PlannedChapter[],
-    targetWords: number,
-    tolerance: number
-  ): PlannedChapter[] {
-    const maxAllowed = targetWords * (1 + tolerance);
-    let result = [...chapters];
-
-    const totalWords = () => result.reduce((sum, c) => sum + c.estimatedWords, 0);
-
-    // 计算每章目标字数（合并后）
-    const targetPerChapter = Math.floor(targetWords / Math.max(1, result.length * 0.6));
-    const maxMergeSize = targetPerChapter * 2;
-
-    // 循环合并直到总字数在范围内
-    while (totalWords() > maxAllowed && result.length > 1) {
-      const mergePair = this.findBestMergePair(result, maxMergeSize);
-
-      if (!mergePair) {
-        break;
-      }
-
-      const [a, b] = mergePair;
-      const merged: PlannedChapter = {
-        title: this.generateMergedTitle(a, b),
-        estimatedWords: a.estimatedWords + b.estimatedWords,
-        description: `${a.description} ${b.description}`.trim(),
-        sourceNodes: [...a.sourceNodes, ...b.sourceNodes],
-      };
-
-      result = result.filter(c => c !== a && c !== b);
-      result.push(merged);
-    }
-
-    return result;
-  }
-
-  /**
-   * 查找最佳合并对
-   */
-  private findBestMergePair(
-    chapters: PlannedChapter[],
-    maxWords: number
-  ): [PlannedChapter, PlannedChapter] | null {
-    let bestPair: [PlannedChapter, PlannedChapter] | null = null;
-    let bestScore = Infinity;
-
-    for (let i = 0; i < chapters.length - 1; i++) {
-      for (let j = i + 1; j < chapters.length; j++) {
-        const a = chapters[i];
-        const b = chapters[j];
-        const mergedWords = a.estimatedWords + b.estimatedWords;
-
-        if (mergedWords > maxWords) continue;
-
-        const sameParent = this.hasSameParent(a, b);
-        const wordDiff = Math.abs(a.estimatedWords - b.estimatedWords);
-        const score = wordDiff - (sameParent ? 10000 : 0);
 
         if (score < bestScore) {
           bestScore = score;
