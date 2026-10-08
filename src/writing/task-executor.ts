@@ -53,8 +53,28 @@ export class TaskExecutor {
    * 
    * 输出版本化文件: drafts/chapters/${chapterId}-v${round}.md
    */
-  generateWriterPrompt(task: Task, kitContent: string, round: number = 1): string {
+  generateWriterPrompt(
+    task: Task,
+    kitContent: string,
+    round: number = 1,
+    wordBudget?: { min: number; max: number; expected: number }
+  ): string {
     const outputFile = `drafts/chapters/${task.chapterId}-v${round}.md`;
+    
+    // 字数预算参考部分
+    const wordBudgetSection = wordBudget ? `
+## 字数预算参考（仅供参考，不是强制要求）
+
+本章的字数预算为 **${wordBudget.min}-${wordBudget.max} 字**，期望值 **${wordBudget.expected} 字**。
+
+**重要说明**：
+- 字数预算是**规划参考**，帮助你了解本章应该写多详细
+- **强制要求**是最低 **${this.config.writing.minChapterChars} 字**（必须达到）
+- 如果预算高于门控，尽量接近预算；如果预算低于门控，以门控为准
+- 不要因为预算而牺牲内容质量
+
+---
+` : '';
     
     return `# 写作任务
 
@@ -78,7 +98,7 @@ export class TaskExecutor {
 ---
 
 你正在撰写文档的章节：**${task.chapterId}**（第 ${round} 轮）
-
+${wordBudgetSection}
 ## 素材文件位置
 
 所有素材文件都位于 **reference_material/** 目录下。素材包中列出的文件路径都是相对于这个目录的。
