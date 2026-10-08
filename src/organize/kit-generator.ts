@@ -3,6 +3,7 @@ import { dirname, join } from 'node:path';
 import type { ChapterMapping } from './chapter-mapper.js';
 import type { DataBaseline } from './baseline-extractor.js';
 import type { KnowledgeLoader } from '../knowledge/loader.js';
+import type { Outline } from '../outline/types.js';
 
 /**
  * 生成结果
@@ -37,6 +38,17 @@ export class KitGenerator {
    * 生成单个章节的素材包内容
    */
   generate(mapping: ChapterMapping, baseline: DataBaseline): string {
+    return this.generateWithOutline(mapping, baseline);
+  }
+
+  /**
+   * 生成单个章节的素材包内容（带大纲上下文）
+   */
+  generateWithOutline(
+    mapping: ChapterMapping,
+    baseline: DataBaseline,
+    outline?: Outline
+  ): string {
     const lines: string[] = [];
 
     // 标题
@@ -56,6 +68,14 @@ export class KitGenerator {
       lines.push('## 章节描述');
       lines.push(mapping.description);
       lines.push('');
+    }
+
+    // 上下文参考（前一章和后一章）
+    if (outline) {
+      const contextSection = this.generateContextSection(mapping.chapterId, outline);
+      if (contextSection) {
+        lines.push(contextSection);
+      }
     }
 
     // 相关文件
@@ -227,5 +247,50 @@ export class KitGenerator {
       technicalTerms: scopedTerms,
       requirements: scopedReqs,
     };
+  }
+
+  /**
+   * 生成上下文参考部分（前一章和后一章）
+   */
+  private generateContextSection(chapterId: string, outline: Outline): string {
+    const lines: string[] = [];
+    const chapters = outline.chapters;
+    const currentIndex = chapters.findIndex(ch => ch.id === chapterId);
+
+    if (currentIndex === -1) {
+      return '';
+    }
+
+    const prevChapter = currentIndex > 0 ? chapters[currentIndex - 1] : null;
+    const nextChapter = currentIndex < chapters.length - 1 ? chapters[currentIndex + 1] : null;
+
+    if (!prevChapter && !nextChapter) {
+      return '';
+    }
+
+    lines.push('## 上下文参考\n');
+    lines.push('以下是与本章相邻的章节信息，有助于保持文档连贯性：\n');
+
+    if (prevChapter) {
+      lines.push('### 前一章');
+      lines.push(`- **章节 ID**: ${prevChapter.id}`);
+      lines.push(`- **标题**: ${prevChapter.title}`);
+      if (prevChapter.description) {
+        lines.push(`- **描述**: ${prevChapter.description}`);
+      }
+      lines.push('');
+    }
+
+    if (nextChapter) {
+      lines.push('### 后一章');
+      lines.push(`- **章节 ID**: ${nextChapter.id}`);
+      lines.push(`- **标题**: ${nextChapter.title}`);
+      if (nextChapter.description) {
+        lines.push(`- **描述**: ${nextChapter.description}`);
+      }
+      lines.push('');
+    }
+
+    return lines.join('\n');
   }
 }
