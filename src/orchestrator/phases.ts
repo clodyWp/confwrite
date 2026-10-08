@@ -10,6 +10,9 @@ import { existsSync, statSync, readFileSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import { FormatConverter } from '../assemble/converter.js';
 import { validateChapterKitsAgainstOutline } from '../organize/kit-validator.js';
+import { Phase1RequirementAnalysis } from './phase1.js';
+import { Phase2OutlinePlanning } from './phase2.js';
+import { ProjectStore } from '../state/store.js';
 import type { Phase, ProjectState } from '../state/schema.js';
 
 export interface PhaseContext {
@@ -180,14 +183,22 @@ export const phase1: PhaseDefinition = {
   name: '需求分析',
   validate: () => ({ ok: true }),
   async execute(ctx) {
+    // 使用新的 Phase1RequirementAnalysis 类
+    const store = new ProjectStore(ctx.projectDir);
+    const phase1 = new Phase1RequirementAnalysis(ctx.projectDir, store);
+    await phase1.execute();
+    
     return {
-      action: 'spawn_researcher',
-      message: 'Phase 1: 需求分析',
-      params: { projectDir: ctx.projectDir },
+      action: 'phase_entered',
+      message: 'Phase 1: 需求分析完成',
     };
   },
   exits: [
-    { target: '2', condition: (ctx) => hasFile(ctx, 'inputs/requirements.md') },
+    { target: '2', condition: (ctx) => {
+      const store = new ProjectStore(ctx.projectDir);
+      const phase1 = new Phase1RequirementAnalysis(ctx.projectDir, store);
+      return phase1.validate();
+    }},
   ],
 };
 
@@ -196,10 +207,14 @@ export const phase2: PhaseDefinition = {
   name: '大纲规划',
   validate: () => ({ ok: true }),
   async execute(ctx) {
+    // 使用新的 Phase2OutlinePlanning 类
+    const store = new ProjectStore(ctx.projectDir);
+    const phase2 = new Phase2OutlinePlanning(ctx.projectDir, store);
+    await phase2.execute();
+    
     return {
-      action: 'outline_collaboration',
-      message: 'Phase 2: 大纲规划（人机协作）',
-      params: { projectDir: ctx.projectDir },
+      action: 'phase_entered',
+      message: 'Phase 2: 大纲规划完成',
     };
   },
   exits: [

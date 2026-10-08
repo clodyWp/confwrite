@@ -9,6 +9,7 @@ import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import { initProject } from './commands/init.js';
 import { organizeMaterials } from './commands/organize.js';
 import { exportDocument } from './commands/export.js';
+import { outlineCommand } from './commands/outline.js';
 import { StateMachine } from './orchestrator/state-machine.js';
 import { SubagentScheduler } from './scheduler/index.js';
 import { SchedulerRunner } from './scheduler/runner.js';
@@ -398,6 +399,43 @@ export default function (pi: ExtensionAPI) {
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         ctx.ui.notify(`素材整理失败: ${msg}`, 'error');
+      }
+    },
+  });
+
+  // ============ /confwrite:outline ============
+  pi.registerCommand('confwrite:outline', {
+    description: '自动生成大纲（基于模板和需求）',
+    handler: async (args, ctx) => {
+      if (!args) {
+        ctx.ui.notify('用法: /confwrite:outline <template> [targetWords]', 'info');
+        ctx.ui.notify('模板: technical-proposal, bid-document', 'info');
+        return;
+      }
+
+      const parts = args.split(/\s+/);
+      const template = parts[0];
+      const targetWords = parts[1] ? parseInt(parts[1], 10) : undefined;
+      const workspaceDir = ctx.cwd || process.cwd();
+      const projectDir = workspaceDir;
+
+      try {
+        ctx.ui.notify('开始生成大纲...', 'info');
+        
+        const result = await outlineCommand({
+          projectDir,
+          template,
+          targetWords,
+        });
+
+        if (result.success) {
+          ctx.ui.notify(result.message, 'info');
+        } else {
+          ctx.ui.notify(`大纲生成失败: ${result.message}`, 'error');
+        }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        ctx.ui.notify(`大纲生成失败: ${msg}`, 'error');
       }
     },
   });
