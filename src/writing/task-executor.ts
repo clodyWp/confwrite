@@ -357,7 +357,8 @@ diagram-end -->
     baseline: ReviewBaseline,
     round: number = 1,
     knowledgeContent: string = '',
-    projectDir?: string
+    projectDir?: string,
+    wordBudget?: { min: number; max: number }
   ): string {
     const metricsList = Object.entries(baseline.metrics)
       .map(([k, v]) => `- ${k}: ${v}`)
@@ -365,6 +366,21 @@ diagram-end -->
 
     const termsList = baseline.technicalTerms.join(', ');
     const requirementsList = baseline.requirements.map(r => `- ${r}`).join('\n');
+
+    // 字数预算检查部分（Bug M 修复）
+    const wordBudgetSection = wordBudget ? `
+
+### 7. 字数预算检查（重要）
+
+本章的字数预算为 **${wordBudget.min}-${wordBudget.max} 字**。
+
+**容差规则**（±30%）：
+- 实际字数在 ${Math.round(wordBudget.min * 0.7)}-${Math.round(wordBudget.max * 1.3)} 字范围内 → 通过
+- 实际字数 > ${Math.round(wordBudget.max * 1.3)} 字 → revise（要求精简）
+- 实际字数 < ${Math.round(wordBudget.min * 0.7)} 字 → revise（要求补充）
+
+请统计本章实际字数，并根据容差规则判断是否通过。
+` : '';
 
     return `# 审阅任务
 
@@ -512,7 +528,7 @@ ${knowledgeContent ? `
 ## 图表质量对抗性检查（必须执行）
 
 ${knowledgeContent}
-` : ''}`;
+` : ''}${wordBudgetSection}`;
   }
 
   /**

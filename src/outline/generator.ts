@@ -1,6 +1,10 @@
 import { OutlineTemplateLoader } from './template-loader.js';
 import { ChapterTypeLoader } from '../knowledge/chapter-type-loader.js';
+import { HeadingTreeBuilder } from './heading-tree.js';
+import { AdaptiveOutlinePlanner } from './adaptive-planner.js';
 import type { Requirement, Outline, OutlineChapter } from './types.js';
+import { readFileSync, existsSync } from 'node:fs';
+import { join } from 'node:path';
 
 /**
  * 字数评估结果
@@ -37,32 +41,61 @@ export class OutlineGenerator {
 
   /**
    * 生成大纲
-   * @param templateName 模板名称
-   * @param requirements 需求列表
+   *
+   * Wave 3 改进：如果存在 inputs/requirements.md，使用 AdaptiveOutlinePlanner
+   * 根据需求文档的标题层级智能生成章节。否则回退到模板方式。
    */
   async generate(templateName: string, requirements: Requirement[]): Promise<Outline> {
     // 1. 加载模板
     const template = this.templateLoader.loadTemplate(templateName);
 
-    // 2. 生成章节列表
+    // 2. 尝试使用自适应规划器（Wave 3）
+    const requirementsDocPath = join(this.projectDir, 'inputs', 'requirements.md');
+    if (existsSync(requirementsDocPath)) {
+      try {
+        const docContent = readFileSync(requirementsDocPath, 'utf-8');
+        const builder = new HeadingTreeBuilder();
+        const headingTree = builder.build(docContent);
+
+        if (headingTree.children.length > 0) {
+          const planner = new AdaptiveOutlinePlanner();
+          const chapters = planner.plan(headingTree, {
+            targetWords: template.targetWords,
+            wordBudget: { min: 5000, max: 8000 },
+            tolerance: 0.2,
+          });
+
+          if (chapters.length > 0) {
+            // 分配需求到章节
+            this.assignRequirementsToChapters(requirements, chapters);
+
+            return {
+              title: template.name,
+              targetWords: template.targetWords,
+              chapters,
+              createdAt: new Date().toISOString(),
+              version: '1.0.0',
+            };
+          }
+        }
+      } catch {
+        // 回退到模板方式
+      }
+    }
+
+    // 3. 回退：模板方式（原有逻辑）
     const chapters: OutlineChapter[] = [];
     let chapterCounter = 1;
 
     for (const chapterConfig of template.chapters) {
-      // 加载章节类型配置
       const typeConfig = this.chapterTypeLoader.loadChapterType(chapterConfig.type);
-
-      // 生成章节ID
       const chapterId = `ch${String(chapterCounter).padStart(3, '0')}`;
-
-      // 生成章节描述
       const description = this.generateChapterDescription(
         chapterConfig.type,
         typeConfig.name,
         requirements
       );
 
-      // 创建章节
       const chapter: OutlineChapter = {
         id: chapterId,
         title: typeConfig.name,
@@ -77,19 +110,15 @@ export class OutlineGenerator {
       chapterCounter++;
     }
 
-    // 3. 分配需求到章节
     this.assignRequirementsToChapters(requirements, chapters);
 
-    // 4. 创建大纲
-    const outline: Outline = {
+    return {
       title: template.name,
       targetWords: template.targetWords,
       chapters,
       createdAt: new Date().toISOString(),
       version: '1.0.0',
     };
-
-    return outline;
   }
 
   /**

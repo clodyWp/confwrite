@@ -172,7 +172,7 @@ export const phase0b: PhaseDefinition = {
   },
   exits: [
     {
-      target: '2',
+      target: '1',
       condition: (ctx) => ctx.state.status === 'organizing' && hasOrganizedMaterials(ctx),
     },
   ],
@@ -212,6 +212,17 @@ export const phase2: PhaseDefinition = {
     const phase2 = new Phase2OutlinePlanning(ctx.projectDir, store);
     await phase2.execute();
     
+    // outlineCommand 会更新 state.chapters 并保存到磁盘，
+    // 但状态机在 execute 之后会用自己的内存 state 覆盖保存。
+    // 必须从磁盘重新加载 chapters 同步到内存 state（同 Phase 3 修复）。
+    const fresh = new ProjectStore(ctx.projectDir).load();
+    if (fresh?.chapters) {
+      ctx.state.chapters = fresh.chapters;
+      if (fresh.totalChapters !== undefined) {
+        ctx.state.totalChapters = fresh.totalChapters;
+      }
+    }
+    
     return {
       action: 'phase_entered',
       message: 'Phase 2: 大纲规划完成',
@@ -232,13 +243,16 @@ export const phase2: PhaseDefinition = {
   ],
   waitPoint: {
     reason: '大纲规划和图表风格需要用户确认',
+    // 注意：phase 2 使用默认 timing='entry'（进入即暂停）。
+    // 不使用 'after-execute'：因为 phase2.execute() 会修改 currentPhase='3'（副作用），
+    // 与 waitPoint 机制冲突。且 outline.md 已存在时 execute 会跳过，无需先执行。
     instructions: `请确认以下两项内容：
 
 1. 大纲内容
    请编辑 outline.md，用 ch001/ch002 等标记需要独立写作的章节。
 
 2. 图表风格偏好
-   当前配置 (assets/diagram-style.json):
+   当前配置 (assets/diagram-style.json)：
    - 配色方案: 暖色系 (warm)
    - 节点形状: 圆角矩形 (rounded)
    - 布局方向: 从上到下 (top-to-bottom)

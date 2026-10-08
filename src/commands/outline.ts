@@ -128,6 +128,12 @@ export async function outlineCommand(
 
 /**
  * 生成大纲Markdown内容
+ *
+ * 格式说明（Bug A 修复）：
+ *
+ * 每个章节以 `ch001 标题` 格式开头（OutlineParser 可识别），
+ * 后面跟着描述、字数预算等元信息。不再使用 `### 1. 标题 (ch001)` 格式，
+ * 因为 OutlineParser 和 getChapterOrder 无法解析那种格式。
  */
 function generateOutlineMarkdown(outline: Outline, evaluation: any): string {
   const lines: string[] = [];
@@ -138,18 +144,17 @@ function generateOutlineMarkdown(outline: Outline, evaluation: any): string {
   lines.push(`**生成时间**: ${new Date(outline.createdAt).toLocaleString('zh-CN')}\n`);
   lines.push('');
 
-  lines.push('## 章节列表\n');
-  
-  for (let i = 0; i < outline.chapters.length; i++) {
-    const chapter = outline.chapters[i];
-    lines.push(`### ${i + 1}. ${chapter.title} (${chapter.id})\n`);
-    lines.push(`- **类型**: ${chapter.type}`);
-    lines.push(`- **字数预算**: ${chapter.wordBudget?.min || 0}-${chapter.wordBudget?.max || 0}字`);
-    lines.push(`- **重要度**: ${chapter.importance || 3}/5`);
-    if (chapter.style) {
-      lines.push(`- **写作风格**: ${chapter.style}`);
+  for (const chapter of outline.chapters) {
+    // 核心：以 `ch001 标题` 格式开头，OutlineParser 可识别
+    lines.push(`${chapter.id} ${chapter.title}`);
+    lines.push(`本章类型: ${chapter.type}。重要度: ${chapter.importance || 3}/5。`);
+    lines.push(`字数预算: ${chapter.wordBudget?.min || 0}-${chapter.wordBudget?.max || 0}字`);
+    if (chapter.description) {
+      lines.push(chapter.description);
     }
-    lines.push(`- **描述**: ${chapter.description}`);
+    if (chapter.style) {
+      lines.push(`写作风格: ${chapter.style}`);
+    }
     lines.push('');
   }
 

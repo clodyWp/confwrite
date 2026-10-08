@@ -136,8 +136,8 @@ export class ChapterTypeLoader {
    * 支持 YAML frontmatter 格式
    */
   private parseChapterTypeFile(content: string, typeName: string): ChapterTypeConfig {
-    // 解析 YAML frontmatter
-    const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
+    // 解析 YAML frontmatter（支持 CRLF 和 LF）
+    const frontmatterMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
     
     if (!frontmatterMatch) {
       throw new Error(`Invalid chapter type file format: ${typeName}`);
@@ -146,8 +146,8 @@ export class ChapterTypeLoader {
     const frontmatter = frontmatterMatch[1];
     const config = this.parseFrontmatter(frontmatter);
 
-    // 提取 frontmatter 之后的内容
-    const contentAfterFrontmatter = content.replace(/^---\n[\s\S]*?\n---\n?/, '').trim();
+    // 提取 frontmatter 之后的内容（支持 CRLF 和 LF）
+    const contentAfterFrontmatter = content.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, '').trim();
 
     return {
       name: config.name || typeName,

@@ -185,8 +185,8 @@ export class KnowledgeBaseValidator {
    * 验证单个文件
    */
   private validateFile(content: string, type: string, filename: string): void {
-    // 检查frontmatter
-    const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
+    // 检查frontmatter（支持 CRLF 和 LF）
+    const frontmatterMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
     if (!frontmatterMatch) {
       throw new Error('缺少frontmatter');
     }

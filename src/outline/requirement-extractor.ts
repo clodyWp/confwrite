@@ -15,41 +15,111 @@ export class RequirementExtractor {
 
   /**
    * 从文档中提取需求
-   * 注意：实际实现中应该调用LLM，这里使用简单的规则提取作为示例
+   *
+   * 提取策略（Bug B 修复）：
+   *
+   * 1. 解析所有 Markdown 标题（#/##/###/####）作为需求
+   *    — 保证不遗漏任何需求（招标文档遗漏 = 废标风险）
+   * 2. 提取标题下方的段落文本作为描述
+   * 3. 兼容旧的数字列表格式（1. xxx）
+   *
+   * LLM 增强（后续）：
+   *   - 用 LLM 做分类和优先级判断
+   *   - 当前先用规则推断，后续接入 LLM 时替换 inferCategory/inferPriority
    */
   async extractFromDocument(docPath: string): Promise<Requirement[]> {
     const content = readFileSync(docPath, 'utf-8');
     const docName = basename(docPath);
-    
+
+    if (!content.trim()) return [];
+
     const requirements: Requirement[] = [];
     const lines = content.split('\n');
-    
+
     let reqCounter = 1;
     let currentSection = '';
-    
-    for (const line of lines) {
-      // 检测章节标题
-      if (line.startsWith('# ')) {
-        currentSection = line.replace('# ', '').trim();
-      } else if (line.startsWith('## ')) {
-        currentSection = line.replace('## ', '').trim();
+    // 当前正在收集描述的 requirement
+    let currentReq: Requirement | null = null;
+    let descLines: string[] = [];
+
+    const flushDescription = () => {
+      if (currentReq && descLines.length > 0) {
+        currentReq.description = descLines.join('\n').trim();
+        if (!currentReq.description) {
+          currentReq.description = undefined;
+        }
       }
-      
-      // 提取需求（简单的规则：以数字开头的行）
-      const reqMatch = line.match(/^\d+\.\s+(.+)$/);
-      if (reqMatch) {
-        const title = reqMatch[1].trim();
-        requirements.push({
+      descLines = [];
+    };
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+
+      // 检测 Markdown 标题（#/##/###/####）
+      const headingMatch = trimmed.match(/^(#{1,4})\s+(.+)/);
+      if (headingMatch) {
+        flushDescription();
+        currentReq = null;
+
+        const level = headingMatch[1].length;
+        const rawTitle = headingMatch[2].trim();
+
+        // 提取编号（如 "2.1.1" 或 "2"）
+        const numberMatch = rawTitle.match(/^(\d+(?:\.\d+)*)/);
+        const cleanTitle = numberMatch
+          ? rawTitle.slice(numberMatch[1].length).replace(/^[.\s]+/, '').trim() || rawTitle
+          : rawTitle;
+
+        currentSection = cleanTitle;
+
+        // 跳过顶层 h1（通常是文档标题，不是需求）
+        if (level === 1 && requirements.length === 0) {
+          continue;
+        }
+
+        const req: Requirement = {
+          id: `REQ-${String(reqCounter).padStart(3, '0')}`,
+          title: cleanTitle,
+          priority: this.inferPriority(cleanTitle, currentSection),
+          source: docName,
+          category: this.inferCategory(currentSection),
+        };
+
+        requirements.push(req);
+        currentReq = req;
+        reqCounter++;
+        continue;
+      }
+
+      // 兼容旧的数字列表格式（1. xxx）
+      const listMatch = trimmed.match(/^\d+\.\s+(.+)$/);
+      if (listMatch && !headingMatch) {
+        flushDescription();
+        currentReq = null;
+
+        const title = listMatch[1].trim();
+        const req: Requirement = {
           id: `REQ-${String(reqCounter).padStart(3, '0')}`,
           title,
           priority: this.inferPriority(title, currentSection),
-          source: `${docName}`,
+          source: docName,
           category: this.inferCategory(currentSection),
-        });
+        };
+        requirements.push(req);
+        currentReq = req;
         reqCounter++;
+        continue;
+      }
+
+      // 收集描述文本（当前 requirement 下方的非标题行）
+      if (currentReq && trimmed) {
+        descLines.push(trimmed);
       }
     }
-    
+
+    // Flush 最后一个 requirement 的描述
+    flushDescription();
+
     return requirements;
   }
 
