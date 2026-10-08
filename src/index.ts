@@ -424,16 +424,17 @@ export default function (pi: ExtensionAPI) {
     description: '自动生成大纲（基于模板和需求）',
     handler: async (args, ctx) => {
       if (!args) {
-        ctx.ui.notify('用法: /confwrite:outline <template> [targetWords]', 'info');
+        ctx.ui.notify('用法: /confwrite:outline <slug> <template> [targetWords]', 'info');
         ctx.ui.notify('模板: technical-proposal, bid-document', 'info');
         return;
       }
 
       const parts = args.split(/\s+/);
-      const template = parts[0];
-      const targetWords = parts[1] ? parseInt(parts[1], 10) : undefined;
+      const slug = parts[0];  // 第一个参数是项目 slug
+      const template = parts[1];  // 第二个参数是模板
+      const targetWords = parts[2] ? parseInt(parts[2], 10) : undefined;
       const workspaceDir = ctx.cwd || process.cwd();
-      const projectDir = workspaceDir;
+      const projectDir = resolve(workspaceDir, 'projects', slug);
 
       try {
         ctx.ui.notify('开始生成大纲...', 'info');
@@ -593,15 +594,17 @@ export default function (pi: ExtensionAPI) {
     description: '导出文档（md/html/docx）',
     handler: async (args, ctx) => {
       if (!args) {
-        ctx.ui.notify('用法: /confwrite:export <format> [output-path]', 'info');
+        ctx.ui.notify('用法: /confwrite:export <slug> <format> [output-path]', 'info');
         ctx.ui.notify('格式: md, html, docx', 'info');
         return;
       }
 
       const parts = args.split(/\s+/);
-      const format = parts[0] as 'md' | 'html' | 'docx';
-      const projectDir = ctx.cwd || process.cwd();
-      const outputPath = parts[1] || resolve(projectDir, `output/document.${format}`);
+      const slug = parts[0];  // 第一个参数是项目 slug
+      const format = parts[1] as 'md' | 'html' | 'docx';  // 第二个参数是格式
+      const workspaceDir = ctx.cwd || process.cwd();
+      const projectDir = resolve(workspaceDir, 'projects', slug);
+      const outputPath = parts[2] || resolve(projectDir, `output/document.${format}`);
 
       try {
         ctx.ui.notify(`开始导出 ${format.toUpperCase()}...`, 'info');
