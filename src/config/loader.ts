@@ -10,6 +10,7 @@ const WritingConfigSchema = Type.Object({
   minChapterChars: Type.Number({ minimum: 1000, maximum: 50000 }),
   maxRounds: Type.Number({ minimum: 1, maximum: 20 }),
   styleGuide: Type.Optional(Type.String()),
+  minChapterCharsTolerance: Type.Optional(Type.Number({ minimum: 0, maximum: 1 })),
 });
 
 /**

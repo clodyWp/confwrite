@@ -119,19 +119,25 @@ export class OutputValidator {
       return; // 后续检查无意义
     }
 
-    // 2. 字数统计（替代文件大小检查）
+    // 2. 字数统计（使用软门控逻辑）
     try {
       const content = readFileSync(filePath, 'utf-8');
       const charCount = content.length;
-      const minChars = this.config.writing.minChapterChars;
-      const charOk = charCount >= minChars;
+      const hardGate = this.config.writing.minChapterChars;
+      const tolerance = this.config.writing.minChapterCharsTolerance || 0;
+      const softGate = Math.floor(hardGate * (1 - tolerance));
+      
+      // 判断是否通过：达到软门控即可
+      const charOk = charCount >= softGate;
+      
       result.checks.push({ 
         name: '字数统计', 
         passed: charOk, 
-        detail: `${charCount} 字 (min ${minChars})` 
+        detail: `${charCount} 字 (软门控 ${softGate}, 硬门控 ${hardGate})` 
       });
+      
       if (!charOk) {
-        result.errors.push(`草稿字数不足: ${charCount} 字 < ${minChars} 字`);
+        result.errors.push(`草稿字数不足: ${charCount} 字 < 软门控 ${softGate} 字（容差 ${tolerance * 100}%）`);
       }
 
       // 3. 可读性（防编码损坏）
