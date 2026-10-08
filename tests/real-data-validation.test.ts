@@ -157,7 +157,7 @@ describe('真实数据预验证 — LMERP2V2 286KB 需求文档', () => {
       }
     });
 
-    it('总字数预算合理（75 章 × 5000-8000 字 = 37-60 万字）', () => {
+    it('总字数预算达到 100 万字目标', () => {
       const builder = new HeadingTreeBuilder();
       const root = builder.build(requirementsDoc);
 
@@ -171,13 +171,17 @@ describe('真实数据预验证 — LMERP2V2 286KB 需求文档', () => {
       const totalMin = chapters.reduce((sum, c) => sum + (c.wordBudget?.min || 0), 0);
       const totalMax = chapters.reduce((sum, c) => sum + (c.wordBudget?.max || 0), 0);
 
+      console.log(`章节数: ${chapters.length}`);
+      console.log(`每章预算: ${chapters[0].wordBudget?.min} - ${chapters[0].wordBudget?.max}`);
       console.log(`总字数预算: ${totalMin} - ${totalMax}`);
 
-      // 75 章 × 5000-8000 字 = 37.5-60 万字
-      // 这是合理的，因为每章预算是 5000-8000 字
-      // 如果要达到 100 万字，需要增加每章字数预算或章节数量
-      expect(totalMin).toBeGreaterThan(300000);
-      expect(totalMax).toBeLessThan(1000000);
+      // 总字数应该接近 100 万字（±30%）
+      expect(totalMin).toBeGreaterThanOrEqual(700000);  // 至少 70 万
+      expect(totalMax).toBeLessThanOrEqual(1300000);     // 最多 130 万
+      
+      // 每章预算应该根据 targetWords 自动调整
+      // 75 章 × 13333 字 ≈ 100 万字
+      expect(chapters[0].wordBudget!.max).toBeGreaterThan(10000);
     });
   });
 });

@@ -1,0 +1,10 @@
+const fs = require('fs');
+const state = JSON.parse(fs.readFileSync('project-state.json', 'utf8'));
+state.currentPhase = '1';
+state.status = 'init';
+delete state.waitPoint;
+state.lastUpdated = new Date().toISOString();
+fs.writeFileSync('project-state.json', JSON.stringify(state, null, 2));
+console.log('✓ Reset to Phase 1');
+console.log('  currentPhase:', state.currentPhase);
+console.log('  status:', state.status);
