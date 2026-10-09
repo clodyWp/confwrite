@@ -123,63 +123,49 @@ final.docx 结构
 
 ## 4. 待办
 
+> 以下待办项经 2026-10-09 subagent 并行代码审计确认，状态与代码实际一致。
+
 ### 4.1 P0：无
 
-本轮目标已达成 —— **完整 Word 文件已由自动化流程产出**（§1）。
 **没有阻断性待办。**
 
-### 4.2 ✅ P1：第 4 阶段收敛性（v0.18.2 已全部修复）
+### 4.2 ✅ 已完成项（代码审计确认）
 
-这一组是**写作/审阅阶段反复循环**的原因。现已全部修复。
-
-| Bug | 问题 | 修复说明 |
+| 项 | 说明 | 审计结论 |
 |---|---|---|
-| **6** | 「段落/图表说明 ≥300 字」规则永不收敛 | ✅ 已修复（v0.18.2）。段落级 300 字检查已移除（`content-validator.ts:7`） |
-| 4 | 审阅 accept 门槛「全部通过」几乎达不到 | ✅ 已修复（v0.18.2）。accept 标准改为严重度分级（`task-executor.ts:527-531`） |
-| 5 | 裁决与严重度不相关 | ✅ 已修复（v0.18.2）。严重度映射：high→revise, medium>3→revise, low→忽略 |
-| 7 | 审阅报告被覆盖（`round` 卡在 1） | ✅ 已修复（v0.18.2）。保存路径含 round：`${chapterId}-r${round}.json` |
-| 8 | 429 指数退避是死代码 | ✅ 已修复（v0.18.2）。两阶段退避实现（`runner.ts:81,190`） |
-| 3 | `pending` 孤儿 / 4c 死锁（`round > 1` 条件） | ✅ 已修复（v0.18.2）。删除 `task.failureReason === 'rate_limited'` 死代码分支 |
+| Phase 4 收敛性 6 个 bug | Bug 3/4/5/6/7/8 | ✅ 全部已修复（v0.18.2）。详见 §4.2a |
+| Bug 11：`finalization.json` 字段命名 | 已改名为 `level2Headings` | ✅ `finalizer.ts:16,102,116` |
+| 流程走完 `5→6→7→8` | 自动化流程端到端 | ✅ `phases.ts` 四阶段完整定义 |
+| T1：素材包改进（大纲作为信息枢纽） | v0.14.0 | ✅ `kit-generator.ts` 注入需求要点 + `requirement-mapper.ts` |
+| T2 预防层：Writer prompt 字数硬性上限 | v0.15.0 | ✅ `task-executor.ts:66-75` 标记为"硬性要求" |
+| T3 fallback 通用参考资料 | v0.16.0 | ✅ `chapter-mapper.ts:145-170` 按通用分类查找 |
+| 篇幅下限 `MIN_CHAPTER_CHARS = 8000` | — | ✅ `task-executor.ts:43` |
+| turn 预算阈值 = 40 | — | ✅ `config/loader.ts:85` + `state/schema.ts:235` |
+| `feat/responsibility-separation` 已合入 | writer 不自查字数 | ✅ 已是祖先，可安全删除分支 |
 
-### 4.3 P2：图表方案 B（已决策「A 先做、B 后续」）
+#### 4.2a Phase 4 收敛性 bug 修复详情
 
-**方案 A 已完成**（分层配色 + 自适应字体 + 知识库路径 + 色表落地为可配置数据）。
-
-**方案 B**（未做）：把知识库作为生成器的**一等输入**——
-`pipeline.ts` 加载 `knowledge/diagrams/`（`architecture-style.md`、`layout.md`、
-`quality-lessons.md`），据此做模块子项、横切关注点侧栏、多布局选择。
-
-设计上已为 B 留好接口：配色是数据（`DEFAULT_LAYER_PALETTE` / `DiagramStyle.layerPalette`），
-不是硬编码常量。
-
-### 4.4 P3：小项
-
-| # | 事项 | 说明 |
-|---|------|------|
-| ~~1~~ | ~~Bug 11：`finalization.json` 字段命名~~ | ✅ **已修复**（v0.18.2）。已改名为 `level2Headings`（`finalizer.ts:16,102,116`） |
-| ~~2~~ | ~~让流程自己走完 `5→6→7→8`~~ | ✅ **已完成**（14:07→14:09，见 §1） |
-| 3 | 篇幅下限 8000 是否合适 | 实测 ch003–ch015 产出 12,067–17,917 字，均在 8000 以上 |
-| 4 | turn 预算阈值校准 | 当前 40；历史最大 34，ch002/ch011 的 fixer 触发过 41 次 |
-| 5 | 结构稳定性（节数 37→6 波动） | 上次修复**可能**已间接解决（不再需要碎片化迎合要求），待新数据 |
-
-### 4.5 ✅ 已完成：`feat/responsibility-separation` 已合入并修正
-
-该分支含两个**正交**的改动，合并时按 A 保留、B 丢弃：
-
-| | 内容 | 处理 |
+| Bug | 问题 | 修复位置 |
 |---|---|---|
-| **A 职责分离** | writer 写完即止不自查字数；reviewer 拥有篇幅检查权并给出差额；fixer 按报告扩充 | ✅ 保留 |
-| **B 篇幅口径** | 「每个**子节**建议 3000-5000 字」 | ❌ 丢弃（仍是同一个层级笔误） |
+| 6 | 段落级 300 字检查永不收敛 | `content-validator.ts:32,36` 硬编码返回 `true` |
+| 4 | accept 门槛「全部通过」几乎达不到 | `task-executor.ts:519-531` 严重度分级 |
+| 5 | 裁决与严重度不相关 | 同上：high→revise, medium>3→revise, low→忽略 |
+| 7 | 审阅报告 round 覆盖 | `dispatcher/index.ts:285` 路径含 `${chapterId}-r${round}.json` |
+| 8 | 429 退避死代码 | `runner.ts:81,190` 两阶段退避（2min/12min） |
+| 3 | pending 孤儿 / 4c 死锁 | 逻辑分支已移除（`types.ts:31` 枚举值冗余，无害） |
 
-解决冲突时还发现一处**自动合并埋的雷**：文件标题被改成
-「## 深度要求（建议性，非强制）」（在冲突标记之外，静默采用），
-而正文是硬性下限——已改回「强制执行」。
+### 4.3 待开发项
 
-合并提交 `e6e6fe6`；该分支现已是本分支的**祖先**，内容已完全吸收，可安全删除。
-
-> 关键认识：职责分离**不削弱**篇幅下限。循环的成因是「要求不可能达成」，
-> 不是「要求是硬的」。一次回答可达 8000 字（实测 12,067~17,917），
-> 让 writer 别自己反复测量是流程分工问题。
+| # | 优先级 | 任务 | 说明 | 涉及文件 |
+|---|--------|------|------|----------|
+| **D1** | 🔴 P1 | **T2 字数上限防御（检测层 + 兜底层）** | 预防层 ✅（prompt 标记"硬性上限"），但**检测层 ❌**（Writer 完成后无字数上限后处理）、**兜底层 ❌**（`output-validator.ts` 只查下限，无上限检查） | `src/writing/output-validator.ts`、`src/writing/task-executor.ts` |
+| **D2** | 🟡 P2 | **T3 fallback 按章节类型分配** | 通用参考资料 ✅，但所有 fallback 章节获得**完全相同**的资料。需根据章节类型（功能/技术/管理）分配不同通用资料 | `src/organize/chapter-mapper.ts:145-170` |
+| **D3** | 🟡 P2 | **图表方案 B：知识库作为一等输入** | `pipeline.ts` 不加载 `knowledge/diagrams/`。配色硬编码 `DEFAULT_LAYER_PALETTE`，布局选择无动态化。方案 A 已完成，B 留好接口 | `src/diagrams/pipeline.ts`、`src/diagrams/style.ts` |
+| **D4** | 🔵 P3 | **T4 领域知识精准匹配** | `kit-generator.ts:244` 仍有 `k.includes(lower.slice(0, 2))` 宽松匹配（只取前 2 字符，几乎匹配任何内容）。`baseline-extractor.ts` 指标提取质量差（key 截断到 20 字符） | `src/organize/kit-generator.ts:244`、`src/organize/baseline-extractor.ts` |
+| **D5** | 🔵 P3 | **LLM 语义规划大纲端到端测试** | 代码已实现（Word/PDF → mammoth/pdf-parse 转换 → LLMPlanner 语义规划 → 生成大纲），有单元测试，但**缺少端到端测试** | `src/outline/generator.ts:338-380`、`src/organize/converter.ts:175-250`、`src/outline/llm-planner.ts` |
+| **D6** | 🔵 P3 | **篇幅下限 / turn 预算校准** | 篇幅下限 8000 实测合理（产出 12K-18K）；turn 预算 40 接近历史最大 34，ch002/ch011 fixer 触发过 41 次。待新数据决定是否调整 | `task-executor.ts:43`、`config/loader.ts:85` |
+| **D7** | ⚪ P4 | **结构稳定性验证** | 节数 37→6 波动，根因（循环压缩）已消除，但无新端到端运行数据验证 | 待新数据 |
+| **D8** | ⚪ P4 | **清理冗余代码** | `content-validator.ts` 的 `paragraphLengthValid` / `shortParagraphs` 字段永远为 `true`/`[]`（dead field）；`types.ts:31` 的 `'rate_limited'` 枚举值无使用 | `src/writing/content-validator.ts`、`src/scheduler/types.ts:31` |
 
 ---
 
