@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { OutlineGenerator } from '../outline/generator.js';
 import { ProjectStore } from '../state/store.js';
 import type { Requirement, Outline } from '../outline/types.js';
+import type { LLMCaller } from '../outline/llm-planner.js';
 
 /**
  * 大纲命令选项
@@ -14,6 +15,8 @@ export interface OutlineCommandOptions {
   template: string;
   /** 目标字数（可选） */
   targetWords?: number;
+  /** 是否启用 LLM 规划器（默认 true，需要 pi SDK 可用） */
+  useLLM?: boolean;
 }
 
 /**
@@ -48,8 +51,10 @@ export async function outlineCommand(
   const requirementsContent = readFileSync(requirementsPath, 'utf-8');
   const requirements: Requirement[] = JSON.parse(requirementsContent);
 
-  // 3. 生成大纲
-  const generator = new OutlineGenerator(projectDir);
+  // 3. 创建大纲生成器（可选 LLM 规划器）
+  const useLLM = options.useLLM !== false; // 默认启用
+  const llmCaller = useLLM ? createLLMCaller(projectDir) : undefined;
+  const generator = new OutlineGenerator(projectDir, { llmCaller });
   const outline = await generator.generate(template, requirements, targetWords);
 
   // 4. 评估字数
@@ -122,6 +127,57 @@ export async function outlineCommand(
 }
 
 /**
+ * 创建 LLM 调用函数
+ * 使用 pi SDK 的 createAgentSession 调用 LLM
+ * 包含 60 秒超时保护，避免在测试环境或 SDK 不可用时挂起
+ */
+function createLLMCaller(projectDir: string): LLMCaller {
+  return async (prompt: string): Promise<string> => {
+    const TIMEOUT_MS = 60_000;
+
+    // 超时保护
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error(`LLM call timed out after ${TIMEOUT_MS}ms`)), TIMEOUT_MS);
+    });
+
+    const callPromise = (async () => {
+      const { createAgentSession, SessionManager } =
+        await import('@earendil-works/pi-coding-agent');
+
+      const { session } = await createAgentSession({
+        sessionManager: SessionManager.inMemory(),
+        cwd: projectDir,
+        tools: [], // 大纲规划不需要工具
+      });
+
+      await session.prompt(prompt);
+
+      // 提取 assistant 的文本响应
+      const assistantMsg = session.messages.filter(m => m.role === 'assistant').pop();
+      session.dispose();
+
+      if (!assistantMsg) {
+        throw new Error('No LLM response received');
+      }
+
+      // 提取文本内容
+      if (!assistantMsg.content) throw new Error('Empty LLM response');
+      if (!Array.isArray(assistantMsg.content)) return String(assistantMsg.content);
+
+      const textParts = assistantMsg.content
+        .filter((c: any) => c.type === 'text')
+        .map((c: any) => c.text);
+
+      const result = textParts.join('\n');
+      if (!result.trim()) throw new Error('Empty LLM response text');
+      return result;
+    })();
+
+    return Promise.race([callPromise, timeoutPromise]);
+  };
+}
+
+/**
  * 生成大纲Markdown内容
  *
  * 格式说明（Bug A 修复）：
@@ -142,6 +198,13 @@ function generateOutlineMarkdown(outline: Outline, evaluation: any): string {
   for (const chapter of outline.chapters) {
     // 核心：以 `ch001 标题` 格式开头，OutlineParser 可识别
     lines.push(`${chapter.id} ${chapter.title}`);
+    
+    // 添加需求来源信息
+    if (chapter.requirementSource && chapter.requirementSource.sections.length > 0) {
+      const sections = chapter.requirementSource.sections.map(s => `§${s}`).join(', ');
+      lines.push(`需求来源: ${sections}`);
+    }
+    
     lines.push(`本章类型: ${chapter.type}。重要度: ${chapter.importance || 3}/5。`);
     lines.push(`字数预算: ${chapter.wordBudget?.min || 0}-${chapter.wordBudget?.max || 0}字`);
     if (chapter.description) {

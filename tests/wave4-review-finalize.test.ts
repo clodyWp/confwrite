@@ -51,7 +51,7 @@ describe('Wave 4 — Bug M: 审阅字数检查', () => {
     expect(prompt).toContain('字数预算');
   });
 
-  it('Reviewer prompt 包含容差规则说明', () => {
+  it('Reviewer prompt 包含硬性上限说明', () => {
     const prompt = executor.generateReviewerPrompt(
       mockTask,
       '# 章节内容\n\n正文...',
@@ -62,9 +62,9 @@ describe('Wave 4 — Bug M: 审阅字数检查', () => {
       { min: 5000, max: 8000 }
     );
 
-    // 应该包含容差规则
-    expect(prompt).toContain('容差');
-    expect(prompt).toContain('30%');
+    // 应该包含硬性上限说明
+    expect(prompt).toContain('硬性上限');
+    expect(prompt).toContain('不得超过');
   });
 
   it('无字数预算时不添加预算检查部分', () => {

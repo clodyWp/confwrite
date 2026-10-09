@@ -112,6 +112,7 @@ writingStyle: functional
       projectDir,
       template: 'technical-proposal',
       targetWords: 100000,
+      useLLM: false, // 测试环境不使用 LLM，使用 AdaptiveOutlinePlanner
     });
 
     expect(result.success).toBe(true);

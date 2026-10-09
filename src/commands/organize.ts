@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { MaterialScanner } from '../organize/scanner.js';
 import { FormatConverter } from '../organize/converter.js';
@@ -8,12 +8,14 @@ import { OutlineParser } from '../organize/outline-parser.js';
 import { ChapterMapper } from '../organize/chapter-mapper.js';
 import { KitGenerator } from '../organize/kit-generator.js';
 import { KnowledgeLoader } from '../knowledge/loader.js';
+import { RequirementMapper } from '../organize/requirement-mapper.js';
 import { syncChaptersFromOutline } from '../organize/chapter-syncer.js';
 import { ProjectStore } from '../state/store.js';
 import type { MaterialFile } from '../organize/scanner.js';
 import type { IndexData } from '../organize/indexer.js';
 import type { DataBaseline } from '../organize/baseline-extractor.js';
 import type { ChapterMapping } from '../organize/chapter-mapper.js';
+import type { RequirementMap } from '../organize/requirement-mapper.js';
 
 /**
  * 整理结果
@@ -98,15 +100,30 @@ export async function organizeMaterials(projectDir: string): Promise<OrganizeRes
   // 5. 解析大纲
   const outlinePath = join(projectDir, 'outline.md');
   let chapterMappings: ChapterMapping[] = [];
+  let requirementMap: RequirementMap | undefined;
   
   if (existsSync(outlinePath)) {
     const outlineContent = readFileSync(outlinePath, 'utf-8');
     const parser = new OutlineParser();
-    const outline = parser.parse(outlineContent);
+    const outlineRoot = parser.parse(outlineContent);
+    const outlineChapters = outlineRoot.getAllChapters();
+    
+    // 5.5 生成需求映射
+    // 将 OutlineNode 转换为 OutlineChapter 格式
+    const chaptersForMapping = outlineChapters.map(node => ({
+      id: node.id || '',
+      title: node.title,
+      type: 'functional',
+      description: node.description,
+      requirementSource: parseRequirementSourceFromDescription(node.description),
+    }));
+    
+    const requirementMapper = new RequirementMapper(projectDir);
+    requirementMap = requirementMapper.generateAndSave(chaptersForMapping);
     
     // 6. 生成章节映射
     const mapper = new ChapterMapper();
-    chapterMappings = mapper.map(outline, indexData);
+    chapterMappings = mapper.map(outlineRoot, indexData);
     
     // 7. 同步大纲→状态（自动添加/移除章节）
     const store = new ProjectStore(projectDir);
@@ -114,10 +131,19 @@ export async function organizeMaterials(projectDir: string): Promise<OrganizeRes
       syncChaptersFromOutline(projectDir, store);
     }
 
-    // 8. 生成素材包（注入图表知识库）
+    // 8. 生成素材包（注入图表知识库 + 需求内容）
     const knowledgeLoader = new KnowledgeLoader(projectDir);
     const kitGenerator = new KitGenerator(knowledgeLoader);
-    const kitResult = kitGenerator.generateBatch(chapterMappings, baseline, kitsDir);
+    
+    // 修改 generateBatch 以支持 requirementMap
+    const kitResult = generateBatchWithRequirements(
+      kitGenerator,
+      chapterMappings,
+      baseline,
+      kitsDir,
+      outlineRoot,
+      requirementMap
+    );
     
     // 9. 生成参考资料索引
     generateReferencesIndex(files, join(assetsDir, 'references-index.md'));
@@ -189,4 +215,67 @@ function generateReferencesIndex(files: MaterialFile[], outputPath: string): voi
   }
   
   writeFileSync(outputPath, lines.join('\n'), 'utf-8');
+}
+
+/**
+ * 生成素材包（带需求映射）
+ */
+function generateBatchWithRequirements(
+  kitGenerator: KitGenerator,
+  mappings: ChapterMapping[],
+  baseline: DataBaseline,
+  outputDir: string,
+  outlineRoot: any,
+  requirementMap?: RequirementMap
+): { total: number; success: number; failed: number } {
+  let success = 0;
+  let failed = 0;
+
+  // 确保输出目录存在
+  if (!existsSync(outputDir)) {
+    mkdirSync(outputDir, { recursive: true });
+  }
+
+  for (const mapping of mappings) {
+    const outputPath = join(outputDir, `${mapping.chapterId}.md`);
+    
+    try {
+      // 不使用 outline 参数，因为类型不匹配
+      // 使用 generateWithOutline 并传入 requirementMap
+      const content = kitGenerator.generateWithOutline(mapping, baseline, undefined, requirementMap);
+      writeFileSync(outputPath, content, 'utf-8');
+      success++;
+    } catch (error) {
+      console.error(`Failed to generate kit for ${mapping.chapterId}:`, error);
+      failed++;
+    }
+  }
+
+  return { total: mappings.length, success, failed };
+}
+
+/**
+ * 从章节描述中解析需求来源
+ * 
+ * 格式：需求来源: §1.1, §1.2
+ */
+function parseRequirementSourceFromDescription(description?: string): { sections: string[]; headings: string[] } | undefined {
+  if (!description) return undefined;
+  
+  const match = description.match(/需求来源:\s*(.+)/);
+  if (!match) return undefined;
+  
+  const sectionsStr = match[1];
+  const sections = sectionsStr
+    .split(',')
+    .map(s => s.trim())
+    .map(s => s.replace(/^§/, ''))
+    .filter(s => s.length > 0);
+  
+  if (sections.length === 0) return undefined;
+  
+  return {
+    sections,
+    headings: sections.map(s => `${s}`),  // 简化处理，标题用章节号代替
+  };
 }

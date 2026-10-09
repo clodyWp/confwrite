@@ -64,6 +64,13 @@ export interface OutlineChapter {
   style?: string;
   /** 子章节 */
   children?: OutlineChapter[];
+  /** 需求来源（大纲规划时从需求文档提取） */
+  requirementSource?: {
+    /** 需求文档中的章节编号 */
+    sections: string[];
+    /** 需求文档中的章节标题 */
+    headings: string[];
+  };
 }
 
 /**

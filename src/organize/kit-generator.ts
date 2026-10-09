@@ -4,6 +4,7 @@ import type { ChapterMapping } from './chapter-mapper.js';
 import type { DataBaseline } from './baseline-extractor.js';
 import type { KnowledgeLoader } from '../knowledge/loader.js';
 import type { Outline } from '../outline/types.js';
+import type { RequirementMap } from './requirement-mapper.js';
 
 /**
  * 生成结果
@@ -42,12 +43,13 @@ export class KitGenerator {
   }
 
   /**
-   * 生成单个章节的素材包内容（带大纲上下文）
+   * 生成单个章节的素材包内容（带大纲上下文和需求映射）
    */
   generateWithOutline(
     mapping: ChapterMapping,
     baseline: DataBaseline,
-    outline?: Outline
+    outline?: Outline,
+    requirementMap?: RequirementMap
   ): string {
     const lines: string[] = [];
 
@@ -68,6 +70,17 @@ export class KitGenerator {
       lines.push('## 章节描述');
       lines.push(mapping.description);
       lines.push('');
+    }
+
+    // 需求要点（来自 requirement-map.json）
+    if (requirementMap && requirementMap[mapping.chapterId]) {
+      const reqEntry = requirementMap[mapping.chapterId];
+      if (reqEntry.content) {
+        lines.push('## 需求要点');
+        lines.push('以下是本章节对应的需求文档内容，写作时必须覆盖：\n');
+        lines.push(reqEntry.content);
+        lines.push('');
+      }
     }
 
     // 上下文参考（前一章和后一章）

@@ -70,6 +70,10 @@ export class AdaptiveOutlinePlanner {
     // 通过调整 chapter 数量来达到目标字数
     return chapters.map((ch, index) => {
       const id = `ch${String(index + 1).padStart(3, '0')}`;
+      
+      // 从 sourceNodes 提取需求来源信息
+      const requirementSource = this.extractRequirementSource(ch.sourceNodes);
+      
       return {
         id,
         title: ch.title,
@@ -80,8 +84,34 @@ export class AdaptiveOutlinePlanner {
         },
         importance: 3,
         description: ch.description,
+        requirementSource,
       };
     });
+  }
+
+  /**
+   * 从 sourceNodes 提取需求来源信息
+   */
+  private extractRequirementSource(sourceNodes: HeadingNode[]): { sections: string[]; headings: string[] } {
+    const sections: string[] = [];
+    const headings: string[] = [];
+
+    for (const node of sourceNodes) {
+      // 提取章节号（如 "2.1.3"）
+      if (node.number) {
+        sections.push(node.number);
+      }
+      // 提取章节标题
+      // 如果 title 已经包含 number，直接使用 title
+      // 否则拼接 number + title
+      if (node.number && !node.title.startsWith(node.number)) {
+        headings.push(`${node.number} ${node.title}`);
+      } else {
+        headings.push(node.title);
+      }
+    }
+
+    return { sections, headings };
   }
 
   /**

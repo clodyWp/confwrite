@@ -18,6 +18,8 @@ export interface ChapterMapping {
   relatedCategories: string[];
   /** 相关关键词 */
   relatedKeywords: string[];
+  /** 是否为 fallback 分配（无精准匹配） */
+  isFallback?: boolean;
 }
 
 /**
@@ -34,7 +36,7 @@ export class ChapterMapper {
     for (const chapter of chapters) {
       if (!chapter.id) continue;
 
-      const relatedFiles = this.findRelatedFiles(chapter, index);
+      const { files: relatedFiles, isFallback } = this.findRelatedFiles(chapter, index);
       const relatedCategories = Array.from(new Set(relatedFiles.map(f => f.category)));
       const relatedKeywords = Array.from(new Set(relatedFiles.flatMap(f => f.keywords)));
 
@@ -45,6 +47,7 @@ export class ChapterMapper {
         relatedFiles,
         relatedCategories,
         relatedKeywords,
+        isFallback,
       });
     }
 
@@ -84,7 +87,7 @@ export class ChapterMapper {
   /**
    * 查找与章节相关的文件
    */
-  private findRelatedFiles(chapter: OutlineNode, index: IndexData): MaterialFile[] {
+  private findRelatedFiles(chapter: OutlineNode, index: IndexData): { files: MaterialFile[]; isFallback: boolean } {
     const relatedFiles: MaterialFile[] = [];
     const seenFiles = new Set<string>();
 
@@ -120,16 +123,50 @@ export class ChapterMapper {
       }
     }
 
-    // 策略 3: 如果没有找到相关文件，分配所有文件（作为后备）
+    // 策略 3: 如果没有找到相关文件，分配通用参考资料（fallback）
     if (relatedFiles.length === 0 && index.files.length > 0) {
-      // 至少分配前 3 个文件作为参考
-      const fallbackCount = Math.min(3, index.files.length);
-      for (let i = 0; i < fallbackCount; i++) {
-        relatedFiles.push(index.files[i]);
+      const universalFiles = this.getUniversalReferenceFiles(index);
+      for (const file of universalFiles) {
+        if (!seenFiles.has(file.filename)) {
+          relatedFiles.push(file);
+          seenFiles.add(file.filename);
+        }
       }
+      return { files: relatedFiles, isFallback: true };
     }
 
-    return relatedFiles;
+    return { files: relatedFiles, isFallback: false };
+  }
+
+  /**
+   * 获取通用参考资料
+   * 优先返回索引、概述、术语表等通用性文档
+   */
+  private getUniversalReferenceFiles(index: IndexData): MaterialFile[] {
+    const universalFiles: MaterialFile[] = [];
+    const universalCategories = ['索引', '概述', '术语', '总览', '说明'];
+    
+    // 优先查找通用分类的文件
+    for (const category of universalCategories) {
+      const categoryFiles = index.byCategory[category] || [];
+      for (const file of categoryFiles) {
+        if (universalFiles.length < 3) {
+          universalFiles.push(file);
+        }
+      }
+    }
+    
+    // 如果通用分类文件不足，补充其他文件
+    if (universalFiles.length < 3) {
+      for (const file of index.files) {
+        if (universalFiles.length >= 3) break;
+        if (!universalFiles.some(f => f.filename === file.filename)) {
+          universalFiles.push(file);
+        }
+      }
+    }
+    
+    return universalFiles;
   }
 
   /**

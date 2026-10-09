@@ -63,15 +63,17 @@ export class TaskExecutor {
     
     // 字数预算参考部分
     const wordBudgetSection = wordBudget ? `
-## 字数预算参考（仅供参考，不是强制要求）
+## 字数预算（硬性要求，必须严格遵守）
 
 本章的字数预算为 **${wordBudget.min}-${wordBudget.max} 字**，期望值 **${wordBudget.expected} 字**。
 
+**硬性上限**：本章字数**不得超过 ${wordBudget.max} 字**。
+
 **重要说明**：
-- 字数预算是**规划参考**，帮助你了解本章应该写多详细
+- 字数上限是**硬性要求**，超过将被审阅拒绝并要求修改
 - **强制要求**是最低 **${this.config.writing.minChapterChars} 字**（必须达到）
-- 如果预算高于门控，尽量接近预算；如果预算低于门控，以门控为准
-- 不要因为预算而牺牲内容质量
+- 字数必须控制在 **${wordBudget.min}-${wordBudget.max} 字** 范围内
+- 不要因为预算而牺牲内容质量，但必须严格遵守字数限制
 
 ---
 ` : '';
@@ -367,19 +369,21 @@ diagram-end -->
     const termsList = baseline.technicalTerms.join(', ');
     const requirementsList = baseline.requirements.map(r => `- ${r}`).join('\n');
 
-    // 字数预算检查部分（Bug M 修复）
+    // 字数预算检查部分（Bug M 修复 + T2 三层防御）
     const wordBudgetSection = wordBudget ? `
 
-### 7. 字数预算检查（重要）
+### 7. 字数预算检查（硬性要求）
 
 本章的字数预算为 **${wordBudget.min}-${wordBudget.max} 字**。
 
-**容差规则**（±30%）：
-- 实际字数在 ${Math.round(wordBudget.min * 0.7)}-${Math.round(wordBudget.max * 1.3)} 字范围内 → 通过
-- 实际字数 > ${Math.round(wordBudget.max * 1.3)} 字 → revise（要求精简）
-- 实际字数 < ${Math.round(wordBudget.min * 0.7)} 字 → revise（要求补充）
+**硬性上限**：本章字数**不得超过 ${wordBudget.max} 字**。超过将被拒绝并要求精简。
 
-请统计本章实际字数，并根据容差规则判断是否通过。
+**容差规则**：
+- 实际字数在 ${wordBudget.min}-${wordBudget.max} 字范围内 → 通过
+- 实际字数 > ${wordBudget.max} 字 → **revise**（要求精简，超过上限将被拒绝）
+- 实际字数 < ${wordBudget.min} 字 → revise（要求补充）
+
+请统计本章实际字数，并根据规则判断是否通过。**超过上限的内容会被拒绝，必须精简**。
 ` : '';
 
     return `# 审阅任务
@@ -697,5 +701,37 @@ ${reviewContent}
     }
 
     return decision;
+  }
+
+  /**
+   * 检查字数是否符合预算
+   * 
+   * @param content - 章节内容
+   * @param budget - 字数预算 { min, max }
+   * @returns 检查结果
+   */
+  checkWordCount(
+    content: string,
+    budget: { min: number; max: number }
+  ): {
+    actual: number;
+    min: number;
+    max: number;
+    exceeds: boolean;
+    below: boolean;
+    valid: boolean;
+  } {
+    // 统计字数：字符数（包括中文和英文字符）
+    // 对于英文，每个字母算一个字符；对于中文，每个汉字算一个字符
+    const actual = content.length;
+
+    return {
+      actual,
+      min: budget.min,
+      max: budget.max,
+      exceeds: actual > budget.max,
+      below: actual < budget.min,
+      valid: actual >= budget.min && actual <= budget.max,
+    };
   }
 }

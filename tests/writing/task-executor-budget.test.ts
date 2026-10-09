@@ -34,7 +34,7 @@ describe('TaskExecutor - Word Budget Reference', () => {
       expect(prompt).toContain('6500');
     });
 
-    it('应该在字数预算部分说明这是参考值', () => {
+    it('应该在字数预算部分说明这是硬性要求', () => {
       const executor = new TaskExecutor();
       
       const task: Task = {
@@ -57,8 +57,8 @@ describe('TaskExecutor - Word Budget Reference', () => {
 
       const prompt = executor.generateWriterPrompt(task, kitContent, 1, wordBudget);
 
-      expect(prompt).toContain('参考');
-      expect(prompt).toContain('不是强制要求');
+      expect(prompt).toContain('硬性要求');
+      expect(prompt).toContain('必须严格遵守');
     });
 
     it('应该在没有字数预算时不显示预算部分', () => {

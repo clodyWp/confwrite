@@ -2,8 +2,11 @@ import { OutlineTemplateLoader } from './template-loader.js';
 import { ChapterTypeLoader } from '../knowledge/chapter-type-loader.js';
 import { HeadingTreeBuilder } from './heading-tree.js';
 import { AdaptiveOutlinePlanner } from './adaptive-planner.js';
+import { LLMPlanner } from './llm-planner.js';
+import type { LLMCaller } from './llm-planner.js';
+import { FormatConverter } from '../organize/converter.js';
 import type { Requirement, Outline, OutlineChapter } from './types.js';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 /**
@@ -32,18 +35,24 @@ export class OutlineGenerator {
   private projectDir: string;
   private templateLoader: OutlineTemplateLoader;
   private chapterTypeLoader: ChapterTypeLoader;
+  /** 可选的 LLM 调用函数，由外部注入（如 pi SDK） */
+  private llmCaller?: LLMCaller;
 
-  constructor(projectDir: string) {
+  constructor(projectDir: string, options?: { llmCaller?: LLMCaller }) {
     this.projectDir = projectDir;
     this.templateLoader = new OutlineTemplateLoader(projectDir);
     this.chapterTypeLoader = new ChapterTypeLoader(projectDir);
+    this.llmCaller = options?.llmCaller;
   }
 
   /**
    * 生成大纲
    *
-   * Wave 3 改进：如果存在 inputs/requirements.md，使用 AdaptiveOutlinePlanner
-   * 根据需求文档的标题层级智能生成章节。否则回退到模板方式。
+   * 优先级：LLMPlanner > AdaptiveOutlinePlanner > 模板方式
+   *
+   * 1. 如果注入了 LLMCaller 且需求文档存在，优先使用 LLMPlanner
+   * 2. LLMPlanner 失败或不可用时，回退到 AdaptiveOutlinePlanner（需要 Markdown # 标题）
+   * 3. 最终回退到模板方式
    */
   async generate(templateName: string, requirements: Requirement[], targetWords?: number): Promise<Outline> {
     // 1. 加载模板
@@ -52,13 +61,41 @@ export class OutlineGenerator {
     // 使用传入的 targetWords，如果没有则使用模板的 targetWords
     const effectiveTargetWords = targetWords || template.targetWords;
 
-    // 2. 尝试使用自适应规划器（Wave 3）
-    const requirementsDocPath = join(this.projectDir, 'inputs', 'requirements.md');
-    if (existsSync(requirementsDocPath)) {
+    // 2. 读取需求文档内容
+    const requirementsContent = await this.readRequirementsContent();
+
+    // 3. 优先使用 LLM 规划器
+    if (requirementsContent && this.llmCaller) {
       try {
-        const docContent = readFileSync(requirementsDocPath, 'utf-8');
+        const llmPlanner = new LLMPlanner(this.llmCaller);
+        const chapters = await llmPlanner.plan({
+          requirementsContent,
+          targetWords: effectiveTargetWords,
+          wordBudget: { min: 5000, max: 8000 },
+          templateName,
+        });
+
+        if (chapters.length > 0) {
+          this.assignRequirementsToChapters(requirements, chapters);
+
+          return {
+            title: template.name,
+            targetWords: effectiveTargetWords,
+            chapters,
+            createdAt: new Date().toISOString(),
+            version: '1.0.0',
+          };
+        }
+      } catch {
+        // LLMPlanner 失败，回退到 AdaptiveOutlinePlanner
+      }
+    }
+
+    // 4. 回退：AdaptiveOutlinePlanner（需要 Markdown # 标题格式）
+    if (requirementsContent) {
+      try {
         const builder = new HeadingTreeBuilder();
-        const headingTree = builder.build(docContent);
+        const headingTree = builder.build(requirementsContent);
 
         if (headingTree.children.length > 0) {
           const planner = new AdaptiveOutlinePlanner();
@@ -69,7 +106,6 @@ export class OutlineGenerator {
           });
 
           if (chapters.length > 0) {
-            // 分配需求到章节
             this.assignRequirementsToChapters(requirements, chapters);
 
             return {
@@ -86,7 +122,7 @@ export class OutlineGenerator {
       }
     }
 
-    // 3. 回退：模板方式（原有逻辑）
+    // 5. 最终回退：模板方式（原有逻辑）
     const chapters: OutlineChapter[] = [];
     let chapterCounter = 1;
 
@@ -256,5 +292,72 @@ export class OutlineGenerator {
 
     // 如果没有找到，返回第一个章节
     return chapters.length > 0 ? chapters[0] : null;
+  }
+
+  /**
+   * 读取需求文档内容
+   * 
+   * 优先读取 inputs/requirements.md，如果不存在则尝试转换 Word 文档。
+   * 返回文档内容字符串，如果无法获取则返回 null。
+   */
+  private async readRequirementsContent(): Promise<string | null> {
+    let requirementsDocPath = join(this.projectDir, 'inputs', 'requirements.md');
+    
+    if (!existsSync(requirementsDocPath)) {
+      const converted = await this.convertWordDocuments();
+      if (converted) {
+        requirementsDocPath = converted;
+      } else {
+        return null;
+      }
+    }
+    
+    try {
+      return readFileSync(requirementsDocPath, 'utf-8');
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * 转换 inputs/ 目录中的 Word 文档为 Markdown
+   * 
+   * 如果 inputs/ 目录中存在 .docx 文件，将其转换为 requirements.md
+   * 返回转换后的文件路径，如果没有需要转换的文件则返回 null
+   */
+  private async convertWordDocuments(): Promise<string | null> {
+    const inputsDir = join(this.projectDir, 'inputs');
+    if (!existsSync(inputsDir)) {
+      return null;
+    }
+
+    // 查找 Word 文档
+    const files = readdirSync(inputsDir);
+    const docxFiles = files.filter(f => f.toLowerCase().endsWith('.docx'));
+    
+    if (docxFiles.length === 0) {
+      return null;
+    }
+
+    // 使用第一个 Word 文档
+    const docxPath = join(inputsDir, docxFiles[0]);
+    const converter = new FormatConverter();
+    
+    try {
+      const result = await converter.convert(docxPath, inputsDir);
+      if (result.success && result.outputPath) {
+        // 将转换后的文件重命名为 requirements.md
+        const requirementsPath = join(inputsDir, 'requirements.md');
+        if (result.outputPath !== requirementsPath) {
+          const { renameSync } = await import('node:fs');
+          renameSync(result.outputPath, requirementsPath);
+        }
+        return requirementsPath;
+      }
+    } catch {
+      // 转换失败，返回 null
+    }
+
+    return null;
   }
 }
