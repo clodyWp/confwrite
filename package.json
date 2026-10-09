@@ -1,6 +1,6 @@
 {
   "name": "confwrite",
-  "version": "0.18.2",
+  "version": "0.18.3",
   "description": "ConfWrite — 脚本驱动的长文档生成 pi package",
   "type": "module",
   "main": "dist/index.js",

@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.18.3] - 2026-10-09
+### Added
+- 演示 auto-merge 流程
+
 ## [0.18.2] - 2026-10-09
 ### Changed
 - 项目结构清理：按 AGENTS.md v2.0 规范删除临时文件、远程项目产物
