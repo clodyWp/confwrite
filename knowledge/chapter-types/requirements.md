@@ -5,6 +5,12 @@ wordBudget:
   max: 12000
 importance: 4
 writingStyle: functional
+writingGuidance: |
+  需求章节通常包含：功能需求清单、非功能需求（性能/安全/可用性）、约束条件、需求优先级。
+fallbackCategories:
+  - 需求
+  - 需求说明
+  - 功能清单
 ---
 
 # 需求章写作指南

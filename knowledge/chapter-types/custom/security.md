@@ -5,6 +5,12 @@ wordBudget:
   max: 12000
 importance: 4
 writingStyle: functional
+writingGuidance: |
+  安全章节通常包含：安全架构、访问控制、数据加密、审计日志、安全策略。
+fallbackCategories:
+  - 安全
+  - 权限
+  - 加密
 ---
 
 # 安全章写作指南

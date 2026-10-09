@@ -4,6 +4,12 @@ title: 技术图形布局设计方法论
 description: 架构图、模块图、流程图的布局设计原则。从认知科学本质出发，落地到7条可执行原则和v2流程设计。
 tags: [writing, diagram, layout, architecture, cognitive-science, svg-diagram-v2]
 timestamp: 2026-07-09T11:30:00+08:00
+diagramConfig:
+  layoutConstraints:
+    maxWidth: 680      # 画布宽度上限（px）
+    maxHeight: 900     # 画布高度上限（px）
+    maxConnectionRatio: 1.5  # 连线数/模块数上限
+    minGroupGapRatio: 3      # 组间/组内间距比下限
 ---
 
 # 技术图形布局设计方法论

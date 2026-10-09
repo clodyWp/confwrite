@@ -5,6 +5,12 @@ wordBudget:
   max: 20000
 importance: 5
 writingStyle: functional
+writingGuidance: |
+  功能章节通常包含：功能模块详细描述、功能流程图、界面设计说明、业务规则说明、异常处理说明。
+fallbackCategories:
+  - 功能说明
+  - 功能清单
+  - 业务
 ---
 
 # 功能章写作指南

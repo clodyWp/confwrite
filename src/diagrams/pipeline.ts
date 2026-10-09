@@ -12,6 +12,7 @@ import { layoutDiagram } from './layout/index.js';
 import { validateDiagram, type DiagramData } from './validator.js';
 import { DiagramCache, type CacheEntry } from './cache.js';
 import { loadDiagramStyle, type DiagramStyle } from './style.js';
+import { loadKnowledgeDiagramConfig, type KnowledgeDiagramConfig } from './knowledge-config.js';
 import {
   hasStructuredFormat,
   parseStructuredDiagram,
@@ -67,11 +68,13 @@ export class DiagramPipeline {
   private projectDir: string;
   private cache: DiagramCache;
   private style: DiagramStyle;
+  private knowledgeConfig: KnowledgeDiagramConfig;
 
   constructor(projectDir: string) {
     this.projectDir = projectDir;
     this.cache = new DiagramCache(projectDir);
     this.style = loadDiagramStyle(projectDir);
+    this.knowledgeConfig = loadKnowledgeDiagramConfig(projectDir);
   }
 
   /**
@@ -200,7 +203,7 @@ export class DiagramPipeline {
         // 原实现调 generateSVG（旧渲染器）：真实数据上画布最高 4290px、
         // 高宽比 8.0、字号小到 3.3pt，18/23 张超过一页。新引擎实测
         // 最高 727px、高宽比全部 ≤1.5、字号全部可读。
-        const layout = layoutDiagram(spec, this.style, block.title);
+        const layout = layoutDiagram(spec, this.style, block.title, this.knowledgeConfig.layoutConstraints);
         const svgResult = { svg: layout.svg, width: layout.width, height: layout.height };
         
         // 传播布局引擎的告警 ✓
@@ -241,7 +244,7 @@ export class DiagramPipeline {
             type: block.type,
           };
 
-          const validation = validateDiagram(diagramData);
+          const validation = validateDiagram(diagramData, this.knowledgeConfig.layoutConstraints);
           if (!validation.overallPassed) {
             result.warnings.push({
               diagramId,

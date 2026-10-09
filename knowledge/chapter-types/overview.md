@@ -5,6 +5,13 @@ wordBudget:
   max: 8000
 importance: 3
 writingStyle: overview
+writingGuidance: |
+  概述章节通常包含：项目背景、目标范围、主要内容概览、文档结构说明。
+fallbackCategories:
+  - 概述
+  - 总览
+  - 索引
+  - 术语
 ---
 
 # 概述章写作指南

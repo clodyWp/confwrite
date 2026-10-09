@@ -5,6 +5,12 @@ wordBudget:
   max: 12000
 importance: 3
 writingStyle: functional
+writingGuidance: |
+  保障章节通常包含：质量保障措施、培训计划、维护支持、应急预案。
+fallbackCategories:
+  - 保障
+  - 培训
+  - 维护
 ---
 
 # 保障章写作指南

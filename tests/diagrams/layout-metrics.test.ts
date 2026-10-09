@@ -7,6 +7,7 @@ import {
   DEFAULT_METRICS,
   TARGET_WIDTH,
   MAX_ASPECT_RATIO,
+  getLayoutMetrics,
 } from '../../src/diagrams/layout/metrics.js';
 
 /**
@@ -209,5 +210,28 @@ describe('solveCanvas', () => {
       metrics: DEFAULT_METRICS,
     });
     expect(b.height).toBeGreaterThan(a.height);
+  });
+});
+
+describe('getLayoutMetrics', () => {
+  it('返回默认值（无参数）', () => {
+    const metrics = getLayoutMetrics();
+    expect(metrics.TARGET_WIDTH).toBe(680);
+    expect(metrics.MAX_HEIGHT).toBe(900);
+    expect(metrics.MAX_ASPECT_RATIO).toBe(1.5);
+    expect(metrics.MIN_FONT_RATIO).toBe(0.019);
+  });
+
+  it('返回覆盖值', () => {
+    const metrics = getLayoutMetrics({
+      maxWidth: 800,
+      maxHeight: 1000,
+      maxAspectRatio: 2.0,
+      minFontRatio: 0.025,
+    });
+    expect(metrics.TARGET_WIDTH).toBe(800);
+    expect(metrics.MAX_HEIGHT).toBe(1000);
+    expect(metrics.MAX_ASPECT_RATIO).toBe(2.0);
+    expect(metrics.MIN_FONT_RATIO).toBe(0.025);
   });
 });

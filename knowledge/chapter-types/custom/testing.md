@@ -5,6 +5,12 @@ wordBudget:
   max: 12000
 importance: 4
 writingStyle: process
+writingGuidance: |
+  测试章节通常包含：测试策略、测试用例、测试环境、自动化测试、性能测试。
+fallbackCategories:
+  - 测试
+  - 用例
+  - 质量
 ---
 
 # 测试章写作指南

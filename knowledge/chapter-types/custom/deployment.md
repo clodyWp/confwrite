@@ -5,6 +5,12 @@ wordBudget:
   max: 12000
 importance: 4
 writingStyle: process
+writingGuidance: |
+  部署章节通常包含：部署架构、环境规划、部署流程、回滚方案、监控方案、运维手册。
+fallbackCategories:
+  - 部署
+  - 环境
+  - 运维
 ---
 
 # 部署章写作指南

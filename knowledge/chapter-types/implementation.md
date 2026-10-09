@@ -5,6 +5,12 @@ wordBudget:
   max: 15000
 importance: 4
 writingStyle: process
+writingGuidance: |
+  实施章节通常包含：实施计划、部署方案、运维策略、监控方案、回滚方案。
+fallbackCategories:
+  - 实施
+  - 部署
+  - 运维
 ---
 
 # 实施章写作指南

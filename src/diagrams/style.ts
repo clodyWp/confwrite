@@ -5,6 +5,7 @@
  */
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
+import { loadKnowledgeDiagramConfig } from './knowledge-config.js';
 
 /**
  * 配色方案
@@ -208,9 +209,15 @@ export function getColorScheme(scheme: string): ColorScheme | null {
  */
 export function loadDiagramStyle(projectDir: string): DiagramStyle {
   const stylePath = join(projectDir, 'assets', 'diagram-style.json');
+  const knowledgeConfig = loadKnowledgeDiagramConfig(projectDir);
+  const defaults = getDefaultDiagramStyle();
   
   if (!existsSync(stylePath)) {
-    return getDefaultDiagramStyle();
+    // 无用户配置 → 知识库 > 默认值
+    return {
+      ...defaults,
+      ...(knowledgeConfig.layerPalette ? { layerPalette: knowledgeConfig.layerPalette } : {}),
+    };
   }
   
   try {
@@ -218,7 +225,7 @@ export function loadDiagramStyle(projectDir: string): DiagramStyle {
     const parsed = JSON.parse(content);
     
     // 合并默认值，确保所有字段存在
-    const defaults = getDefaultDiagramStyle();
+    // 优先级：JSON > 知识库 > 默认值
     return {
       colorScheme: parsed.colorScheme || defaults.colorScheme,
       nodeShape: parsed.nodeShape || defaults.nodeShape,
@@ -226,14 +233,17 @@ export function loadDiagramStyle(projectDir: string): DiagramStyle {
       fontSize: parsed.fontSize || defaults.fontSize,
       scene: parsed.scene || defaults.scene,
       customColors: parsed.customColors || defaults.customColors,
-      // 旧项目文件没有 layerPalette 字段 → 回退默认（避免升级后图表变单色）
+      // JSON 显式配置 > 知识库 > 默认值
       layerPalette:
         Array.isArray(parsed.layerPalette) && parsed.layerPalette.length > 0
           ? parsed.layerPalette
-          : defaults.layerPalette,
+          : knowledgeConfig.layerPalette ?? defaults.layerPalette,
     };
   } catch {
-    return getDefaultDiagramStyle();
+    return {
+      ...defaults,
+      ...(knowledgeConfig.layerPalette ? { layerPalette: knowledgeConfig.layerPalette } : {}),
+    };
   }
 }
 

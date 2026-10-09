@@ -207,4 +207,44 @@ writingStyle: overview
       expect(style).toBeNull();
     });
   });
+
+  describe('writingGuidance', () => {
+    it('应该解析 frontmatter 中的 writingGuidance', () => {
+      const chapterTypesDir = join(tempDir, 'knowledge', 'chapter-types');
+      mkdirSync(chapterTypesDir, { recursive: true });
+
+      writeFileSync(join(chapterTypesDir, 'overview.md'), `---
+name: 概述章
+wordBudget:
+  min: 5000
+  max: 8000
+importance: 3
+writingStyle: overview
+writingGuidance: |
+  概述章节通常包含：项目背景、目标范围、主要内容概览。
+---
+`);
+
+      const config = loader.loadChapterType('overview');
+      expect(config.writingGuidance).toContain('概述章节通常包含');
+    });
+
+    it('应该在缺少 writingGuidance 时返回 undefined', () => {
+      const chapterTypesDir = join(tempDir, 'knowledge', 'chapter-types');
+      mkdirSync(chapterTypesDir, { recursive: true });
+
+      writeFileSync(join(chapterTypesDir, 'overview.md'), `---
+name: 概述章
+wordBudget:
+  min: 5000
+  max: 8000
+importance: 3
+writingStyle: overview
+---
+`);
+
+      const config = loader.loadChapterType('overview');
+      expect(config.writingGuidance).toBeUndefined();
+    });
+  });
 });

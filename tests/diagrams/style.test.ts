@@ -68,6 +68,65 @@ describe('DiagramStyle', () => {
       expect(style.colorScheme).toBe('warm');
     });
 
+    it('无 JSON 配置时，从知识库加载配色', () => {
+      // 不创建 diagram-style.json，但创建知识库文件
+      const knowledgeDir = join(TEST_DIR, 'knowledge', 'diagrams');
+      mkdirSync(knowledgeDir, { recursive: true });
+      writeFileSync(
+        join(knowledgeDir, 'architecture-style.md'),
+        `---
+title: 架构图风格
+diagramConfig:
+  layerPalette:
+    - '#ff0000'
+    - '#00ff00'
+    - '#0000ff'
+---
+# 内容
+`
+      );
+
+      const style = loadDiagramStyle(TEST_DIR);
+      expect(style.layerPalette).toEqual(['#ff0000', '#00ff00', '#0000ff']);
+    });
+
+    it('有 JSON 配置时，JSON 优先于知识库', () => {
+      // 创建 JSON 配置
+      writeFileSync(
+        join(TEST_DIR, 'assets', 'diagram-style.json'),
+        JSON.stringify({
+          colorScheme: 'cool',
+          layerPalette: ['#111111', '#222222'],
+        })
+      );
+
+      // 同时创建知识库配置（应该被忽略）
+      const knowledgeDir = join(TEST_DIR, 'knowledge', 'diagrams');
+      mkdirSync(knowledgeDir, { recursive: true });
+      writeFileSync(
+        join(knowledgeDir, 'architecture-style.md'),
+        `---
+title: 架构图风格
+diagramConfig:
+  layerPalette:
+    - '#ff0000'
+    - '#00ff00'
+---
+# 内容
+`
+      );
+
+      const style = loadDiagramStyle(TEST_DIR);
+      expect(style.layerPalette).toEqual(['#111111', '#222222']);
+    });
+
+    it('知识库不存在时使用默认配色', () => {
+      // 不创建任何知识库文件
+      const style = loadDiagramStyle(TEST_DIR);
+      expect(style.layerPalette).toBeDefined();
+      expect(style.layerPalette!.length).toBeGreaterThan(0);
+    });
+
     it('loads style from file', () => {
       const customStyle: DiagramStyle = {
         colorScheme: 'cool',

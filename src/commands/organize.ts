@@ -90,7 +90,7 @@ export async function organizeMaterials(projectDir: string): Promise<OrganizeRes
 
   // 4. 提取数据基线
   const extractor = new BaselineExtractor();
-  const baseline = extractor.extract(files);
+  const baseline = await extractor.extract(files);
   writeFileSync(
     join(assetsDir, 'data-baseline.json'),
     JSON.stringify(baseline, null, 2),
@@ -124,16 +124,25 @@ export async function organizeMaterials(projectDir: string): Promise<OrganizeRes
     // 6. 生成章节映射
     const mapper = new ChapterMapper();
     chapterMappings = mapper.map(outlineRoot, indexData);
+
+    // 6.5 应用 type fallback（优先 outline.md，其次 state，最后 'functional'）
+    const store = new ProjectStore(projectDir);
+    const state = store.load();
+    for (const mapping of chapterMappings) {
+      if (!mapping.type) {
+        const stateChapterType = state?.chapters?.[mapping.chapterId]?.type;
+        mapping.type = stateChapterType || 'functional';
+      }
+    }
     
     // 7. 同步大纲→状态（自动添加/移除章节）
-    const store = new ProjectStore(projectDir);
     if (store.exists()) {
       syncChaptersFromOutline(projectDir, store);
     }
 
     // 8. 生成素材包（注入图表知识库 + 需求内容）
     const knowledgeLoader = new KnowledgeLoader(projectDir);
-    const kitGenerator = new KitGenerator(knowledgeLoader);
+    const kitGenerator = new KitGenerator(knowledgeLoader, projectDir);
     
     // 修改 generateBatch 以支持 requirementMap
     const kitResult = generateBatchWithRequirements(

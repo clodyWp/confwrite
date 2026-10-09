@@ -13,6 +13,7 @@ export class OutlineNode {
   parent?: OutlineNode;
   children: OutlineNode[];
   description?: string;
+  type?: string;
 
   constructor(level: number, title: string) {
     this.level = level;
@@ -73,6 +74,13 @@ export class OutlineParser {
         currentChapter.description = descLines.join('\n').trim();
         if (!currentChapter.description) {
           currentChapter.description = undefined;
+        }
+        // Extract type from description (e.g. "本章类型: functional" or "本章类型：overview")
+        if (currentChapter.description) {
+          const typeMatch = currentChapter.description.match(/本章类型[：:]\s*([a-zA-Z0-9\-\/]+)/);
+          if (typeMatch) {
+            currentChapter.type = typeMatch[1];
+          }
         }
       }
       descLines = [];
