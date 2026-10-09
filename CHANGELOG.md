@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.18.4] - 2026-10-09
+### Fixed
+- 修复 pi TUI 中 extension 显示为 `dist` 而非包名的问题（#7）
+  - `pi.extensions` 路径从 `"dist/index.js"` 改为 `"./dist/index.js"`
+
 ## [0.18.3] - 2026-10-09
 ### Added
 - 演示 auto-merge 流程
