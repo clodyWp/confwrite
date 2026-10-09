@@ -1,0 +1,56 @@
+{
+  "version": 1,
+  "project": "ecommerce-platform",
+  "projectDir": "C:/Users/wenhao01/pi_proj/cw2/confwrite/.test-h5-simulation/projects/ecommerce-platform",
+  "createdAt": "2026-10-09T07:27:47.945Z",
+  "lastUpdated": "2026-10-09T07:27:48.453Z",
+  "currentPhase": "4a",
+  "status": "init",
+  "chapters": {
+    "ch001": {
+      "id": "ch001",
+      "title": "项目概述",
+      "status": "written",
+      "version": 0,
+      "round": 1,
+      "attempt": 0,
+      "consecutiveFailures": 0,
+      "maxRounds": 5,
+      "createdAt": "2026-10-09T07:27:48.307Z",
+      "updatedAt": "2026-10-09T07:27:48.307Z"
+    },
+    "ch002": {
+      "id": "ch002",
+      "title": "系统架构设计",
+      "status": "written",
+      "version": 0,
+      "round": 1,
+      "attempt": 0,
+      "consecutiveFailures": 0,
+      "maxRounds": 5,
+      "createdAt": "2026-10-09T07:27:48.307Z",
+      "updatedAt": "2026-10-09T07:27:48.307Z"
+    },
+    "ch003": {
+      "id": "ch003",
+      "title": "核心模块实现",
+      "status": "written",
+      "version": 0,
+      "round": 1,
+      "attempt": 0,
+      "consecutiveFailures": 0,
+      "maxRounds": 5,
+      "createdAt": "2026-10-09T07:27:48.307Z",
+      "updatedAt": "2026-10-09T07:27:48.307Z"
+    }
+  },
+  "round": 1,
+  "scheduler": {
+    "tokens": 10,
+    "paused": false
+  },
+  "tasks": [],
+  "executionLog": [],
+  "escalatedToHuman": false,
+  "totalChapters": 3
+}

@@ -1,0 +1,37 @@
+{
+  "sourceFiles": 3,
+  "metrics": {
+    "000 单 - 峰值 QPS: 5000": "99.95%",
+    "99: 200ms - 数据库读写分离 ": "95%",
+    "## 3. 非功能需求 - API 响应": "200ms"
+  },
+  "timeline": {},
+  "technicalTerms": [
+    "API",
+    "GET",
+    "POST",
+    "PUT",
+    "React",
+    "TypeScript",
+    "Ant Design",
+    "Java Spring Boot",
+    "MyBatis",
+    "MySQL",
+    "Redis",
+    "RocketMQ",
+    "Elasticsearch",
+    "Docker",
+    "Kubernetes",
+    "Nginx",
+    "Spring Cloud Gateway",
+    "Prometheus",
+    "Grafana",
+    "SkyWalking",
+    "QPS",
+    "SKU"
+  ],
+  "requirements": [
+    "支持 B2C 和 B2B 双模式\n- 日均订单量: 50000"
+  ],
+  "generatedAt": "2026-10-09T07:27:48.287Z"
+}

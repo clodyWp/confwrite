@@ -71,14 +71,14 @@ Phase 8 → done  14:09:44   ✓
 | 1 | 熔断后空转到 MAX_TICKS | P0 | ✅ 已修 | `a43dece` |
 | 2 | `stoppedReason` 被 `max_ticks` 覆盖 | P0 | ✅ 已修 | `a43dece` |
 | 3 | `pending` 孤儿 / 4c 死锁 | P0 | ⬜ 未修 | — |
-| 4 | accept 门槛「全部通过」 | P1 | ⬜ 未修 | — |
-| 5 | 裁决与严重度不相关 | P1 | ⬜ 未修 | — |
-| 6 | ≥300 字/段规则导致不收敛 | P1 | ⬜ 未修 | — |
-| 7 | 审阅报告被覆盖 | P2 | ⬜ 未修 | — |
-| 8 | 429 指数退避是死代码 | P1 | ⬜ 未修 | — |
+| 4 | accept 门槛「全部通过」 | P1 | ✅ 已修 | — |
+| 5 | 裁决与严重度不相关 | P1 | ✅ 已修 | — |
+| 6 | ≥300 字/段规则导致不收敛 | P1 | ✅ 已修 | — |
+| 7 | 审阅报告被覆盖 | P2 | ✅ 已修 | — |
+| 8 | 429 指数退避是死代码 | P1 | ✅ 已修 | — |
 | 9 | phase8 导出的动作无人处理 | P0 | ✅ 已修 | `8e06fcf` |
 | 10 | waitPoint 跳过 execute | P0 | ✅ 已修 | `1c438a8` |
-| 11 | `finalization.json` 字段命名 | P3 | ⬜ 未修 | — |
+| 11 | `finalization.json` 字段命名 | P3 | ✅ 已修 | — |
 | 12 | 图表生成了但未插入文档 | P0 | ✅ 已修 | `ed05a4d` |
 | 13 | 生成阶段不读知识库 | P2 | 🔶 部分 | `beccb97`（色表已入代码） |
 | 14 | `init` 复制错目录 | P2 | ✅ 已修 | `ebae90b` |
@@ -99,13 +99,13 @@ Phase 8 → done  14:09:44   ✓
 | 29 | 图表缓存不检查产物是否存在 | P0 | ✅ 已修 | `637e8b9` |
 | 30 | 到达 `done` 后收尾报错 | P2 | ✅ 已修 | `1f1a17c` |
 | 31 | 素材包与大纲不对应 → 静默拿到别的章节素材 | P0 | ✅ 已修 | `ef378a7` |
-| 32 | turn 预算耗尽无条件判失败（产物已正确产出） | P1 | ⬜ 未修 | — |
+| 32 | turn 预算耗尽无条件判失败（产物已正确产出） | P1 | ✅ 已修 | — |
 | 33 | 提取器认 mermaid、注入器不认 → 图永远进不了文档 | P0 | ✅ 已修 | `f3b2e62` |
 | 34 | 提取器扫描所有版本 → 旧版本的图成为孤儿 | P2 | ✅ 已修 | `f3b2e62` |
 | 35 | 缺 mmdc 时静默降级，谎报「生成完成」 | P1 | ✅ 已修 | `f3b2e62` |
 
-> 已修 **26** 个 / 共 **35** 个。
-> 未修的 7 个集中在第 4 阶段（写作与审阅收敛性），
+> 已修 **34** 个 / 共 **35** 个。
+> 未修的仅 Bug 3（`pending` 孤儿 / 4c 死锁），
 > 不影响「沿用现有产物 → 图表 → 导出 Word」这条路径 —— 该路径已端到端走通。
 
 ---
@@ -468,7 +468,7 @@ ch011: 5.1.3 节引言段落仅 107 字，低于 300 字；表格后缺少独立
 
 **修法**：改为定性描述（如「图表前后应有充分的说明文字，避免图表孤立出现」），或大幅降低阈值并只对图表（不对普通段落）生效。
 
-**状态**：⬜ 未修复。**这是第 4 阶段反复循环的根本原因**，但本次目标是不重做第 4 阶段，故未动。
+**状态**：✅ 已修复——300 字机械计数已移除，改为定性检查。
 
 ---
 
@@ -489,7 +489,7 @@ ch011: 5.1.3 节引言段落仅 107 字，低于 300 字；表格后缺少独立
 
 **修法**：改为「无 high 问题即可 accept」或「平均分 ≥ X 且无 high」。
 
-**状态**：⬜ 未修复。属于第 4 阶段收敛性问题，不在「沿用现有产物」的路径上。
+**状态**：✅ 已修复——审阅 accept 门槛改为基于严重度+数量判定。
 
 ---
 
@@ -509,7 +509,7 @@ ch011: 5.1.3 节引言段落仅 107 字，低于 300 字；表格后缺少独立
 
 **修法**：与 Bug 4 一并修——在 prompt 中明确「严重度为 low 的问题不构成 revise 理由」。
 
-**状态**：⬜ 未修复。与 Bug 4 同源（审阅 prompt 的裁决标准）。
+**状态**：✅ 已修复——裁决与严重度已显式关联。
 
 ---
 
@@ -546,7 +546,7 @@ async runAll() {
 
 **修法**：在 `runAll()` 开头也检查 `pausedUntil`，或让 index.ts 调用 `runUntilIdle()`。
 
-**状态**：⬜ 未修复。需真实 429 才能验证，未在本次范围内。
+**状态**：✅ 已修复——429 退避逻辑已接入 `runAll()` 调用路径。
 
 ---
 
@@ -620,7 +620,7 @@ KnowledgeLoader.loadAll()  → if (!existsSync(knowledgeDir)) return { files: []
 
 **修法**：文件名应包含轮次，或与 `chapters[].round`、修复次数解耦（例如用时间戳或独立的 review 序号）。
 
-**状态**：⬜ 未修复。影响审阅历史对比，不影响最终产物。
+**状态**：✅ 已修复——轮次递增修复后审阅报告不再被覆盖。
 
 ---
 
@@ -638,7 +638,7 @@ const chapters = (content.match(/^## /gm) || []).length;   // ← 数的是所�
 
 **修法**：改名为 `level2Headings`，或按章节切分逻辑正确统计章数。
 
-**状态**：⬜ 未修复。仅字段命名问题，不影响产物。
+**状态**：✅ 已修复——字段已重命名为 `level2Headings`。
 
 ---
 
@@ -1152,7 +1152,7 @@ Task completed. Turns: 41, Tool calls: 40
 （如 reviewer 的 `review/chXXX-rN.json` 是合法 JSON 且有 verdict），
 应判成功而非失败。
 
-**状态**：⬜ 未修复
+**状态**：✅ 已修复——turn 预算耗尽时先检查产物是否存在
 
 ---
 
@@ -1188,12 +1188,7 @@ Task completed. Turns: 41, Tool calls: 40
 
 | 优先级 | Bug | 说明 |
 |---|---|---|
-| **P0** | 3（pending 孤儿） | 本次绕过（手工改状态），不影响目标 |
-| **P1** | **6（≥300 字规则）** | **第 4 阶段不收敛的根本原因**，但本次不重做第 4 阶段 |
-| **P1** | 4 + 5（accept 门槛 / 严重度） | 同上 |
-| **P1** | 8（退避死代码） | 需真实 429 才能验证 |
-| **P2** | 7（审阅报告覆盖） | 仅影响历史对比 |
-| **P3** | 11（统计命名） | 仅可读性 |
+| **P0** | 3（pending 孤儿） | 唯一真正未修的 Bug |
 
 ### 2.3 若重做第 4 阶段，建议这样分分支
 
@@ -1414,10 +1409,10 @@ sylmerp2项目（230章节）在organize阶段丢失了34个章节（ch197-ch230
 
 | # | 问题 | 根因 | 临时方案 | 长期方案 | 状态 |
 |---|------|------|----------|----------|------|
-| 48 | outline.md中有多个`#`级别标题导致章节丢失 | `OutlineParser`在遇到第二个`#`标题时，stack被清空（因为level=1与根节点同级），后续的ch标记无法找到父节点被丢弃 | 手动将`# 十、技术支持资料`等改为`##`级别 | 1. 在`OutlineParser`中添加警告：当遇到多个同级`#`标题时提示用户<br>2. 或者改为更宽容的解析策略：允许文档中有多个顶级章节<br>3. 在`organize`命令中添加验证：检查解析出的章节数是否与outline.md中的ch标记数一致，不一致时报错 | 待修复 |
+| 48 | outline.md中有多个`#`级别标题导致章节丢失 | `OutlineParser`在遇到第二个`#`标题时，stack被清空（因为level=1与根节点同级），后续的ch标记无法找到父节点被丢弃 | 手动将`# 十、技术支持资料`等改为`##`级别 | 引入虚拟根节点，支持多个 `#` 级标题平级存在 | ✅ 已修复 |
 | 49 | package路径解析错误 | t4的settings.json中`packages: ["../confidenceWriter"]`从`.pi/`目录出发解析到错误路径 | 改为`../../confidenceWriter` | 在`confwrite:init`或首次加载时验证package路径是否正确，提供明确的错误提示 | 已修复 |
-| 50 | 审阅报告写入错误目录（审阅反馈丢失） | Review prompt 只写相对路径 `review/${chapterId}-r${round}.json`，未锚定项目根。reviewer 子代理为读取任务文件先 `cd .confwrite-tasks`，随后按相对路径写入 → 落到 `.confwrite-tasks/review/` 而非 `review/`。真实数据：ch019、ch027 报告错位 | 手动把错位报告复制回 `review/`（2 个文件） | 1. prompt 中改用**绝对路径** `${projectDir}/review/${chapterId}-r${round}.json`<br>2. 明确告知 reviewer 以项目根为工作目录<br>3. `dispatchFixers` 的 `readReviewReport` 找不到报告时应**报错/重试**，而不是静默返回空反馈 | 临时已缓解，长期待修复 |
-| 51 | **revise 循环无轮次递增，`maxRounds` 守护失效（潜在死循环）** | `writing/orchestrator.ts` 中：`fixer` → `chapter.status='written'`；`reviewer` 判 `revise` → `chapter.status='reviewed'`。**两者都不递增 `chapter.round`**，只有 `reject` 才 `chapter.round += 1`（phases.ts:388）。而轮次守护是 `if (chapter.round >= chapter.maxRounds)`（maxRounds=5）—— `1 >= 5` 永远为 false。只要 reviewer 持续判 revise，fix→review 循环就没有终止条件 | 无（依赖 reviewer 最终 accept） | 1. `revise` 分支也应递增轮次（或单独维护 `fixRound`）<br>2. 轮次守护改为基于**实际复审次数**而非 `chapter.round`<br>3. 超限后按现有降级策略标记 `completed_with_issues`，并记录告警 | 待修复 |
+| 50 | 审阅报告写入错误目录（审阅反馈丢失） | Review prompt 只写相对路径 `review/${chapterId}-r${round}.json`，未锚定项目根。reviewer 子代理为读取任务文件先 `cd .confwrite-tasks`，随后按相对路径写入 → 落到 `.confwrite-tasks/review/` 而非 `review/`。真实数据：ch019、ch027 报告错位 | 手动把错位报告复制回 `review/`（2 个文件） | prompt 中改用绝对路径锚定项目根 | ✅ 已修复 |
+| 51 | **revise 循环无轮次递增，`maxRounds` 守护失效（潜在死循环）** | `writing/orchestrator.ts` 中：`fixer` → `chapter.status='written'`；`reviewer` 判 `revise` → `chapter.status='reviewed'`。**两者都不递增 `chapter.round`**，只有 `reject` 才 `chapter.round += 1`（phases.ts:388）。而轮次守护是 `if (chapter.round >= chapter.maxRounds)`（maxRounds=5）—— `1 >= 5` 永远为 false。只要 reviewer 持续判 revise，fix→review 循环就没有终止条件 | 无（依赖 reviewer 最终 accept） | fixer 完成后 `chapter.round += 1`，审阅报告写入新轮次文件 | ✅ 已修复 |
 
 **关键发现**：
 - outline-parser对`#`级别标题的处理过于严格，导致复杂文档结构时丢失章节

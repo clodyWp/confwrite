@@ -11,14 +11,14 @@ description: "Generate 10+ chapter long documents (technical proposals, whitepap
 
 | 命令 | 用途 |
 |------|------|
-| `/confwrite:init <slug>` | 初始化新项目 |
+| `/confwrite:init <slug> [material-dir]` | 初始化新项目 |
 | `/confwrite:organize` | 整理素材（扫描→转换→索引→基线→素材包→同步大纲） |
-| `/confwrite:outline <template> [words]` | 自动生成大纲（基于模板和需求） |
+| `/confwrite:outline <slug> <template> [words]` | 自动生成大纲（基于模板和需求） |
 | `/confwrite:write` | 启动/推进写作流程 |
 | `/confwrite:status` | 查看项目进度 |
 | `/confwrite:resume` | 恢复中断的项目 |
 | `/confwrite:compact` | 手动压缩上下文（防止长任务 429 错误） |
-| `/confwrite:export <fmt>` | 导出文档（md / html / docx） |
+| `/confwrite:export <slug> <fmt> [output-path]` | 导出文档（md / html / docx） |
 
 ## 流程概览
 
@@ -35,7 +35,7 @@ Phase 4d: 修复           → fixer subagent 批量
 Phase 5:  图表处理       → 提取结构化图表 → 内置布局引擎渲染 → SVG → PNG → 替换草稿
 Phase 6:  组装           → 合并章节 → final.md
 Phase 7:  定稿           → 文档统计 + 数据基线一致性检查 → finalization.json
-Phase 8:  导出           → MD / HTML / DOCX
+Phase 8:  导出           → DOCX（自动流程仅导出 DOCX；手动命令支持 md/html/docx）
 ```
 
 ## 完整使用流程
@@ -67,7 +67,7 @@ Phase 8:  导出           → MD / HTML / DOCX
 
 5. 生成大纲（自动或手动）
    自动：Phase 2 根据模板自动生成大纲
-   手动：/confwrite:outline technical-proposal [50000]
+   手动：/confwrite:outline my-project technical-proposal [50000]
    
    → 生成 outline.md
    → 生成 assets/outline-evaluation.md（评估报告）
@@ -84,9 +84,9 @@ Phase 8:  导出           → MD / HTML / DOCX
    /confwrite:status
 
 9. 导出文档
-   /confwrite:export md
-   /confwrite:export html
-   /confwrite:export docx
+   /confwrite:export my-project md
+   /confwrite:export my-project html
+   /confwrite:export my-project docx
 ```
 
 ## 核心原则
@@ -150,10 +150,10 @@ Phase 8:  导出           → MD / HTML / DOCX
 # → 实际调用: /confwrite:compact
 
 # 7. 导出
-/skill:confwrite export md
-# → 实际调用: /confwrite:export md
-/skill:confwrite export html
-/skill:confwrite export docx
+/skill:confwrite export my-project md
+# → 实际调用: /confwrite:export my-project md
+/skill:confwrite export my-project html
+/skill:confwrite export my-project docx
 ```
 
 ## 写作循环

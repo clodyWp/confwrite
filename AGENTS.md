@@ -28,7 +28,7 @@
 | 测试 | vitest (15s timeout) |
 | 状态持久化 | JSON 文件（原子化写入：write-temp → rename） |
 | 图表 | 内置布局引擎（结构化格式 `containers/nodes/edges`），**不使用 mermaid** |
-| DOCX 导出 | JSZip 直接操作（不依赖 pandoc CLI） |
+| DOCX 导出 | pandoc CLI 转换 + JSZip 后处理样式清理 |
 | 类型验证 | @sinclair/typebox（运行时 JSON Schema） |
 | 图片处理 | sharp |
 | 文档转换 | mammoth (DOCX→MD), pdf-parse (PDF→MD) |
@@ -91,15 +91,18 @@ src/index.ts (Extension 入口)
   ├── assemble/          组装与导出
   ├── logging/           日志系统
   ├── knowledge/         知识库加载
+  ├── config/            配置加载与验证
   ├── state/             状态管理
   └── utils/             工具函数
 ```
 
 **状态机 Phase 流转**：
 ```
-0a (初始化) → 0b (素材整理) → 1 (需求分析,可选) → 2 (大纲规划,waitPoint)
-→ 3 (素材准备) → 4a (写作) → 4b (审阅) → 4c (决策) → 4d (修复) → [回到 4b]
-→ 5 (图表生成) → 6 (组装,waitPoint) → 7 (定稿) → 8 (导出) → done
+0a (初始化) → 0b (素材整理) → 1 (需求分析) → 2 (大纲规划,waitPoint)
+  ├─→ 3 (素材准备) ─→ 4a (写作)
+  └─→ 4a (写作)  ← 素材已匹配大纲时可跳过 3
+4a → 4b (审阅) → 4c (决策) → 4d (修复) → [回到 4b]
+  → 5 (图表生成) → 6 (组装,waitPoint) → 7 (定稿) → 8 (导出) → done
 ```
 
 ## 5. 文件组织规范

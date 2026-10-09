@@ -2,6 +2,35 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.18.2] - 2026-10-09
+### Changed
+- 项目结构清理：按 AGENTS.md v2.0 规范删除临时文件、远程项目产物
+- 重写 AGENTS.md v2.0：新增文件组织/版本号/文档分类规范
+
+## [0.18.0] - 2026-10-09
+### Added
+- LLM 驱动的大纲规划器（LLMPlanner）
+- 回退链：LLMPlanner → AdaptiveOutlinePlanner → 模板
+- 中文数字格式标题解析支持（一、二、三 → Level 1）
+
+## [0.17.0] - 2026-10-09
+### Added
+- LLMPlanner 骨架实现
+- eastE 项目验证
+
+## [0.16.0] - 2026-10-09
+### Added
+- 素材包 fallback 改进：无关键词匹配时使用通用参考资料
+
+## [0.15.0] - 2026-10-09
+### Added
+- 字数控制三层防御：预防（prompt 硬限制）+ 检测（写后检查）+ 兜底（Reviewer 检查）
+
+## [0.14.0] - 2026-10-09
+### Added
+- 素材包改进：大纲作为信息枢纽，requirementSource 追溯
+- 需求映射器（RequirementMapper）
+
 ## [0.13.0] - 2026-10-08
 
 ### Added
@@ -41,10 +70,10 @@ All notable changes to this project will be documented in this file.
 ### Technical Details
 - 新增 15 个核心模块
 - 新增 100+ 个测试用例
-- 总测试数：1128 passed, 12 skipped
+- 总测试数：1200+ passed（持续增长中）
 - 严格遵循 TDD 开发流程
 
-## [0.12.1] - 2026-09-28
+## [0.12.1] - 2026-09-27
 
 ### Changed
 - Documentation cleanup: removed 10 outdated/redundant markdown files
@@ -52,7 +81,7 @@ All notable changes to this project will be documented in this file.
 - Updated SKILL.md to reflect structured diagram format (replaced mermaid references)
 - Updated DESIGN.md to v0.12.1 with current module listing
 
-## [0.12.0] - 2024-09-26
+## [0.12.0] - 2026-09-26
 
 ### Fixed
 - **Bug 50**: Reviewer prompt now uses absolute path for review report output
@@ -66,19 +95,19 @@ All notable changes to this project will be documented in this file.
 ### Added
 - 6 new tests for Bug 50/51 fixes
 
-## [0.11.0] - 2024-09-25
+## [0.11.0] - 2026-09-25
 
 ### Fixed
 - Command path resolution for `/confwrite:organize`, `/confwrite:write`, `/confwrite:status`, `/confwrite:resume`
 - All slash commands now correctly resolve project paths using `resolve(ctx.cwd, 'projects', args)`
 
-## [0.10.0] - 2024-09-24
+## [0.10.0] - 2026-09-24
 
 ### Fixed
 - Path resolution for pi packages relative paths
 - `.pi/settings.json` paths now correctly resolved relative to `.pi/` directory
 
-## [0.9.0] - 2024-09-20
+## [0.9.0] - 2026-09-20
 
 ### Added
 - Complete diagram layout engine rewrite
@@ -91,7 +120,7 @@ All notable changes to this project will be documented in this file.
 - Back-edge direction handling
 - Container label avoidance
 
-## [0.8.0] - 2024-09-15
+## [0.8.0] - 2026-09-20
 
 ### Added
 - Multi-level list styles in Word export

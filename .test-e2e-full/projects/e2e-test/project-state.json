@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "project": "e2e-test",
+  "projectDir": "C:/Users/wenhao01/pi_proj/cw2/confwrite/.test-e2e-full/projects/e2e-test",
+  "createdAt": "2026-10-09T07:27:48.197Z",
+  "lastUpdated": "2026-10-09T07:27:48.463Z",
+  "currentPhase": "0a",
+  "status": "init",
+  "chapters": {
+    "ch001": {
+      "id": "ch001",
+      "title": "系统概述",
+      "status": "pending",
+      "version": 0,
+      "round": 1,
+      "attempt": 0
+    },
+    "ch002": {
+      "id": "ch002",
+      "title": "系统架构",
+      "status": "pending",
+      "version": 0,
+      "round": 1,
+      "attempt": 0
+    },
+    "ch003": {
+      "id": "ch003",
+      "title": "详细设计",
+      "status": "pending",
+      "version": 0,
+      "round": 1,
+      "attempt": 0
+    }
+  },
+  "round": 1,
+  "scheduler": {
+    "tokens": 10,
+    "paused": false
+  },
+  "tasks": [],
+  "executionLog": [],
+  "escalatedToHuman": false,
+  "totalChapters": 3
+}
