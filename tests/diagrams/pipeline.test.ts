@@ -265,5 +265,47 @@ diagram-end -->
       expect(result.skipped).toBe(0);
       expect(result.errors).toHaveLength(0);
     });
+
+    it('pipeline 加载知识库配置并传递给 validator', async () => {
+      // 创建知识库布局约束（放宽尺寸限制）
+      const knowledgeDir = join(TEST_DIR, 'knowledge', 'diagrams');
+      mkdirSync(knowledgeDir, { recursive: true });
+      writeFileSync(
+        join(knowledgeDir, 'layout.md'),
+        `---
+title: 布局方法论
+diagramConfig:
+  layoutConstraints:
+    maxWidth: 1000
+    maxHeight: 1200
+---
+
+# 内容
+`
+      );
+
+      // 删除 JSON 配置，确保使用知识库配置
+      const stylePath = join(TEST_DIR, 'assets', 'diagram-style.json');
+      if (existsSync(stylePath)) rmSync(stylePath);
+
+      // 重新创建 pipeline（会重新加载配置）
+      pipeline = new DiagramPipeline(TEST_DIR);
+
+      const chapterContent = `
+<!-- diagram-start
+type: architecture
+title: 架构图
+description: |
+  模块 A → 模块 B
+diagram-end -->
+`;
+      writeFileSync(join(TEST_DIR, 'drafts', 'chapters', 'ch01-v1.md'), chapterContent);
+
+      const result = await pipeline.run();
+
+      // 应该成功生成（知识库放宽了尺寸限制）
+      expect(result.generated).toBe(1);
+      expect(result.errors).toHaveLength(0);
+    });
   });
 });

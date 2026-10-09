@@ -12,6 +12,7 @@ export interface ChapterTypeConfig {
   };
   importance: number;
   writingStyle: string;
+  writingGuidance?: string;
   content?: string; // 文件中的其他内容（写作指南等）
 }
 
@@ -154,6 +155,7 @@ export class ChapterTypeLoader {
       wordBudget: config.wordBudget || { min: 5000, max: 8000 },
       importance: config.importance || 3,
       writingStyle: config.writingStyle || 'functional',
+      writingGuidance: config.writingGuidance || undefined,
       content: contentAfterFrontmatter || undefined,
     };
   }
@@ -167,9 +169,30 @@ export class ChapterTypeLoader {
     
     let currentKey = '';
     let currentObject: any = null;
+    let multilineKey = '';
+    let multilineLines: string[] = [];
+
+    const flushMultiline = () => {
+      if (multilineKey) {
+        result[multilineKey] = multilineLines.join('\n').trim();
+        multilineKey = '';
+        multilineLines = [];
+      }
+    };
 
     for (const line of lines) {
       const trimmed = line.trim();
+
+      // Collect multiline YAML values (key: |)
+      if (multilineKey) {
+        if (line.startsWith('  ') || line.startsWith('\t')) {
+          multilineLines.push(trimmed);
+          continue;
+        } else {
+          flushMultiline();
+        }
+      }
+
       if (!trimmed || trimmed.startsWith('#')) {
         continue;
       }
@@ -189,6 +212,14 @@ export class ChapterTypeLoader {
         const key = keyValueMatch[1];
         const value = keyValueMatch[2].trim();
 
+        // Check for multiline indicator
+        if (value === '|') {
+          multilineKey = key;
+          multilineLines = [];
+          currentObject = null;
+          continue;
+        }
+
         // 如果当前在嵌套对象中
         if (currentObject && line.startsWith('  ')) {
           currentObject[key] = this.parseValue(value);
@@ -199,6 +230,9 @@ export class ChapterTypeLoader {
         }
       }
     }
+
+    // Flush any remaining multiline value
+    flushMultiline();
 
     return result;
   }

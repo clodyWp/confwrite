@@ -5,6 +5,12 @@ wordBudget:
   max: 8000
 importance: 2
 writingStyle: list
+writingGuidance: |
+  附录章节通常包含：术语表、参考文献、补充说明、缩略语列表。
+fallbackCategories:
+  - 术语
+  - 索引
+  - 参考
 ---
 
 # 附录章写作指南

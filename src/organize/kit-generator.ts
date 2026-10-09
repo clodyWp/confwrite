@@ -5,6 +5,7 @@ import type { DataBaseline } from './baseline-extractor.js';
 import type { KnowledgeLoader } from '../knowledge/loader.js';
 import type { Outline } from '../outline/types.js';
 import type { RequirementMap } from './requirement-mapper.js';
+import { ChapterTypeLoader } from '../knowledge/chapter-type-loader.js';
 
 /**
  * 生成结果
@@ -30,9 +31,11 @@ export interface BatchStats {
  */
 export class KitGenerator {
   private knowledgeLoader?: KnowledgeLoader;
+  private projectDir?: string;
 
-  constructor(knowledgeLoader?: KnowledgeLoader) {
+  constructor(knowledgeLoader?: KnowledgeLoader, projectDir?: string) {
     this.knowledgeLoader = knowledgeLoader;
+    this.projectDir = projectDir;
   }
 
   /**
@@ -64,6 +67,15 @@ export class KitGenerator {
       lines.push(`- **相关分类**: ${mapping.relatedCategories.join(', ')}`);
     }
     lines.push('');
+
+    // 章节类型说明（知识库驱动）
+    if (mapping.type) {
+      const guidance = this.generateChapterTypeGuidance(mapping.type);
+      if (guidance) {
+        lines.push(guidance);
+        lines.push('');
+      }
+    }
 
     // 章节描述（来自大纲）
     if (mapping.description) {
@@ -241,7 +253,7 @@ export class KitGenerator {
 
     const matchesKeywords = (text: string): boolean => {
       const lower = text.toLowerCase();
-      return keywords.some(k => lower.includes(k) || k.includes(lower.slice(0, 2)));
+      return keywords.some(k => lower.includes(k));
     };
 
     const scopedMetrics: Record<string, string> = {};
@@ -303,6 +315,36 @@ export class KitGenerator {
       }
       lines.push('');
     }
+
+    return lines.join('\n');
+  }
+
+  /**
+   * 生成章节类型说明（从知识库加载 writingGuidance）
+   */
+  private generateChapterTypeGuidance(type: string): string | null {
+    const defaultGuidance = '请根据上述“章节描述”和“需求要点”编写内容。如果需求要点不足以覆盖本章内容，请根据章节标题和上下文自由发挥，确保内容完整、逻辑清晰。';
+
+    let guidance = defaultGuidance;
+
+    if (this.projectDir) {
+      try {
+        const loader = new ChapterTypeLoader(this.projectDir);
+        const config = loader.loadChapterType(type);
+        if (config.writingGuidance) {
+          guidance = config.writingGuidance;
+        }
+      } catch {
+        // Knowledge file not found or parse error — use default
+      }
+    }
+
+    const lines: string[] = [];
+    lines.push('## 章节类型说明');
+    lines.push('');
+    lines.push(`本章是 **${type}** 类型。`);
+    lines.push('');
+    lines.push(guidance);
 
     return lines.join('\n');
   }

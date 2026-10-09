@@ -5,6 +5,12 @@ wordBudget:
   max: 15000
 importance: 5
 writingStyle: functional
+writingGuidance: |
+  架构章节通常包含：系统架构图、技术选型说明、模块划分、接口设计、数据流向。
+fallbackCategories:
+  - 架构
+  - 系统设计
+  - 技术方案
 ---
 
 # 架构章写作指南

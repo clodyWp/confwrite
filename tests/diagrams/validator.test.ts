@@ -174,6 +174,38 @@ describe('DiagramValidator', () => {
     });
   });
 
+  describe('validateDiagram with constraints', () => {
+    it('无约束参数时使用默认值', () => {
+      const diagram: DiagramData = {
+        id: 'ch01-fig1',
+        nodes: [{ id: 'A', label: 'A', layer: 0 }],
+        connections: [],
+        svgContent: '<svg></svg>',
+        svgWidth: 700,  // > 默认 680
+        svgHeight: 800,
+      };
+
+      const result = validateDiagram(diagram);
+      const sizeCheck = result.checks.find(c => c.name === 'Word 尺寸');
+      expect(sizeCheck?.passed).toBe(false);  // 700 > 680 默认值
+    });
+
+    it('有约束参数时使用自定义值', () => {
+      const diagram: DiagramData = {
+        id: 'ch01-fig1',
+        nodes: [{ id: 'A', label: 'A', layer: 0 }],
+        connections: [],
+        svgContent: '<svg></svg>',
+        svgWidth: 700,  // > 默认 680，但 < 自定义 800
+        svgHeight: 800,
+      };
+
+      const result = validateDiagram(diagram, { maxWidth: 800 });
+      const sizeCheck = result.checks.find(c => c.name === 'Word 尺寸');
+      expect(sizeCheck?.passed).toBe(true);  // 700 <= 800 自定义值
+    });
+  });
+
   describe('ValidationResult structure', () => {
     it('has all required fields', () => {
       const diagram: DiagramData = {

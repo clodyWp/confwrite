@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.19.0] - 2026-10-09
+### Added
+- **D2: 章节类型说明** — 素材包写作指南中新增章节类型说明，从知识库 readingGuidance 读取
+- **D3: 图表知识库输入** — 图表管线从知识库 frontmatter 加载配色和布局约束
+- **D4: 领域知识精准匹配** — 移除宽松匹配，extractContext 生成有意义的 metrics key，LLM 提取中文术语
+
+### Changed
+- OutlineParser 从 description 提取 type 字段
+- BaselineExtractor.extract() 改为 async，支持 LLM 中文术语提取
+- loadDiagramStyle() 增加知识库查询（优先级：JSON > 知识库 > 默认值）
+- validateDiagram() 接受可选约束参数
+- 10 个 chapter-types 知识库文件添加 writingGuidance 和 fallbackCategories
+- 2 个 diagrams 知识库文件添加 diagramConfig
+
+### Fixed
+- 移除 kit-generator.ts 中的宽松匹配逻辑（2字符重叠匹配）
+- extractContext 生成的 metrics key 从乱码变为有意义的标签（≤15字符）
+
 ## [0.18.4] - 2026-10-09
 ### Fixed
 - 修复 pi TUI 中 extension 显示为 `dist` 而非包名的问题（#7）

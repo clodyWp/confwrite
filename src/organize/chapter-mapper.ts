@@ -10,6 +10,8 @@ export interface ChapterMapping {
   chapterId: string;
   /** 章节标题 */
   title: string;
+  /** 章节类型（overview/functional/architecture/...） */
+  type?: string;
   /** 大纲中该章节的描述文字 */
   description?: string;
   /** 相关文件 */
@@ -43,6 +45,7 @@ export class ChapterMapper {
       mappings.push({
         chapterId: chapter.id,
         title: chapter.title,
+        type: chapter.type,
         description: chapter.description,
         relatedFiles,
         relatedCategories,

@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import type { MaterialFile } from './scanner.js';
+import type { LLMCaller } from '../outline/llm-planner.js';
 
 /**
  * 数据基线
@@ -28,13 +29,27 @@ export interface ValidationResult {
 }
 
 /**
+ * 基线提取器选项
+ */
+export interface BaselineExtractorOptions {
+  /** 可选的 LLM 调用函数，用于提取中文技术术语 */
+  llmCaller?: LLMCaller;
+}
+
+/**
  * 数据基线提取器
  */
 export class BaselineExtractor {
+  private llmCaller?: LLMCaller;
+
+  constructor(options?: BaselineExtractorOptions) {
+    this.llmCaller = options?.llmCaller;
+  }
+
   /**
    * 从资料文件提取数据基线
    */
-  extract(files: MaterialFile[]): DataBaseline {
+  async extract(files: MaterialFile[]): Promise<DataBaseline> {
     const baseline: DataBaseline = {
       sourceFiles: files.length,
       metrics: {},
@@ -43,6 +58,8 @@ export class BaselineExtractor {
       requirements: [],
       generatedAt: new Date().toISOString(),
     };
+
+    const allContent: string[] = [];
 
     for (const file of files) {
       // Read the full file content for analysis
@@ -55,6 +72,8 @@ export class BaselineExtractor {
           // If we can't read the file, use the summary
         }
       }
+
+      allContent.push(content);
       
       // 提取百分比指标
       this.extractPercentages(content, baseline.metrics);
@@ -70,6 +89,12 @@ export class BaselineExtractor {
       
       // 提取需求
       this.extractRequirements(content, baseline.requirements);
+    }
+
+    // LLM 中文术语提取
+    if (this.llmCaller) {
+      const llmTerms = await this.extractChineseTermsWithLLM(allContent.join('\n'));
+      baseline.technicalTerms.push(...llmTerms);
     }
 
     // 去重
@@ -182,35 +207,100 @@ export class BaselineExtractor {
 
   /**
    * 提取需求
+   * 支持强需求（必须/需要）、弱需求（应）、列表格式需求
    */
   private extractRequirements(content: string, requirements: string[]): void {
-    // 匹配需求关键词（如 必须、需要、支持、达到等）
-    const requirementRegex = /(必须|需要|支持|达到|满足|确保|保证)[^，。！？]{5,30}/g;
+    // 强需求关键词
+    const strongKeywords = /(?:必须|需要|满足|确保|保证|支持|达到|实现|提供)[^\n，。！？；]{2,30}/g;
     let match;
 
-    while ((match = requirementRegex.exec(content)) !== null) {
+    while ((match = strongKeywords.exec(content)) !== null) {
       requirements.push(match[0].trim());
+    }
+
+    // 弱需求："应" (排除"应用"误匹配)
+    const weakKeywordRegex = /(?:^|[，,；;\n])\s*\S{0,10}应(?!用)[^\n，。！？；]{2,30}/g;
+    while ((match = weakKeywordRegex.exec(content)) !== null) {
+      let req = match[0].trim();
+      // 移除开头的标点
+      req = req.replace(/^[，,；;]\s*/, '');
+      if (req.length > 0) {
+        requirements.push(req);
+      }
     }
   }
 
   /**
    * 提取上下文（用于生成键名）
+   * 策略：行首标签优先（冒号前的内容），其次取当前行前缀
    */
-  private extractContext(content: string, index: number, maxLength: number): string {
-    const start = Math.max(0, index - maxLength);
-    const end = Math.min(content.length, index + maxLength);
-    let context = content.slice(start, end).trim();
-    
-    // 清理上下文
-    context = context.replace(/\s+/g, ' ');
-    context = context.replace(/[，。！？；：]/g, '');
-    
-    // 限制长度
-    if (context.length > 20) {
-      context = context.slice(0, 20);
+  private extractContext(content: string, index: number, _maxLength: number): string {
+    // 找到当前行的行首
+    const lineStart = content.lastIndexOf('\n', index);
+    const linePrefix = content.slice(lineStart + 1, index);
+
+    // 策略 1：如果行首到 match 之间有冒号，取冒号前的部分作为 key
+    const colonMatch = linePrefix.match(/([^\uff1a:\n]+)[\uff1a:]/);
+    if (colonMatch) {
+      const label = colonMatch[1].trim();
+      if (label.length > 0) {
+        return label.slice(0, 15);
+      }
     }
-    
-    return context;
+
+    // 策略 2：取当前行 match 前面的文字（最多 15 字符）
+    const currentLinePrefix = linePrefix.trim();
+    if (currentLinePrefix.length > 0) {
+      return currentLinePrefix.slice(-15);
+    }
+
+    // 策略 3：fallback
+    return `指标_${index}`;
+  }
+
+  /**
+   * 使用 LLM 提取中文技术术语
+   */
+  private async extractChineseTermsWithLLM(allContent: string): Promise<string[]> {
+    if (!this.llmCaller) {
+      return [];
+    }
+
+    // 限制总长度到 10000 字符
+    const content = allContent.slice(0, 10000);
+
+    const prompt = `你是技术文档分析专家。请从以下文档中提取所有技术术语。
+
+技术术语定义：
+- 软件架构模式（如微服务、单体、SOA）
+- 技术组件（如数据库、消息队列、缓存）
+- 协议/标准（如 HTTP、REST、OAuth）
+- 工具/框架（如 Kubernetes、Docker、Spring）
+- 业务领域术语（如 S&OP、MRP、BOM）
+
+输出格式：JSON 数组，每个元素是一个术语字符串。只输出数组，不要其他文字。
+
+文档内容：
+${content}`;
+
+    try {
+      const response = await this.llmCaller(prompt);
+
+      // 健壮的 JSON 解析
+      let parsed = response.trim();
+      // 移除代码块标记
+      parsed = parsed.replace(/^```json?\n?/i, '').replace(/\n?```$/i, '').trim();
+      // 提取 JSON 数组
+      const match = parsed.match(/\[[\s\S]*\]/);
+      if (match) {
+        const terms = JSON.parse(match[0]);
+        return Array.isArray(terms) ? terms.filter((t: unknown) => typeof t === 'string') : [];
+      }
+      return [];
+    } catch {
+      // LLM 调用失败，返回空数组
+      return [];
+    }
   }
 
   /**

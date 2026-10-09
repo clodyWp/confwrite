@@ -287,4 +287,48 @@ ch002 第二
       expect(chapters[2].id).toBe('ch002');
     });
   });
+
+  describe('type extraction from description', () => {
+    it('extracts type with half-width colon', () => {
+      const content = `# 方案
+ch001 系统概述
+
+本章类型: functional
+`;
+
+      const parser = new OutlineParser();
+      const outline = parser.parse(content);
+      const chapters = outline.getAllChapters();
+
+      expect(chapters[0].type).toBe('functional');
+    });
+
+    it('extracts type with full-width colon', () => {
+      const content = `# 方案
+ch001 系统概述
+
+本章类型：overview
+`;
+
+      const parser = new OutlineParser();
+      const outline = parser.parse(content);
+      const chapters = outline.getAllChapters();
+
+      expect(chapters[0].type).toBe('overview');
+    });
+
+    it('leaves type undefined when not present', () => {
+      const content = `# 方案
+ch001 系统概述
+
+本章需要覆盖系统总体架构。
+`;
+
+      const parser = new OutlineParser();
+      const outline = parser.parse(content);
+      const chapters = outline.getAllChapters();
+
+      expect(chapters[0].type).toBeUndefined();
+    });
+  });
 });

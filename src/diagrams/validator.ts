@@ -87,9 +87,10 @@ const DECOR_CHARS = /[┌┐└┘├┤┬┴┼╔╗╚╝╠╣╦╩╬═�
  * 验证图表
  * 
  * @param diagram 图表数据
+ * @param constraints 可选的布局约束（从知识库加载），覆盖默认值
  * @returns 验证结果
  */
-export function validateDiagram(diagram: DiagramData): ValidationResult {
+export function validateDiagram(diagram: DiagramData, constraints?: { maxWidth?: number; maxHeight?: number; maxConnectionRatio?: number }): ValidationResult {
   const checks: CheckResult[] = [];
   const warnings: string[] = [];
 
@@ -100,7 +101,7 @@ export function validateDiagram(diagram: DiagramData): ValidationResult {
   checks.push(checkLayerCount(diagram.nodes, diagram.type));
 
   // 3. 连线复杂度检测
-  checks.push(checkConnectionComplexity(diagram.nodes, diagram.connections));
+  checks.push(checkConnectionComplexity(diagram.nodes, diagram.connections, constraints?.maxConnectionRatio));
 
   // 4. 标签长度检测
   checks.push(checkLabelLength(diagram.nodes));
@@ -109,7 +110,7 @@ export function validateDiagram(diagram: DiagramData): ValidationResult {
   checks.push(checkDecorationChars(diagram.svgContent));
 
   // 6. Word 尺寸检测
-  checks.push(checkWordSize(diagram.svgWidth, diagram.svgHeight));
+  checks.push(checkWordSize(diagram.svgWidth, diagram.svgHeight, constraints?.maxWidth, constraints?.maxHeight));
 
   // 7. 文件完整性检测
   if (diagram.pngPath) {
@@ -202,13 +203,13 @@ function checkLayerCount(nodes: NodeData[], _type?: string): CheckResult {
 /**
  * 检查连线复杂度
  */
-function checkConnectionComplexity(nodes: NodeData[], connections: ConnectionData[]): CheckResult {
+function checkConnectionComplexity(nodes: NodeData[], connections: ConnectionData[], maxConnectionRatio?: number): CheckResult {
   if (nodes.length === 0) {
     return { name: '连线复杂度', passed: true, details: '无节点' };
   }
 
   const ratio = connections.length / nodes.length;
-  const maxRatio = 1.5;
+  const maxRatio = maxConnectionRatio ?? 1.5;
 
   return {
     name: '连线复杂度',
@@ -256,18 +257,20 @@ function checkDecorationChars(svgContent: string): CheckResult {
 /**
  * 检查 Word 尺寸
  */
-function checkWordSize(width?: number, height?: number): CheckResult {
+function checkWordSize(width?: number, height?: number, maxWidth?: number, maxHeight?: number): CheckResult {
   if (width === undefined || height === undefined) {
     return { name: 'Word 尺寸', passed: true, details: '未指定尺寸' };
   }
 
-  const widthOk = width <= WORD_LIMITS.maxWidth;
-  const heightOk = height <= WORD_LIMITS.maxHeight;
+  const effectiveMaxWidth = maxWidth ?? WORD_LIMITS.maxWidth;
+  const effectiveMaxHeight = maxHeight ?? WORD_LIMITS.maxHeight;
+  const widthOk = width <= effectiveMaxWidth;
+  const heightOk = height <= effectiveMaxHeight;
 
   return {
     name: 'Word 尺寸',
     passed: widthOk && heightOk,
-    details: `${width}x${height}px（限制 ${WORD_LIMITS.maxWidth}x${WORD_LIMITS.maxHeight}）`,
+    details: `${width}x${height}px（限制 ${effectiveMaxWidth}x${effectiveMaxHeight}）`,
   };
 }
 
