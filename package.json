@@ -14,7 +14,8 @@
     "test:watch": "vitest",
     "pack": "npm pack",
     "install-pi": "bash scripts/install.sh",
-    "version": "node scripts/version.js"
+    "version": "node scripts/version.js",
+    "docs:check": "node scripts/check-docs.js"
   },
   "pi": {
     "extensions": [

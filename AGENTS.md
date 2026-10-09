@@ -267,5 +267,105 @@ npm pack  # 生成新版本
 
 | 版本 | 日期 | 变更 |
 |------|------|------|
+| v2.1 | 2026-10-09 | 新增 §10 AI 开发流程（Issue/PR 强制约束） |
 | v2.0 | 2026-10-09 | 重写：精简内容，新增文件/版本/文档规范 |
 | v1.0 | 2026-09-29 | 初始版本 |
+
+## 10. AI 开发流程（强制）
+
+所有代码变更必须通过 Issue/PR 流程，确保文档与代码同步。
+
+### 10.1 流程概览
+
+```
+1. 对话中产生需求
+   ↓
+2. AI 自动开 Issue（GitHub）
+   ↓
+3. AI 创建功能分支（feature/xxx 或 fix/xxx）
+   ↓
+4. AI 开发（代码 + 文档同步更新）
+   ↓
+5. AI 自动开 PR（关联 Issue）
+   ↓
+6. CI 自动检查（build + test + docs:check）
+   ↓
+7. 用户 review + 合并
+   ↓
+8. Issue 自动关闭
+```
+
+### 10.2 Issue 模板
+
+使用 `.github/ISSUE_TEMPLATE/feature.yml`，包含：
+- 功能摘要
+- 需求描述
+- 验收标准
+- 文档更新检查清单（必须）
+- 优先级
+
+### 10.3 PR 模板
+
+使用 `.github/pull_request_template.md`，包含：
+- 关联 Issue（Closes #xxx）
+- 变更类型
+- 文档更新检查清单
+- 测试通过确认
+
+### 10.4 CI 检查
+
+GitHub Actions 自动执行（`.github/workflows/ci.yml`）：
+- `npm run build` — TypeScript 编译
+- `npm test` — 测试通过
+- `npm run docs:check` — 文档一致性检查
+
+**CI 不过 = 不能合并**（Branch Protection 强制）
+
+### 10.5 文档一致性检查
+
+`scripts/check-docs.js` 自动检查：
+- src/index.ts 命令 vs SKILL.md 命令列表
+- src/ 目录结构 vs README.md 目录树
+- package.json version vs CHANGELOG.md 最新版本
+- src/ 模块列表 vs AGENTS.md 架构描述
+
+### 10.6 AI 开发职责
+
+AI 在开发过程中必须：
+1. **代码变更** → 同步更新相关文档
+2. **新增命令** → 更新 SKILL.md + README.md
+3. **新增模块** → 更新 DESIGN.md + AGENTS.md
+4. **Bug 修复** → 更新 BUGS.md
+5. **功能新增** → 更新 CHANGELOG.md
+
+### 10.7 手动配置 Branch Protection
+
+GitHub 网页操作：
+```
+Settings → Branches → Add rule
+  Branch name pattern: master
+  
+  ✅ Require a pull request before merging
+  ✅ Require status checks to pass
+     - Build & Test (CI)
+  ✅ Require branches to be up to date
+```
+
+### 10.8 快速命令
+
+```bash
+# 开 Issue（AI 自动）
+gh issue create --title "..." --body "..." --label "enhancement"
+
+# 创建分支
+git checkout -b feature/xxx
+
+# 开 PR（AI 自动）
+gh pr create --title "..." --body "Closes #xxx" --base master
+
+# 查看 CI 状态
+gh pr checks
+
+# 合并 PR
+gh pr merge --squash
+```

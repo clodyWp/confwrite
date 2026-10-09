@@ -1,0 +1,69 @@
+name: 功能开发
+description: 新功能或修复的开发任务
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: input
+    id: summary
+    attributes:
+      label: 功能摘要
+      description: 一句话描述
+      placeholder: 例如：添加大纲自动生成命令
+    validations:
+      required: true
+
+  - type: textarea
+    id: requirements
+    attributes:
+      label: 需求描述
+      description: 具体需求描述，包括输入、输出、约束
+      placeholder: |
+        ## 输入
+        - 用户需求文档
+        - 模板类型
+        
+        ## 输出
+        - 自动生成 outline.md
+        
+        ## 约束
+        - 支持 Markdown 格式
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 验收标准
+      description: 明确的完成条件
+      placeholder: |
+        - [ ] 命令 /confwrite:outline 可用
+        - [ ] 生成的大纲符合模板格式
+        - [ ] 测试通过
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: docs
+    attributes:
+      label: 文档更新（必须）
+      description: 以下文档必须同步更新
+      options:
+        - label: CHANGELOG.md 已添加版本条目
+        - label: SKILL.md 命令列表与 src/index.ts 一致
+        - label: README.md 目录结构与实际一致
+        - label: AGENTS.md 架构描述与代码一致
+        - label: BUGS.md Bug 状态已更新
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: 优先级
+      options:
+        - P0 (紧急)
+        - P1 (高)
+        - P2 (中)
+        - P3 (低)
+    validations:
+      required: true
