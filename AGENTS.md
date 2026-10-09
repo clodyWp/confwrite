@@ -288,11 +288,13 @@ npm pack  # 生成新版本
    ↓
 5. AI 自动开 PR（关联 Issue）
    ↓
-6. CI 自动检查（build + test + docs:check）
+6. AI 设置 auto-merge
    ↓
-7. 用户 review + 合并
+7. CI 自动检查（build + test + docs:check）
    ↓
-8. Issue 自动关闭
+8. CI 通过 → 自动合并（无需用户操作）
+   ↓
+9. Issue 自动关闭
 ```
 
 ### 10.2 Issue 模板
@@ -363,9 +365,12 @@ git checkout -b feature/xxx
 # 开 PR（AI 自动）
 gh pr create --title "..." --body "Closes #xxx" --base master
 
+# 设置自动合并（CI 通过后自动合并）
+gh pr merge --auto --squash
+
 # 查看 CI 状态
 gh pr checks
 
-# 合并 PR
-gh pr merge --squash
+# 查看 PR 状态
+gh pr view --json state,autoMergeRequest
 ```
