@@ -52,7 +52,7 @@ export async function outlineCommand(
   const requirements: Requirement[] = JSON.parse(requirementsContent);
 
   // 3. 创建大纲生成器（可选 LLM 规划器）
-  const useLLM = options.useLLM !== false; // 默认启用
+  const useLLM = options.useLLM === true; // 默认禁用，需要明确启用
   const llmCaller = useLLM ? createLLMCaller(projectDir) : undefined;
   const generator = new OutlineGenerator(projectDir, { llmCaller });
   const outline = await generator.generate(template, requirements, targetWords);

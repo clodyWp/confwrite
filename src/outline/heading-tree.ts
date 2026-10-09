@@ -55,7 +55,7 @@ export class HeadingTreeBuilder {
         continue;
       }
 
-      // 检测标题
+      // 检测 Markdown 标题 (# 格式)
       const headingMatch = trimmed.match(/^(#{1,6})\s+(.+)/);
       if (headingMatch) {
         flushContent();
@@ -78,6 +78,25 @@ export class HeadingTreeBuilder {
 
         // 找到合适的父节点
         while (stack.length > 1 && stack[stack.length - 1].level >= level) {
+          stack.pop();
+        }
+
+        const parent = stack[stack.length - 1];
+        node.parent = parent;
+        parent.children.push(node);
+        stack.push(node);
+        continue;
+      }
+
+      // 检测中文数字标题 (一、二、三、... 格式)
+      const chineseHeading = this.detectChineseHeading(trimmed);
+      if (chineseHeading) {
+        flushContent();
+
+        const node = this.createNode(chineseHeading.level, chineseHeading.title, chineseHeading.number);
+
+        // 找到合适的父节点
+        while (stack.length > 1 && stack[stack.length - 1].level >= chineseHeading.level) {
           stack.pop();
         }
 
@@ -111,6 +130,32 @@ export class HeadingTreeBuilder {
       ownCharCount: 0,
       children: [],
     };
+  }
+
+  /**
+   * 检测中文数字标题
+   * 支持格式：
+   * - 一、二、三、... → level 1
+   * - （一）、（二）、（三）、... → level 2
+   */
+  private detectChineseHeading(line: string): { level: number; title: string; number: string } | null {
+    // 一、标题内容
+    const match1 = line.match(/^([一二三四五六七八九十]+)、(.+)/);
+    if (match1) {
+      const num = match1[1];
+      const title = match1[2].trim();
+      return { level: 1, title, number: num };
+    }
+
+    // （一）标题内容
+    const match2 = line.match(/^（([一二三四五六七八九十]+)）(.+)/);
+    if (match2) {
+      const num = match2[1];
+      const title = match2[2].trim();
+      return { level: 2, title, number: `(${num})` };
+    }
+
+    return null;
   }
 
   /**

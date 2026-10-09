@@ -63,9 +63,11 @@ export class OutlineGenerator {
 
     // 2. 读取需求文档内容
     const requirementsContent = await this.readRequirementsContent();
+    console.log('[OutlineGenerator] requirementsContent:', requirementsContent ? `${requirementsContent.length} chars` : 'null');
 
     // 3. 优先使用 LLM 规划器
     if (requirementsContent && this.llmCaller) {
+      console.log('[OutlineGenerator] Trying LLMPlanner...');
       try {
         const llmPlanner = new LLMPlanner(this.llmCaller);
         const chapters = await llmPlanner.plan({
@@ -74,6 +76,7 @@ export class OutlineGenerator {
           wordBudget: { min: 5000, max: 8000 },
           templateName,
         });
+        console.log('[OutlineGenerator] LLMPlanner returned', chapters.length, 'chapters');
 
         if (chapters.length > 0) {
           this.assignRequirementsToChapters(requirements, chapters);
@@ -86,16 +89,20 @@ export class OutlineGenerator {
             version: '1.0.0',
           };
         }
-      } catch {
-        // LLMPlanner 失败，回退到 AdaptiveOutlinePlanner
+      } catch (error) {
+        // LLMPlanner 失败，记录错误并回退
+        console.warn('[OutlineGenerator] LLMPlanner failed:', error instanceof Error ? error.message : String(error));
+        // 回退到 AdaptiveOutlinePlanner
       }
     }
 
     // 4. 回退：AdaptiveOutlinePlanner（需要 Markdown # 标题格式）
     if (requirementsContent) {
+      console.log('[OutlineGenerator] Trying AdaptiveOutlinePlanner...');
       try {
         const builder = new HeadingTreeBuilder();
         const headingTree = builder.build(requirementsContent);
+        console.log('[OutlineGenerator] HeadingTree children:', headingTree.children.length);
 
         if (headingTree.children.length > 0) {
           const planner = new AdaptiveOutlinePlanner();
@@ -104,6 +111,7 @@ export class OutlineGenerator {
             wordBudget: { min: 5000, max: 8000 },
             tolerance: 0.2,
           });
+          console.log('[OutlineGenerator] AdaptiveOutlinePlanner returned', chapters.length, 'chapters');
 
           if (chapters.length > 0) {
             this.assignRequirementsToChapters(requirements, chapters);
@@ -117,7 +125,9 @@ export class OutlineGenerator {
             };
           }
         }
-      } catch {
+      } catch (error) {
+        // AdaptiveOutlinePlanner 失败，记录错误并回退
+        console.warn('[OutlineGenerator] AdaptiveOutlinePlanner failed:', error instanceof Error ? error.message : String(error));
         // 回退到模板方式
       }
     }
@@ -328,6 +338,7 @@ export class OutlineGenerator {
   private async convertWordDocuments(): Promise<string | null> {
     const inputsDir = join(this.projectDir, 'inputs');
     if (!existsSync(inputsDir)) {
+      console.warn('[OutlineGenerator] inputs directory not found:', inputsDir);
       return null;
     }
 
@@ -336,26 +347,33 @@ export class OutlineGenerator {
     const docxFiles = files.filter(f => f.toLowerCase().endsWith('.docx'));
     
     if (docxFiles.length === 0) {
+      console.warn('[OutlineGenerator] No Word documents found in', inputsDir);
       return null;
     }
 
     // 使用第一个 Word 文档
     const docxPath = join(inputsDir, docxFiles[0]);
+    console.log('[OutlineGenerator] Converting Word document:', docxFiles[0]);
     const converter = new FormatConverter();
     
     try {
       const result = await converter.convert(docxPath, inputsDir);
       if (result.success && result.outputPath) {
+        console.log('[OutlineGenerator] Converted to:', result.outputPath);
         // 将转换后的文件重命名为 requirements.md
         const requirementsPath = join(inputsDir, 'requirements.md');
         if (result.outputPath !== requirementsPath) {
           const { renameSync } = await import('node:fs');
           renameSync(result.outputPath, requirementsPath);
+          console.log('[OutlineGenerator] Renamed to requirements.md');
         }
         return requirementsPath;
+      } else {
+        console.warn('[OutlineGenerator] Conversion failed:', result.error);
       }
-    } catch {
+    } catch (error) {
       // 转换失败，返回 null
+      console.warn('[OutlineGenerator] Conversion error:', error instanceof Error ? error.message : String(error));
     }
 
     return null;
