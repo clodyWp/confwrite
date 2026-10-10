@@ -211,4 +211,75 @@ ch003 部署方案
     expect(Object.keys(finalState.chapters)).toHaveLength(3);
     expect(finalState.totalChapters).toBe(3);
   });
+
+  it('should sync wordBudget from outline to new chapters', () => {
+    writeFileSync(join(projectDir, 'outline.md'), `# 技术方案
+ch001 系统概述
+本章类型: functional。重要度: 3/5。
+字数预算: 5000-8000字
+
+ch002 架构设计
+本章类型: architecture。重要度: 4/5。
+字数预算: 8000-12000字
+`);
+
+    const result = syncChaptersFromOutline(projectDir, store);
+
+    expect(result.added).toEqual(['ch001', 'ch002']);
+    const state = store.load()!;
+    expect(state.chapters['ch001'].wordBudget).toEqual({ min: 5000, max: 8000 });
+    expect(state.chapters['ch001'].importance).toBe(3);
+    expect(state.chapters['ch001'].type).toBe('functional');
+    expect(state.chapters['ch002'].wordBudget).toEqual({ min: 8000, max: 12000 });
+    expect(state.chapters['ch002'].importance).toBe(4);
+    expect(state.chapters['ch002'].type).toBe('architecture');
+  });
+
+  it('should update wordBudget for existing chapters if they lack it', () => {
+    const state = store.load()!;
+    state.chapters = {
+      ch001: { id: 'ch001', title: '系统概述', status: 'pending', version: 0, round: 1, attempt: 0 },
+    };
+    store.save(state);
+
+    writeFileSync(join(projectDir, 'outline.md'), `# 技术方案
+ch001 系统概述
+字数预算: 5000-8000字
+重要度: 3/5
+`);
+
+    const result = syncChaptersFromOutline(projectDir, store);
+
+    expect(result.updated).toEqual(['ch001']);
+    const finalState = store.load()!;
+    expect(finalState.chapters['ch001'].wordBudget).toEqual({ min: 5000, max: 8000 });
+    expect(finalState.chapters['ch001'].importance).toBe(3);
+  });
+
+  it('should NOT overwrite existing wordBudget in state', () => {
+    const state = store.load()!;
+    state.chapters = {
+      ch001: {
+        id: 'ch001',
+        title: '系统概述',
+        status: 'pending',
+        version: 0,
+        round: 1,
+        attempt: 0,
+        wordBudget: { min: 10000, max: 15000 },
+      },
+    };
+    store.save(state);
+
+    writeFileSync(join(projectDir, 'outline.md'), `# 技术方案
+ch001 系统概述
+字数预算: 5000-8000字
+`);
+
+    syncChaptersFromOutline(projectDir, store);
+
+    const finalState = store.load()!;
+    // Should keep existing wordBudget, not overwrite with outline's
+    expect(finalState.chapters['ch001'].wordBudget).toEqual({ min: 10000, max: 15000 });
+  });
 });

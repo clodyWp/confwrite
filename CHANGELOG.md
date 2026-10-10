@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.21.0] - 2026-10-10
+### Fixed
+- **wordBudget 在 chapter-syncer 中丢失** — OutlineParser 不解析字数预算，chapter-syncer 创建章节时丢失元数据
+  - `outline-parser.ts`: 解析 `字数预算: 5000-8000字`、`重要度: 3/5`、`写作风格: technical`
+  - `chapter-syncer.ts`: 保留完整 OutlineNode，创建/更新章节时同步 wordBudget、importance、type、description、style
+  - 修复 E2E 测试字数超标 2.4x 问题（Writer prompt 现在包含字数预算）
+
+### Added
+- 7 个 OutlineParser 测试覆盖 wordBudget、importance、style 解析
+- 3 个 chapter-syncer 测试验证 wordBudget 同步
+
 ## [0.20.0] - 2026-10-10
 ### Fixed
 - **字数超标 3.13x 问题** — wordBudget 未传递给 Writer/Reviewer prompt，OutputValidator 缺少上限检查
