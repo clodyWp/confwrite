@@ -57,15 +57,16 @@ export class TaskExecutor {
     task: Task,
     kitContent: string,
     round: number = 1,
-    wordBudget?: { min: number; max: number; expected: number }
+    wordBudget?: { min: number; max: number; expected?: number }
   ): string {
     const outputFile = `drafts/chapters/${task.chapterId}-v${round}.md`;
     
     // 字数预算参考部分
+    const expected = wordBudget?.expected ?? Math.round(((wordBudget?.min ?? 0) + (wordBudget?.max ?? 0)) / 2);
     const wordBudgetSection = wordBudget ? `
 ## 字数预算（硬性要求，必须严格遵守）
 
-本章的字数预算为 **${wordBudget.min}-${wordBudget.max} 字**，期望值 **${wordBudget.expected} 字**。
+本章的字数预算为 **${wordBudget.min}-${wordBudget.max} 字**，期望值 **${expected} 字**。
 
 **硬性上限**：本章字数**不得超过 ${wordBudget.max} 字**。
 

@@ -70,6 +70,7 @@ export class Dispatcher {
   private async dispatchWriters(params: Record<string, unknown>): Promise<DispatchResult> {
     const chapters = params.chapters as string[];
     const round = (params.round as number) || 1;
+    const state = this.store.load();  // 读取 state 以获取 wordBudget
     const tasks: Task[] = [];
     let sequence = 1;
 
@@ -86,7 +87,9 @@ export class Dispatcher {
         prompt: '',
         dependencies: [],
       };
-      task.prompt = this.taskExecutor.generateWriterPrompt(task, kitContent, round);
+      // 从 state 读取 wordBudget 并传递给 prompt
+      const wordBudget = state?.chapters?.[chapterId]?.wordBudget;
+      task.prompt = this.taskExecutor.generateWriterPrompt(task, kitContent, round, wordBudget);
       sequence++;
       tasks.push(task);
       this.scheduler.submit(task);
@@ -103,6 +106,7 @@ export class Dispatcher {
   private async dispatchReviewers(params: Record<string, unknown>): Promise<DispatchResult> {
     const chapters = params.chapters as string[];
     const round = params.round as number;
+    const state = this.store.load();  // 读取 state 以获取 wordBudget
     const tasks: Task[] = [];
     let sequence = 1;
 
@@ -130,7 +134,9 @@ export class Dispatcher {
         prompt: '',
         dependencies: [],
       };
-      task.prompt = this.taskExecutor.generateReviewerPrompt(task, draftContent, baseline, round, knowledgeContent, this.projectDir);
+      // 从 state 读取 wordBudget 并传递给 prompt
+      const wordBudget = state?.chapters?.[chapterId]?.wordBudget;
+      task.prompt = this.taskExecutor.generateReviewerPrompt(task, draftContent, baseline, round, knowledgeContent, this.projectDir, wordBudget);
       sequence++;
       tasks.push(task);
       this.scheduler.submit(task);
