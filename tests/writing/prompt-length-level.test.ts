@@ -53,7 +53,8 @@ describe('writer prompt 的度量层级', () => {
 
   it('声明的是「整个章节」的字数下限', () => {
     const p = executor.generateWriterPrompt(baseTask, '# kit');
-    expect(p).toContain('8000');
+    // Bug 41 修复：默认 minChapterChars 改为 5000
+    expect(p).toContain('5000');
     // 明确点出度量对象是整节，而非内部小节
     expect(p).toMatch(/整节|整个章节/);
   });

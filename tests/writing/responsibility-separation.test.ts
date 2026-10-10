@@ -58,20 +58,23 @@ describe('职责分离 × ch 级篇幅', () => {
   describe('约束一：篇幅口径（ch 级）', () => {
     it('writer 的篇幅要求是整节合计，并显式排除内部小节', () => {
       const p = executor.generateWriterPrompt(baseTask, '# kit');
-      expect(p).toContain(`${MIN_CHAPTER_CHARS} 字`);
+      // Bug 41 修复：默认 minChapterChars 改为 5000
+      expect(p).toContain('5000 字');
       expect(p).toMatch(/整个章节（本 ch）|整节/);
       expect(p).toContain('不按'); // 「不按内部小节分别计算」
     });
 
     it('reviewer 的篇幅检查按整节合计，并显式排除内部小节', () => {
       const p = executor.generateReviewerPrompt(baseTask, '# 正文', baseline);
-      expect(p).toContain(`${MIN_CHAPTER_CHARS} 字`);
+      // Bug 41 修复：默认 minChapterChars 改为 5000
+      expect(p).toContain('5000 字');
       expect(p).toContain('不按');
     });
 
     it('fixer 的篇幅要求是整节合计', () => {
       const p = executor.generateFixPrompt(baseTask, '# 正文', '# 报告', 1);
-      expect(p).toContain(`${MIN_CHAPTER_CHARS} 字`);
+      // Bug 41 修复：默认 minChapterChars 改为 5000
+      expect(p).toContain('5000 字');
       expect(p).toMatch(/整个章节|整节/);
     });
 

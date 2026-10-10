@@ -1,8 +1,8 @@
 ---
 name: 架构章
 wordBudget:
-  min: 10000
-  max: 15000
+  min: 5200
+  max: 7800
 importance: 5
 writingStyle: functional
 writingGuidance: |

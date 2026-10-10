@@ -7,7 +7,7 @@ import { Value } from '@sinclair/typebox/value';
  * 写作配置
  */
 const WritingConfigSchema = Type.Object({
-  minChapterChars: Type.Number({ minimum: 1000, maximum: 50000 }),
+  minChapterChars: Type.Number({ minimum: 1000, maximum: 50000 }),  // Bug 41: 与 wordBudget.min 一致
   maxRounds: Type.Number({ minimum: 1, maximum: 20 }),
   styleGuide: Type.Optional(Type.String()),
   minChapterCharsTolerance: Type.Optional(Type.Number({ minimum: 0, maximum: 1 })),
@@ -78,7 +78,7 @@ export type TokenBucketConfig = Static<typeof TokenBucketConfigSchema>;
  */
 export const DEFAULT_CONFIG: ConfWriteConfig = {
   writing: {
-    minChapterChars: 8000,
+    minChapterChars: 5000,  // Bug 41 修复：与 wordBudget.min 保持一致（5200）
     maxRounds: 5,
     // Bug 36 修复：wordBudget 配置化默认值
     defaultWordBudget: {

@@ -20,7 +20,8 @@ describe('Config Loader', () => {
 
   describe('DEFAULT_CONFIG', () => {
     it('should have all required fields', () => {
-      expect(DEFAULT_CONFIG.writing.minChapterChars).toBe(8000);
+      // Bug 41 修复：minChapterChars 改为 5000 与 wordBudget.min 一致
+      expect(DEFAULT_CONFIG.writing.minChapterChars).toBe(5000);
       expect(DEFAULT_CONFIG.writing.maxRounds).toBe(5);
       expect(DEFAULT_CONFIG.review.acceptMediumMax).toBe(3);
       expect(DEFAULT_CONFIG.review.rejectHighMin).toBe(3);
@@ -32,7 +33,8 @@ describe('Config Loader', () => {
   describe('loadConfig', () => {
     it('should return default config when no file exists', () => {
       const config = loadConfig(tempDir);
-      expect(config.writing.minChapterChars).toBe(8000);
+      // Bug 41 修复：minChapterChars 改为 5000
+      expect(config.writing.minChapterChars).toBe(5000);
       expect(config.scheduler.maxConcurrency).toBe(1);
     });
 
@@ -99,11 +101,12 @@ describe('Config Loader', () => {
     it('should not mutate original config', () => {
       const base: ConfWriteConfig = { ...DEFAULT_CONFIG };
       const override: Partial<ConfWriteConfig> = {
-        writing: { minChapterChars: 5000 }
+        writing: { minChapterChars: 6000 }
       };
 
       mergeConfig(base, override);
-      expect(base.writing.minChapterChars).toBe(8000);
+      // Bug 41 修复：默认值改为 5000
+      expect(base.writing.minChapterChars).toBe(5000);
     });
   });
 });

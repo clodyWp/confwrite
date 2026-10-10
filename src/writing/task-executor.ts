@@ -40,7 +40,8 @@ export interface ReviewBaseline {
  * 等于要求单次写 135,000 字（模型单次只能产出约 18,000 字），
  * 导致「量字数→补内容→再量」循环吃掉 50% 运行时间。
  */
-export const MIN_CHAPTER_CHARS = 8000;
+// Bug 41 修复：与 config.writing.minChapterChars 保持一致
+export const MIN_CHAPTER_CHARS = 5000;
 
 export class TaskExecutor {
   private config: ConfWriteConfig;
@@ -62,8 +63,10 @@ export class TaskExecutor {
     const outputFile = `drafts/chapters/${task.chapterId}-v${round}.md`;
     
     // 字数预算参考部分
-    // Bug 36 修复：强调 target，弱化范围
+    // Bug 36/41 修复：统一字数配置，消除矛盾
+    // 当 wordBudget 存在时，使用 wordBudget.min 作为最低要求，而非 minChapterChars
     const expected = wordBudget?.expected ?? Math.round(((wordBudget?.min ?? 0) + (wordBudget?.max ?? 0)) / 2);
+    const minChars = wordBudget ? wordBudget.min : this.config.writing.minChapterChars;
     const wordBudgetSection = wordBudget ? `
 ## 字数预算（硬性要求，必须严格遵守）
 
@@ -73,12 +76,13 @@ export class TaskExecutor {
 
 **硬性上限**：本章字数**绝对不得超过 ${wordBudget.max} 字**。
 
+**强制最低**：本章字数**不得少于 ${wordBudget.min} 字**。
+
 **重要说明**：
 - 请尽量接近目标字数 **${expected} 字**
-- 字数上限是**绝对硬性要求**，超过将被拒绝并要求修改
-- **强制最低**是 **${this.config.writing.minChapterChars} 字**（必须达到）
+- 字数范围 ${wordBudget.min}-${wordBudget.max} 是**绝对硬性要求**
+- 低于下限或超过上限都将被拒绝并要求修改
 - 不要因为预算而牺牲内容质量，但必须严格遵守字数限制
-- 宁可稍微少写，也不要超过上限
 
 ---
 ` : '';
@@ -121,11 +125,10 @@ ${kitContent}
 ## 深度要求（强制执行，不可降级）
 
 ### 1. 篇幅要求（强制，按 ch 级衡量）
-- **本次任务产出的整个章节（本 ch）正文合计不少于 ${this.config.writing.minChapterChars} 字**
+- **本次任务产出的整个章节（本 ch）正文合计不少于 ${minChars} 字**
 - 字数按**整节合计**衡量，**不按**内部小节（## 或 ###）分别计算
 - **图表前后必须有独立段落说明**（见第 3 条）
-- 宁可写得详细充分，不要写得简略空洞
-- 达到 ${this.config.writing.minChapterChars} 字通常需要多个段落、多个示例、多个分析维度
+- 达到 ${minChars} 字通常需要多个段落、多个示例、多个分析维度
 - **不允许通过重复、废话、空洞论述凑字数**——每句话都要有信息量
 
 **职责分工**：写完本章后**直接结束任务**，不要检查字数、不要反复编辑补充。
@@ -550,10 +553,21 @@ ${knowledgeContent}
     task: Task,
     chapterContent: string,
     reviewContent: string,
-    currentRound: number
+    currentRound: number,
+    wordBudget?: { min: number; max: number; expected?: number }
   ): string {
     const nextRound = currentRound + 1;
     const outputFile = `drafts/chapters/${task.chapterId}-v${nextRound}.md`;
+    // Bug 41 修复：Fixer 也使用 wordBudget 控制字数
+    const minChars = wordBudget ? wordBudget.min : MIN_CHAPTER_CHARS;
+    const maxChars = wordBudget ? wordBudget.max : null;
+    const wordBudgetConstraint = wordBudget
+      ? `\n### 字数约束（硬性）
+- 修复后字数必须在 **${wordBudget.min}-${wordBudget.max} 字** 范围内
+- 当前字数如果已超标，修复时必须精简到上限以内
+- 当前字数如果不足，修复时必须扩充到下限以上
+`
+      : '';
     
     return `# 修复任务
 
@@ -589,15 +603,15 @@ ${chapterContent}
 ${reviewContent}
 
 ## 修复要求
-
+${wordBudgetConstraint}
 ### 1. 解决所有问题
 - 逐一解决审阅报告中列出的所有问题
 - 每个问题都要有明确的修复措施
 
-### 2. 保持深度（强制）
-- 本节（整个章节）正文合计 ≥ ${MIN_CHAPTER_CHARS} 字
+### 2. 篇幅要求（强制）
+- 本节（整个章节）正文合计 ≥ ${minChars} 字${maxChars ? `，≤ ${maxChars} 字` : ''}
 - 图表前后有独立段落说明
-- 不允许降低深度要求
+- 不允许通过重复、废话、空洞论述凑字数
 
 ### 3. 如何加深内容
 **根据审阅报告中指出的「本 ch 字数不足」，通过以下方式扩充**：
