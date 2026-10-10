@@ -43,7 +43,7 @@ describe('OutputValidator - Character Count', () => {
     );
 
     expect(result.valid).toBe(true);
-    const charCheck = result.checks.find(c => c.name === '字数统计');
+    const charCheck = result.checks.find(c => c.name === '字数下限');
     expect(charCheck).toBeDefined();
     expect(charCheck?.passed).toBe(true);
   });
@@ -72,7 +72,7 @@ describe('OutputValidator - Character Count', () => {
     );
 
     expect(result.valid).toBe(false);
-    const charCheck = result.checks.find(c => c.name === '字数统计');
+    const charCheck = result.checks.find(c => c.name === '字数下限');
     expect(charCheck).toBeDefined();
     expect(charCheck?.passed).toBe(false);
     expect(result.errors.some(e => e.includes('字数不足'))).toBe(true);
@@ -110,7 +110,7 @@ This is English text.
       1
     );
 
-    const charCheck = result.checks.find(c => c.name === '字数统计');
+    const charCheck = result.checks.find(c => c.name === '字数下限');
     expect(charCheck).toBeDefined();
     // 应该统计所有字符（包括中英文、标点、空格）
     expect(charCheck?.detail).toContain('字');

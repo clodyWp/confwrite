@@ -93,10 +93,10 @@ export class OutputValidator {
         this.validateWriterOutput(result, task.chapterId!, round, wordBudget);
         break;
       case 'reviewer':
-        this.validateReviewerOutput(result, task.chapterId!, round);
+        this.validateReviewerOutput(result, task.chapterId!, round, wordBudget);
         break;
       case 'fixer':
-        this.validateFixerOutput(result, task.chapterId!, round);
+        this.validateFixerOutput(result, task.chapterId!, round, wordBudget);
         break;
     }
 
@@ -132,17 +132,20 @@ export class OutputValidator {
       const tolerance = this.config.writing.minChapterCharsTolerance || 0;
       const softGate = Math.floor(hardGate * (1 - tolerance));
       
+      // Bug 42 修复：使用 wordBudget.min 而非 softGate（如果提供了 wordBudget）
+      const effectiveMin = wordBudget?.min ?? softGate;
+      
       // 判断是否通过：达到软门控即可
-      const charOk = charCount >= softGate;
+      const charOk = charCount >= effectiveMin;
       
       result.checks.push({ 
-        name: '字数统计', 
+        name: '字数下限', 
         passed: charOk, 
-        detail: `${charCount} 字 (软门控 ${softGate}, 硬门控 ${hardGate})` 
+        detail: `${charCount} 字 (min ${effectiveMin})` 
       });
       
       if (!charOk) {
-        result.errors.push(`草稿字数不足: ${charCount} 字 < 软门控 ${softGate} 字（容差 ${tolerance * 100}%）`);
+        result.errors.push(`草稿字数不足: ${charCount} 字 < ${effectiveMin} 字`);
       }
 
       // 3. 字数上限检查（如果提供了 wordBudget）
@@ -173,8 +176,9 @@ export class OutputValidator {
   /**
    * Reviewer 输出验证
    * 检查: review/${chapterId}-r${round}.json
+   * Bug 42 修复：增加独立字数验证和 verdict 一致性检查
    */
-  private validateReviewerOutput(result: ValidationResult, chapterId: string, round: number): void {
+  private validateReviewerOutput(result: ValidationResult, chapterId: string, round: number, wordBudget?: { min: number; max: number }): void {
     const filePath = join(this.projectDir, 'review', `${chapterId}-r${round}.json`);
     
     // 1. 文件存在
@@ -213,13 +217,75 @@ export class OutputValidator {
     if (!verdictOk) {
       result.errors.push(`审阅报告 verdict 无效: ${parsed.verdict || 'missing'} (应为 accept/revise/reject)`);
     }
+
+    // 5. Bug 42 修复：独立字数验证（不依赖 LLM reviewer 的判断）
+    if (wordBudget) {
+      const draftPath = join(this.projectDir, 'drafts', 'chapters', `${chapterId}-v${round}.md`);
+      if (existsSync(draftPath)) {
+        try {
+          const content = readFileSync(draftPath, 'utf-8');
+          const charCount = content.length;
+          
+          // 检查字数上限
+          if (charCount > wordBudget.max) {
+            result.checks.push({
+              name: '字数上限（独立验证）',
+              passed: false,
+              detail: `${charCount} 字 > 上限 ${wordBudget.max} 字`
+            });
+            result.errors.push(`章节字数超标: ${charCount} 字 > 上限 ${wordBudget.max} 字`);
+          } else {
+            result.checks.push({
+              name: '字数上限（独立验证）',
+              passed: true,
+              detail: `${charCount} 字 <= ${wordBudget.max} 字`
+            });
+          }
+          
+          // 检查字数下限
+          if (charCount < wordBudget.min) {
+            result.checks.push({
+              name: '字数下限（独立验证）',
+              passed: false,
+              detail: `${charCount} 字 < 下限 ${wordBudget.min} 字`
+            });
+            result.errors.push(`章节字数不足: ${charCount} 字 < 下限 ${wordBudget.min} 字`);
+          } else {
+            result.checks.push({
+              name: '字数下限（独立验证）',
+              passed: true,
+              detail: `${charCount} 字 >= ${wordBudget.min} 字`
+            });
+          }
+        } catch (err) {
+          // 读取失败不影响其他检查
+          result.checks.push({ name: '独立字数验证', passed: false, detail: `无法读取草稿: ${err}` });
+        }
+      }
+    }
+
+    // 6. Bug 42 修复：verdict 一致性检查
+    // 如果 issues 中提到字数问题但 verdict 是 accept，标记为验证失败
+    if (parsed.verdict === 'accept' && Array.isArray(parsed.issues)) {
+      const wordCountIssues = parsed.issues.filter((i: any) => 
+        /字数|超标|超出|上限|过多|over.*limit|exceed|too (long|much)/i.test(i.description || i.issue || '')
+      );
+      if (wordCountIssues.length > 0) {
+        result.checks.push({
+          name: 'verdict 一致性',
+          passed: false,
+          detail: `verdict 为 accept，但审阅报告中发现 ${wordCountIssues.length} 个字数相关问题`
+        });
+        result.errors.push(`verdict 矛盾: verdict 为 accept，但审阅报告中发现字数问题`);
+      }
+    }
   }
 
   /**
    * Fixer 输出验证
    * 检查: drafts/chapters/${chapterId}-v${round+1}.md
    */
-  private validateFixerOutput(result: ValidationResult, chapterId: string, round: number): void {
+  private validateFixerOutput(result: ValidationResult, chapterId: string, round: number, wordBudget?: { min: number; max: number }): void {
     const nextRound = round + 1;
     const filePath = join(this.projectDir, 'drafts', 'chapters', `${chapterId}-v${nextRound}.md`);
     

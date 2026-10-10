@@ -272,7 +272,7 @@ export async function runWriteLoop(
               // 从 task id 中提取 round (格式: write-ch001-r1)
               const roundMatch = originalTask.id.match(/-r(\d+)$/);
               const taskRound = roundMatch ? parseInt(roundMatch[1], 10) : state.round;
-              // 从 state 读取 wordBudget 并传递给 validator
+              // Bug 42 修复：从 state 读取 wordBudget 并传递给 validator
               const wordBudget = state.chapters?.[originalTask.chapterId!]?.wordBudget;
               const validation = outputValidator.validate(originalTask, taskRound, wordBudget);
               if (!validation.valid) {
