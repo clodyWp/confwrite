@@ -378,6 +378,8 @@ diagram-end -->
     const requirementsList = baseline.requirements.map(r => `- ${r}`).join('\n');
 
     // 字数预算检查部分（Bug M 修复 + T2 三层防御）
+    // [DIAG] 诊断日志：检查 wordBudget 是否传入
+    console.log(`[DIAG-PROMPT] type=reviewer chapter=${task.chapterId} wordBudget=${JSON.stringify(wordBudget)}`);
     const wordBudgetSection = wordBudget ? `
 
 ### 7. 字数预算检查（硬性要求）
