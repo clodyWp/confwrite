@@ -228,4 +228,80 @@ describe('OutputValidator', () => {
       expect(msg).toContain('Too small');
     });
   });
+
+  describe('字数上限检查 (wordBudget)', () => {
+    it('字数超过上限应验证失败', () => {
+      const validator = new OutputValidator(tmpDir);
+      const task = makeTask('writer', 'ch001');
+      
+      // 创建超过上限的草稿文件（10000 字，上限 8000）
+      const content = '# Chapter 1\n\n' + '中'.repeat(10000);
+      writeFileSync(join(tmpDir, 'drafts', 'chapters', 'ch001-v1.md'), content);
+      
+      const result = validator.validate(task, 1, { min: 5000, max: 8000 });
+      
+      expect(result.valid).toBe(false);
+      expect(result.errors.some(e => e.includes('字数超标'))).toBe(true);
+      expect(result.checks.find(c => c.name === '字数上限')?.passed).toBe(false);
+    });
+
+    it('字数在上限内应验证通过', () => {
+      const validator = new OutputValidator(tmpDir);
+      const task = makeTask('writer', 'ch001');
+      
+      // 创建在上限内的草稿文件（7500 字，下限 5000，上限 8000）
+      // 注意：需要确保字数 >= 默认下限 8000，或者使用自定义配置
+      // 这里使用 8500 字，满足默认下限 8000，且不超过上限 10000
+      const content = '# Chapter 1\n\n' + '中'.repeat(8500);
+      writeFileSync(join(tmpDir, 'drafts', 'chapters', 'ch001-v1.md'), content);
+      
+      const result = validator.validate(task, 1, { min: 5000, max: 10000 });
+      
+      expect(result.valid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+      expect(result.checks.find(c => c.name === '字数上限')?.passed).toBe(true);
+    });
+
+    it('wordBudget 缺失时不检查上限（向后兼容）', () => {
+      const validator = new OutputValidator(tmpDir);
+      const task = makeTask('writer', 'ch001');
+      
+      // 创建超过 8000 字的文件，但不传 wordBudget
+      const content = '# Chapter 1\n\n' + '中'.repeat(10000);
+      writeFileSync(join(tmpDir, 'drafts', 'chapters', 'ch001-v1.md'), content);
+      
+      const result = validator.validate(task, 1); // 不传 wordBudget
+      
+      expect(result.valid).toBe(true); // 只检查下限，不检查上限
+      expect(result.checks.find(c => c.name === '字数上限')).toBeUndefined();
+    });
+
+    it('wordBudget.max = 0 时忽略上限检查', () => {
+      const validator = new OutputValidator(tmpDir);
+      const task = makeTask('writer', 'ch001');
+      
+      const content = '# Chapter 1\n\n' + '中'.repeat(10000);
+      writeFileSync(join(tmpDir, 'drafts', 'chapters', 'ch001-v1.md'), content);
+      
+      const result = validator.validate(task, 1, { min: 5000, max: 0 });
+      
+      expect(result.valid).toBe(true);
+      expect(result.checks.find(c => c.name === '字数上限')).toBeUndefined();
+    });
+
+    it('字数恰好等于上限应验证通过', () => {
+      const validator = new OutputValidator(tmpDir);
+      const task = makeTask('writer', 'ch001');
+      
+      // 创建恰好等于上限的文件（10000 字，上限 10000）
+      // 注意：content.length 必须恰好等于上限
+      const content = '中'.repeat(10000);
+      writeFileSync(join(tmpDir, 'drafts', 'chapters', 'ch001-v1.md'), content);
+      
+      const result = validator.validate(task, 1, { min: 5000, max: 10000 });
+      
+      expect(result.valid).toBe(true);
+      expect(result.checks.find(c => c.name === '字数上限')?.passed).toBe(true);
+    });
+  });
 });

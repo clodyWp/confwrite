@@ -171,9 +171,9 @@ describe('validateChapterKits', () => {
     expect(validateChapterKits(projectDir, chapters).ok).toBe(true);
   });
 
-  it('大纲为空 → ok（没有东西要校验）', () => {
+  it('大纲为空 → not ok（防御性检查：空章节意味着格式错误或 outline 不存在）', () => {
     const r = validateChapterKits(projectDir, []);
-    expect(r.ok).toBe(true);
+    expect(r.ok).toBe(false);
     expect(r.checked).toBe(0);
   });
 });

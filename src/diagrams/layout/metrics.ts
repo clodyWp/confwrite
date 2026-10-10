@@ -44,6 +44,42 @@ export const MAX_HEIGHT = 900;
 /** 字号占画布宽的最小比例（低于此值在 Word 里小于 8pt） */
 export const MIN_FONT_RATIO = 0.019;
 
+/**
+ * 布局度量参数（可覆盖版本）
+ *
+ * D3: 支持从知识库加载的约束覆盖默认值。
+ * 保留原有常量（TARGET_WIDTH/MAX_HEIGHT/MAX_ASPECT_RATIO/MIN_FONT_RATIO）
+ * 用于向后兼容。
+ */
+export interface LayoutConstraints {
+  maxWidth?: number;
+  maxHeight?: number;
+  maxAspectRatio?: number;
+  minFontRatio?: number;
+}
+
+export interface ResolvedLayoutMetrics {
+  TARGET_WIDTH: number;
+  MAX_HEIGHT: number;
+  MAX_ASPECT_RATIO: number;
+  MIN_FONT_RATIO: number;
+}
+
+/**
+ * 获取布局度量参数，支持从知识库约束覆盖默认值
+ *
+ * @param overrides 可选的覆盖值（从知识库加载）
+ * @returns 解析后的布局度量参数
+ */
+export function getLayoutMetrics(overrides?: LayoutConstraints): ResolvedLayoutMetrics {
+  return {
+    TARGET_WIDTH: overrides?.maxWidth ?? TARGET_WIDTH,
+    MAX_HEIGHT: overrides?.maxHeight ?? MAX_HEIGHT,
+    MAX_ASPECT_RATIO: overrides?.maxAspectRatio ?? MAX_ASPECT_RATIO,
+    MIN_FONT_RATIO: overrides?.minFontRatio ?? MIN_FONT_RATIO,
+  };
+}
+
 /** 压缩下限：压到这些值就不再压，交给校验器判定阻塞 */
 const MIN_MARGIN = 12;
 const MIN_LAYER_GAP = 12;

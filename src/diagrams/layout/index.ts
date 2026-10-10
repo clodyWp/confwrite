@@ -24,7 +24,9 @@ import {
   MAX_ASPECT_RATIO,
   MAX_HEIGHT,
   MIN_FONT_RATIO,
+  getLayoutMetrics,
   type LayoutMetrics,
+  type LayoutConstraints,
 } from './metrics.js';
 import { renderSvg, type PlacedContainer, type PlacedNode } from './render.js';
 import { isOrthogonal, routeEdges, type Box, type RoutedEdge } from './route.js';
@@ -83,7 +85,7 @@ const STYLE_FONT_SIZE: Record<DiagramStyle['fontSize'], number> = {
   spacious: 15,
 };
 
-export function layoutDiagram(spec: DiagramSpec, style: DiagramStyle, title?: string): LayoutResult {
+export function layoutDiagram(spec: DiagramSpec, style: DiagramStyle, title?: string, constraints?: LayoutConstraints): LayoutResult {
   const warnings: string[] = [];
   // 使用场景参数
   const sceneMetrics = getDefaultMetrics(style.scene);
@@ -218,7 +220,8 @@ export function layoutDiagram(spec: DiagramSpec, style: DiagramStyle, title?: st
     : 0;
 
   // ---- 5. 折行 + 尺寸解算 ----
-  const usableWidth = TARGET_WIDTH - base.margin * 2 - (crosscutWidth ? base.rowGap + crosscutWidth : 0);
+  const layoutMetrics = getLayoutMetrics(constraints);
+  const usableWidth = layoutMetrics.TARGET_WIDTH - base.margin * 2 - (crosscutWidth ? base.rowGap + crosscutWidth : 0);
 
   // wrapIntoRows 返回的是**层内下标**，这里立刻换成 drafts 的全局下标 ——
   // 否则下游拿层内下标去索引 nodeWidths 会量错节点宽度
@@ -465,10 +468,10 @@ export function layoutDiagram(spec: DiagramSpec, style: DiagramStyle, title?: st
     )
   );
 
-  if (width > TARGET_WIDTH || height > MAX_HEIGHT) {
-    warnings.push(`画布 ${Math.round(width)}x${Math.round(height)} 超出页面框 ${TARGET_WIDTH}x${MAX_HEIGHT}`);
+  if (width > layoutMetrics.TARGET_WIDTH || height > layoutMetrics.MAX_HEIGHT) {
+    warnings.push(`画布 ${Math.round(width)}x${Math.round(height)} 超出页面框 ${layoutMetrics.TARGET_WIDTH}x${layoutMetrics.MAX_HEIGHT}`);
   }
-  if (width > 0 && metrics.fontSize / width < MIN_FONT_RATIO) {
+  if (width > 0 && metrics.fontSize / width < layoutMetrics.MIN_FONT_RATIO) {
     warnings.push(`字号占宽比 ${((metrics.fontSize / width) * 100).toFixed(2)}% 低于可读线`);
   }
 

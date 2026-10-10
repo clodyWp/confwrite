@@ -11,21 +11,22 @@ description: "Generate 10+ chapter long documents (technical proposals, whitepap
 
 | 命令 | 用途 |
 |------|------|
-| `/confwrite:init <slug>` | 初始化新项目 |
+| `/confwrite:init <slug> [material-dir]` | 初始化新项目 |
 | `/confwrite:organize` | 整理素材（扫描→转换→索引→基线→素材包→同步大纲） |
+| `/confwrite:outline <slug> <template> [words]` | 自动生成大纲（基于模板和需求） |
 | `/confwrite:write` | 启动/推进写作流程 |
 | `/confwrite:status` | 查看项目进度 |
 | `/confwrite:resume` | 恢复中断的项目 |
 | `/confwrite:compact` | 手动压缩上下文（防止长任务 429 错误） |
-| `/confwrite:export <fmt>` | 导出文档（md / html / docx） |
+| `/confwrite:export <slug> <fmt> [output-path]` | 导出文档（md / html / docx） |
 
 ## 流程概览
 
 ```
-Phase 0a: 项目初始化     → 创建目录结构 + state
+Phase 0a: 项目初始化     → 创建目录结构 + state + 复制知识库
 Phase 0b: 素材整理       → 扫描资料 → 格式转换(PDF/DOCX/HTML→MD) → 索引 → 数据基线 → 素材包 → 同步大纲
-Phase 1:  需求分析       → researcher subagent（可选）
-Phase 2:  大纲规划       → 人机协作多轮迭代
+Phase 1:  需求分析       → 从输入文档中提取需求 → 生成需求列表和报告
+Phase 2:  大纲规划       → 根据模板和需求自动生成大纲（人机协作确认）
 Phase 3:  素材准备       → 素材索引（如 0b 未完成）
 Phase 4a: 写作           → writer subagent 批量（Writer 在草稿中写结构化图表）
 Phase 4b: 审阅           → reviewer subagent 批量
@@ -34,7 +35,58 @@ Phase 4d: 修复           → fixer subagent 批量
 Phase 5:  图表处理       → 提取结构化图表 → 内置布局引擎渲染 → SVG → PNG → 替换草稿
 Phase 6:  组装           → 合并章节 → final.md
 Phase 7:  定稿           → 文档统计 + 数据基线一致性检查 → finalization.json
-Phase 8:  导出           → MD / HTML / DOCX
+Phase 8:  导出           → DOCX（自动流程仅导出 DOCX；手动命令支持 md/html/docx）
+```
+
+## 完整使用流程
+
+```
+1. 初始化项目
+   /confwrite:init my-project
+   
+   → 创建项目目录结构
+   → 复制默认章节类型知识库（7种默认 + 3种自定义）
+   → 复制大纲模板（技术方案、投标文档）
+   → 复制需求分类知识库（6个分类）
+
+2. 准备参考资料
+   将 PDF/Word/HTML/Markdown 文件放入:
+   projects/my-project/reference_material/
+   projects/my-project/inputs/
+
+3. 整理素材
+   /confwrite:organize
+   
+   → 扫描资料 → 格式转换 → 索引 → 数据基线 → 素材包
+
+4. 提取需求（自动）
+   /confwrite:write
+   
+   → Phase 1 自动从输入文档中提取需求
+   → 生成 assets/requirements.json
+
+5. 生成大纲（自动或手动）
+   自动：Phase 2 根据模板自动生成大纲
+   手动：/confwrite:outline my-project technical-proposal [50000]
+   
+   → 生成 outline.md
+   → 生成 assets/outline-evaluation.md（评估报告）
+
+6. 确认大纲
+   编辑 outline.md，确认章节结构
+   
+7. 继续写作
+   /confwrite:write
+   
+   → 状态机自动推进: Phase 3 → 4a → 4b → 4c → 4d → 5 → 6 → 7 → 8
+
+8. 查看进度
+   /confwrite:status
+
+9. 导出文档
+   /confwrite:export my-project md
+   /confwrite:export my-project html
+   /confwrite:export my-project docx
 ```
 
 ## 核心原则
@@ -98,10 +150,10 @@ Phase 8:  导出           → MD / HTML / DOCX
 # → 实际调用: /confwrite:compact
 
 # 7. 导出
-/skill:confwrite export md
-# → 实际调用: /confwrite:export md
-/skill:confwrite export html
-/skill:confwrite export docx
+/skill:confwrite export my-project md
+# → 实际调用: /confwrite:export my-project md
+/skill:confwrite export my-project html
+/skill:confwrite export my-project docx
 ```
 
 ## 写作循环

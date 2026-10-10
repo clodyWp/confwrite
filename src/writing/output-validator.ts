@@ -1,7 +1,7 @@
 /**
  * OutputValidator — 即时验证 subagent 输出
  * 
- * 参考 bailian-agent/doc-chapters-v6 的"Writer 完成后即时验证"模式：
+ * 参考 bailian-agent/doc-chapters-v6 的“Writer 完成后即时验证”模式：
  * - Writer: 检查草稿文件存在、大小 > 1000 字节、可读性
  * - Reviewer: 检查 JSON 存在、可解析、verdict 合法
  * - Fixer: 检查新版本文件存在、大小 > 1000 字节
@@ -9,6 +9,8 @@
 import { existsSync, statSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Task } from '../scheduler/types.js';
+import type { ConfWriteConfig } from '../config/loader.js';
+import { DEFAULT_CONFIG } from '../config/loader.js';
 
 /**
  * 尝试修复常见的 JSON 格式错误
@@ -63,19 +65,21 @@ export interface ValidationCheck {
   detail?: string;
 }
 
-const MIN_CHAPTER_CHARS = 8000; // 章节最小字符数
+export const MIN_CHAPTER_CHARS = 8000; // 章节最小字符数（默认值）
 
 export class OutputValidator {
   private projectDir: string;
+  private config: ConfWriteConfig;
 
-  constructor(projectDir: string) {
+  constructor(projectDir: string, config?: ConfWriteConfig) {
     this.projectDir = projectDir;
+    this.config = config ?? DEFAULT_CONFIG;
   }
 
   /**
    * 验证任务输出
    */
-  validate(task: Task, round: number, wordBudget?: { min: number; max: number }): ValidationResult {
+  validate(task: Task, round: number, wordBudget?: {min: number, max: number}): ValidationResult {
     const result: ValidationResult = {
       valid: true,
       taskType: task.type,
@@ -104,7 +108,12 @@ export class OutputValidator {
    * Writer 输出验证
    * 检查: drafts/chapters/${chapterId}-v${round}.md
    */
-  private validateWriterOutput(result: ValidationResult, chapterId: string, round: number, wordBudget?: { min: number; max: number }): void {
+  private validateWriterOutput(
+    result: ValidationResult, 
+    chapterId: string, 
+    round: number,
+    wordBudget?: {min: number, max: number}
+  ): void {
     const filePath = join(this.projectDir, 'drafts', 'chapters', `${chapterId}-v${round}.md`);
     
     // 1. 文件存在性
@@ -115,41 +124,45 @@ export class OutputValidator {
       return; // 后续检查无意义
     }
 
-    // 2. 字数统计（替代文件大小检查）
+    // 2. 字数统计（使用软门控逻辑）
     try {
       const content = readFileSync(filePath, 'utf-8');
       const charCount = content.length;
+      const hardGate = this.config.writing.minChapterChars;
+      const tolerance = this.config.writing.minChapterCharsTolerance || 0;
+      const softGate = Math.floor(hardGate * (1 - tolerance));
       
-      // Bug 42 修复：使用 wordBudget 而非 MIN_CHAPTER_CHARS
-      const minChars = wordBudget?.min ?? MIN_CHAPTER_CHARS;
-      const maxChars = wordBudget?.max;
+      // Bug 42 修复：使用 wordBudget.min 而非 softGate（如果提供了 wordBudget）
+      const effectiveMin = wordBudget?.min ?? softGate;
       
-      // 检查下限
-      const minOk = charCount >= minChars;
+      // 判断是否通过：达到软门控即可
+      const charOk = charCount >= effectiveMin;
+      
       result.checks.push({ 
         name: '字数下限', 
-        passed: minOk, 
-        detail: `${charCount} 字 (min ${minChars})` 
+        passed: charOk, 
+        detail: `${charCount} 字 (min ${effectiveMin})` 
       });
-      if (!minOk) {
-        result.errors.push(`草稿字数不足: ${charCount} 字 < ${minChars} 字`);
-      }
       
-      // 检查上限（如果提供了 wordBudget.max）
-      if (maxChars !== undefined) {
-        const maxOk = charCount <= maxChars;
+      if (!charOk) {
+        result.errors.push(`草稿字数不足: ${charCount} 字 < ${effectiveMin} 字`);
+      }
+
+      // 3. 字数上限检查（如果提供了 wordBudget）
+      if (wordBudget && wordBudget.max > 0) {
+        const upperOk = charCount <= wordBudget.max;
         result.checks.push({ 
           name: '字数上限', 
-          passed: maxOk, 
-          detail: `${charCount} 字 (max ${maxChars})` 
+          passed: upperOk, 
+          detail: `${charCount} 字 (上限 ${wordBudget.max})` 
         });
-        if (!maxOk) {
-          result.errors.push(`草稿字数超标: ${charCount} 字 > ${maxChars} 字`);
+        if (!upperOk) {
+          result.errors.push(`草稿字数超标: ${charCount} 字 > 上限 ${wordBudget.max} 字`);
         }
       }
 
-      // 3. 可读性（防编码损坏）
-      const hasCorruption = /[�]/.test(content.substring(0, 500)) || /[\x00-\x08\x0B\x0C\x0E-\x1F]/.test(content.substring(0, 500));
+      // 4. 可读性（防编码损坏）
+      const hasCorruption = /[\uFFFD]/.test(content.substring(0, 500)) || /[\x00-\x08\x0B\x0C\x0E-\x1F]/.test(content.substring(0, 500));
       result.checks.push({ name: '文件可读', passed: !hasCorruption });
       if (hasCorruption) {
         result.errors.push('草稿文件编码损坏（包含替换字符或控制字符）');
@@ -288,14 +301,15 @@ export class OutputValidator {
     try {
       const content = readFileSync(filePath, 'utf-8');
       const charCount = content.length;
-      const charOk = charCount >= MIN_CHAPTER_CHARS;
+      const minChars = this.config.writing.minChapterChars;
+      const charOk = charCount >= minChars;
       result.checks.push({ 
         name: '字数统计', 
         passed: charOk, 
-        detail: `${charCount} 字 (min ${MIN_CHAPTER_CHARS})` 
+        detail: `${charCount} 字 (min ${minChars})` 
       });
       if (!charOk) {
-        result.errors.push(`修复后字数不足: ${charCount} 字 < ${MIN_CHAPTER_CHARS} 字`);
+        result.errors.push(`修复后字数不足: ${charCount} 字 < ${minChars} 字`);
       }
 
       // 3. 可读性

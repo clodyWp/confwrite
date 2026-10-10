@@ -349,8 +349,8 @@ describe('E2E: Phase 4 收敛性', () => {
       // 不应该包含段落级 300 字要求
       expect(prompt).not.toContain('每个独立成段的段落是否 ≥ 300 字');
       
-      // 但应该保留 ch 级 8000 字要求
-      expect(prompt).toContain('8000 字');
+      // Bug 41 修复：ch 级字数要求改为 5000
+      expect(prompt).toContain('5000 字');
     });
   });
 

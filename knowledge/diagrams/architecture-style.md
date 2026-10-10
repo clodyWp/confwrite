@@ -7,6 +7,13 @@ priority: normal
 source: manual
 created: 2026-07-15
 updated: 2026-07-15
+diagramConfig:
+  layerPalette:
+    - '#2563eb'  # 接入层（蓝色）
+    - '#16a34a'  # 业务应用层（绿色）
+    - '#ea580c'  # 业务支撑层（橙色）
+    - '#7c3aed'  # 数据层（紫色）
+    - '#64748b'  # 基础设施层（灰色）
 ---
 
 # 技术文档图表 — 架构图

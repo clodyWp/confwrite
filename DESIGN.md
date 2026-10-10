@@ -19,9 +19,10 @@
   - [4.4 写作管线 (writing/)](#44-写作管线-writing)
   - [4.5 组装与导出 (assemble/)](#45-组装与导出-assemble)
   - [4.6 状态机 (orchestrator/)](#46-状态机-orchestrator)
-  - [4.7 Dispatcher 层 (dispatcher/)](#47-dispatcher-层-dispatcher)
-  - [4.8 命令层 (commands/)](#48-命令层-commands)
-  - [4.9 Extension 入口 (index.ts)](#49-extension-入口-indexts)
+  - [4.7 大纲生成系统 (outline/)](#47-大纲生成系统-outline)
+  - [4.8 Dispatcher 层 (dispatcher/)](#48-dispatcher-层-dispatcher)
+  - [4.9 命令层 (commands/)](#49-命令层-commands)
+  - [4.10 Extension 入口 (index.ts)](#410-extension-入口-indexts)
 - [5. 数据流设计](#5-数据流设计)
 - [6. 关键设计决策](#6-关键设计决策)
 - [7. 已识别的架构问题](#7-已识别的架构问题)
@@ -186,7 +187,7 @@ ConfWrite 是一个 **pi 原生扩展包**（Extension + Skill），用于生成
 
 ```
 src/
-├── index.ts                          # Extension 入口，注册 7 个命令
+├── index.ts                          # Extension 入口，注册 8 个命令
 ├── state/
 │   ├── schema.ts                     # TypeBox 类型定义 (ProjectState, ChapterState, etc.)
 │   └── store.ts                      # 原子化 JSON 持久化 (write-to-temp → rename)
@@ -201,7 +202,8 @@ src/
 │   ├── pi-executor.ts                # PiSubagentExecutor (真实 pi SDK 桥接)
 │   ├── runner.ts                     # SchedulerRunner (执行循环: 就绪→执行→标记)
 │   ├── loop-detector.ts              # 任务循环检测
-│   └── turn-budget.ts                # Turn 预算控制
+│   ├── turn-budget.ts                # Turn 预算控制
+│   └── window-limiter.ts             # 滑动窗口限流器（令牌桶补充）
 ├── organize/
 │   ├── scanner.ts                    # 资料文件扫描 + 自动分类 + 中文关键词提取
 │   ├── converter.ts                  # HTML/PDF/DOCX → Markdown 转换 (mammoth + pdf-parse)
@@ -211,7 +213,8 @@ src/
 │   ├── chapter-mapper.ts             # 章节-资料映射
 │   ├── chapter-syncer.ts             # 大纲→状态自动同步 (G1)
 │   ├── kit-generator.ts              # 章节素材包生成 (scoped baseline)
-│   └── kit-validator.ts              # 素材包校验
+│   ├── kit-validator.ts              # 素材包校验
+│   └── requirement-mapper.ts         # 需求映射生成器（大纲→需求内容→JSON）
 ├── writing/
 │   ├── task-executor.ts              # Prompt 构建 + 审阅结果解析 (JSON + free text fallback)
 │   ├── content-validator.ts          # 内容深度验证
@@ -223,7 +226,8 @@ src/
 │   ├── assembler.ts                  # 章节组装器
 │   ├── converter.ts                  # Markdown → HTML/DOCX/PDF 转换 (execFileSync 安全调用)
 │   ├── finalizer.ts                  # 定稿处理 (统计+一致性检查) (G5)
-│   └── cleanup-docx-styles.ts        # DOCX 样式清理
+│   ├── cleanup-docx-styles.ts        # DOCX 样式清理
+│   └── heading-checker.ts            # 标题层级检查器（Phase 7 对照 outline.md）
 ├── diagrams/                         # 结构化图表 + 内置布局引擎
 │   ├── extractor.ts                  # 图表代码块提取
 │   ├── description-parser.ts         # 图表描述解析（分层/节点/连接）
@@ -250,13 +254,32 @@ src/
 │   └── types.ts                      # 日志类型定义
 ├── orchestrator/
 │   ├── phases.ts                     # 14 个阶段声明式定义
-│   └── state-machine.ts              # 确定性状态机
+│   ├── state-machine.ts              # 确定性状态机
+│   ├── phase1.ts                     # Phase 1 需求分析实现（调用 outline/requirement-extractor）
+│   └── phase2.ts                     # Phase 2 大纲规划实现（调用 outline/generator）
 ├── commands/
 │   ├── init.ts                       # /confwrite:init (ESM 兼容)
 │   ├── organize.ts                   # /confwrite:organize
+│   ├── outline.ts                    # /confwrite:outline（调用 outline/generator）
 │   └── export.ts                     # /confwrite:export (ESM 兼容)
 ├── knowledge/
-│   └── loader.ts                     # 知识库加载器 (图表规范/选型指南/Writer注入)
+│   ├── loader.ts                     # 知识库加载器 (图表规范/选型指南/Writer注入)
+│   ├── chapter-type-loader.ts        # 章节类型配置加载（字数预算/重要性/写作风格）
+│   ├── requirement-category-loader.ts # 需求分类配置加载
+│   └── validator.ts                  # 知识库综合验证（章节类型 + 需求分类）
+├── config/
+│   └── loader.ts                     # 用户配置加载 (TypeBox schema 验证: 写作/审阅/调度参数)
+├── outline/                          # 大纲生成系统
+│   ├── types.ts                      # 核心类型 (Requirement, OutlineChapter, Outline)
+│   ├── generator.ts                  # OutlineGenerator 主类（模板+规则混合管线）
+│   ├── adaptive-planner.ts           # 自适应大纲规划器（纯代码逻辑）
+│   ├── llm-planner.ts                # LLM 驱动的大纲规划器（失败回退到 adaptive）
+│   ├── heading-tree.ts               # 需求文档标题层级树构建器
+│   ├── template-loader.ts            # 大纲模板加载器
+│   ├── requirement-extractor.ts      # 需求提取器（从输入文档）
+│   ├── requirement-marker.ts         # 需求覆盖标记工具
+│   ├── requirement-tracer.ts         # 需求追溯工具（验证需求→章节覆盖）
+│   └── word-count-analyzer.ts        # 章节字数统计与分析
 └── utils/
     ├── paths.ts                      # 路径安全工具 (防遍历 + validateShellSafe)
     └── dedent.ts                     # 字符串缩进处理
@@ -759,22 +782,109 @@ tick():
 
 ---
 
-### 4.7 命令层 (commands/)
+### 4.7 大纲生成系统 (outline/)
 
-| 命令 | 文件 | 功能 | 实现状态 |
-|------|------|------|----------|
-| `/confwrite:init` | init.ts | 创建项目结构 + 初始化状态 | ✅ 完整 |
-| `/confwrite:organize` | organize.ts | 扫描→索引→基线→映射→素材包 | ✅ 完整 |
-| `/confwrite:write` | (index.ts) | 状态机 tick() → Dispatcher dispatch() | ✅ 完整 |
-| `/confwrite:status` | (index.ts) | 读取状态并展示 | ✅ 完整 |
-| `/confwrite:resume` | (index.ts) | 等同于 write | ✅ 完整 |
-| `/confwrite:export` | export.ts | 组装 + 格式转换 | ✅ 完整 |
+#### 4.7.1 核心类型 (types.ts)
+
+定义大纲管线的所有数据结构：
+
+```typescript
+Requirement {
+  id: string;                // 需求唯一标识
+  title: string;             // 需求标题
+  priority: 'high' | 'medium' | 'low';
+  source: string;            // 需求来源（文档名+页码/章节）
+  category?: string;         // 需求分类
+  description?: string;      // 详细描述
+  assignedChapter?: string;  // 分配的章节ID（大纲生成后填充）
+}
+
+OutlineChapter {
+  id: string;                // 章节ID
+  title: string;             // 章节标题
+  type: string;              // 章节类型
+  wordBudget?: { min, max }; // 字数预算
+  importance?: number;       // 重要度（1-5）
+  children?: OutlineChapter[]; // 子章节
+  requirementSource?: { sections, headings }; // 需求来源
+}
+
+Outline {
+  title: string;             // 文档标题
+  targetWords?: number;      // 目标字数
+  chapters: OutlineChapter[]; // 章节列表
+  createdAt: string;         // 生成时间
+  version: string;           // 版本号
+}
+```
+
+#### 4.7.2 各模块职责
+
+| 模块 | 职责 |
+|------|------|
+| **generator.ts** | OutlineGenerator 主类，协调模板加载→需求提取→标题树构建→规划→输出生成 |
+| **adaptive-planner.ts** | 自适应大纲规划器（纯代码），根据标题树和目标字数生成章节列表 |
+| **llm-planner.ts** | LLM 驱动的大纲规划器，让 LLM 读需求文档规划章节，失败时回退到 adaptive-planner |
+| **heading-tree.ts** | 需求文档标题层级树构建器，将 Markdown 需求文档解析为层级树结构 |
+| **template-loader.ts** | 大纲模板加载器，从知识库加载预定义文档结构模板 |
+| **requirement-extractor.ts** | 需求提取器，从输入文档中提取结构化需求列表 |
+| **requirement-marker.ts** | 需求覆盖标记工具，在文档中标记需求出现的位置 |
+| **requirement-tracer.ts** | 需求追溯工具，验证每个需求是否被大纲章节覆盖 |
+| **word-count-analyzer.ts** | 章节字数统计与分析，对比实际字数与预算 |
+
+#### 4.7.3 大纲生成管线
+
+```
+inputs/*.md ──▶ RequirementExtractor ──▶ Requirement[]
+                                              │
+                                              ▼
+                                    HeadingTreeBuilder
+                                    (解析需求文档标题层级)
+                                              │
+                                              ▼
+                                        HeadingNode 树
+                                              │
+                              ┌───────────────┤
+                              ▼               ▼
+                    AdaptivePlanner     LLMPlanner
+                    (纯代码逻辑)       (LLM 规划，失败回退)
+                              │               │
+                              └───────┬───────┘
+                                      ▼
+                              OutlineChapter[]
+                                      │
+                              ┌───────┤
+                              ▼       ▼
+                    Requirement    WordCount
+                    Tracer         Analyzer
+                    (覆盖验证)     (字数评估)
+                                      │
+                                      ▼
+                                outline.md
+```
+
+**OutlineGenerator 核心 API**：
+
+```typescript
+class OutlineGenerator {
+  constructor(projectDir: string, options?: { llmCaller?: LLMCaller });
+  generate(): Outline;                    // 生成大纲（自动选择规划策略）
+  evaluateWordCount(outline): WordCountEvaluation;  // 评估字数合理性
+}
+```
+
+**自适应规划器策略**：
+1. 展开标题树到所有叶子节点
+2. 如果叶子数 > 目标章节数 → 合并到目标数量
+3. 如果叶子数 < 目标章节数 → 保持原样（不强行拆分）
+4. 每章分配字数预算（wordBudget.min ~ wordBudget.max）
+5. 通过调整章节数量逼近目标总字数
 
 ---
 
-### 4.7 Dispatcher 层 (dispatcher/)
+### 4.8 Dispatcher 层 (dispatcher/)
 
-#### 4.7.1 Dispatcher (index.ts)
+#### 4.8.1 Dispatcher (index.ts)
 
 **职责**：连接状态机 action 与实际 subagent 执行。是写作管线中唯一知道“如何调用 pi subagent”的模块。
 
@@ -833,7 +943,7 @@ processTask('task-001', 'completed', resultText)
 | `generate_diagrams` | 草稿中的 `<!-- diagram-start -->` 块 | Mermaid prompt | diagram task |
 | `assemble` | (由 Assembler 处理) | - | - |
 
-#### 4.7.2 与 pi subagent 的集成
+#### 4.8.2 与 pi subagent 的集成
 
 Dispatcher 当前实现了任务创建、提交和结果处理的完整逻辑。pi subagent 的实际 spawn 调用需要在 `/confwrite:write` handler 中完成：
 
@@ -850,12 +960,13 @@ for (const task of tasks) {
 
 ---
 
-### 4.8 命令层 (commands/)
+### 4.9 命令层 (commands/)
 
 | 命令 | 文件 | 功能 | 实现状态 |
 |------|------|------|----------|
 | `/confwrite:init` | init.ts | 创建项目结构 + 初始化状态 | ✅ 完整 |
 | `/confwrite:organize` | organize.ts | 扫描→索引→基线→映射→素材包 | ✅ 完整 |
+| `/confwrite:outline` | outline.ts | 需求提取 + 大纲生成（调用 outline/generator） | ✅ 完整 |
 | `/confwrite:write` | (index.ts) | 状态机 tick() → Dispatcher dispatch() | ✅ 完整 |
 | `/confwrite:status` | (index.ts) | 读取状态并展示 | ✅ 完整 |
 | `/confwrite:resume` | (index.ts) | 恢复中断项目 | ✅ 完整 |
@@ -864,9 +975,9 @@ for (const task of tasks) {
 
 ---
 
-### 4.9 Extension 入口 (index.ts)
+### 4.10 Extension 入口 (index.ts)
 
-注册 7 个命令到 pi Extension API。
+注册 8 个命令到 pi Extension API。
 
 **`/confwrite:write` handler 逻辑**：
 
@@ -1168,7 +1279,7 @@ TypeScript:  ✅ 编译通过 (npx tsc --noEmit)
 
 ```
 confidenceWriter/
-├── src/                          # 源代码 (35 个 TypeScript 文件)
+├── src/                          # 源代码 (81 个 TypeScript 文件)
 ├── tests/                        # 测试代码 (51 个测试文件, 433 个测试用例)
 ├── knowledge/diagrams/           # 图表知识库 (15 个 Markdown 文件)
 ├── examples/                     # 示例项目 + prompt 示例
@@ -1207,6 +1318,7 @@ confidenceWriter/
 /confwrite:write [project-dir]           推进写作（含自动 context compaction）
 /confwrite:status [project-dir]          查看进度
 /confwrite:resume [project-dir]          恢复中断项目
+/confwrite:outline [project-dir]           生成大纲（需求提取+规划）
 /confwrite:compact                       手动压缩上下文
 /confwrite:export <format> [output-path] 导出文档
 ```

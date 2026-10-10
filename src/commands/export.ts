@@ -5,6 +5,7 @@ import { validateShellSafe } from '../utils/paths.js';
 import { ChapterAssembler, AssemblyOptions, AssemblyResult } from '../assemble/assembler.js';
 import { FormatConverter } from '../assemble/converter.js';
 import { cleanupDuplicateStyles } from '../assemble/cleanup-docx-styles.js';
+import { OutlineParser } from '../organize/outline-parser.js';
 
 /**
  * Export format
@@ -53,8 +54,8 @@ export async function exportDocument(
   const assembler = new ChapterAssembler();
   const converter = new FormatConverter();
 
-  // Get chapter order from outline
-  const chapterOrder = getChapterOrder(projectDir);
+  // Get chapter order from outline (Bug J/N: 统一使用 OutlineParser)
+  const chapterOrder = getChapterOrderFromOutline(projectDir);
 
   if (chapterOrder.length === 0) {
     return {
@@ -122,9 +123,14 @@ function getReferenceDocPath(): string | undefined {
 }
 
 /**
- * Get chapter order from outline
+ * Get chapter order from outline using OutlineParser (Bug J/N fix)
+ *
+ * 之前用独立正则 `/^(ch\d{3})\s+/gm` 解析，与 OutlineParser 不一致。
+ * 现在统一使用 OutlineParser，确保所有解析 outline.md 的地方行为一致。
+ *
+ * @export 供测试和外部调用
  */
-function getChapterOrder(projectDir: string): string[] {
+export function getChapterOrderFromOutline(projectDir: string): string[] {
   const outlinePath = join(projectDir, 'outline.md');
 
   if (!existsSync(outlinePath)) {
@@ -132,17 +138,8 @@ function getChapterOrder(projectDir: string): string[] {
   }
 
   const content = readFileSync(outlinePath, 'utf-8');
-  const chapterIds: string[] = [];
-
-  // Match lines like: ch001 1.1 系统概述
-  const regex = /^(ch\d{3})\s+/gm;
-  let match;
-
-  while ((match = regex.exec(content)) !== null) {
-    chapterIds.push(match[1]);
-  }
-
-  return chapterIds;
+  const outline = new OutlineParser().parse(content);
+  return outline.getAllChapters().map(ch => ch.id!);
 }
 
 /**

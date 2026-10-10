@@ -1,0 +1,34 @@
+{
+  "sourceFiles": 3,
+  "metrics": {
+    ": 500GB ## 2. 非功能需求 ": "99.9%",
+    "据导入/导出（CSV、JSON） - 实": "200ms",
+    "- 实时数据处理延迟 < 200ms -": "500GB",
+    "系统可用性: 99.9% - API 响": "500ms"
+  },
+  "timeline": {},
+  "technicalTerms": [
+    "API",
+    "POST",
+    "GET",
+    "PUT",
+    "DELETE",
+    "React",
+    "TypeScript",
+    "Node",
+    "Express",
+    "PostgreSQL",
+    "Redis",
+    "Docker",
+    "Kubernetes",
+    "CI",
+    "CD",
+    "GitHub Actions",
+    "Prometheus",
+    "Grafana",
+    "CSV",
+    "JSON"
+  ],
+  "requirements": [],
+  "generatedAt": "2026-10-09T07:27:48.406Z"
+}

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdtempSync, rmSync, existsSync, readFileSync } from 'node:fs';
+import { mkdtempSync, rmSync, existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { KitGenerator } from '../../src/organize/kit-generator.js';
@@ -81,6 +81,27 @@ describe('KitGenerator', () => {
       expect(content).toContain('## 写作提示');
     });
 
+    it('includes chapter description when available', () => {
+      const mapping = createMockMapping('ch001', '系统概述');
+      mapping.description = '本章需要覆盖系统总体架构和技术选型';
+      const baseline = createMockBaseline();
+
+      const content = generator.generate(mapping, baseline);
+
+      expect(content).toContain('本章需要覆盖系统总体架构和技术选型');
+    });
+
+    it('omits description section when description is undefined', () => {
+      const mapping = createMockMapping('ch001', '系统概述');
+      // description is undefined by default from createMockMapping
+      const baseline = createMockBaseline();
+
+      const content = generator.generate(mapping, baseline);
+
+      // Should not contain a dedicated description section
+      expect(content).not.toContain('## 章节描述');
+    });
+
     it('handles empty related files', () => {
       const mapping = createMockMapping('ch001', '系统概述', []);
       const baseline = createMockBaseline();
@@ -147,6 +168,84 @@ describe('KitGenerator', () => {
       expect(results.total).toBe(2);
       expect(results.success).toBe(2);
       expect(results.failed).toBe(0);
+    });
+  });
+
+  describe('chapter type guidance', () => {
+    it('includes chapter type guidance when mapping.type is set', () => {
+      // Create knowledge files in temp dir
+      const chapterTypesDir = join(tempDir, 'knowledge', 'chapter-types');
+      mkdirSync(chapterTypesDir, { recursive: true });
+      writeFileSync(join(chapterTypesDir, 'overview.md'), `---
+name: 概述章
+wordBudget:
+  min: 5000
+  max: 8000
+importance: 3
+writingStyle: overview
+writingGuidance: |
+  概述章节通常包含：项目背景、目标范围。
+---
+`);
+
+      const gen = new KitGenerator(undefined, tempDir);
+      const mapping = createMockMapping('ch001', '系统概述');
+      mapping.type = 'overview';
+      const baseline = createMockBaseline();
+
+      const content = gen.generate(mapping, baseline);
+
+      expect(content).toContain('章节类型说明');
+      expect(content).toContain('overview');
+    });
+
+    it('uses writingGuidance from knowledge base', () => {
+      const chapterTypesDir = join(tempDir, 'knowledge', 'chapter-types');
+      mkdirSync(chapterTypesDir, { recursive: true });
+      writeFileSync(join(chapterTypesDir, 'functional.md'), `---
+name: 功能章
+wordBudget:
+  min: 12000
+  max: 20000
+importance: 5
+writingStyle: functional
+writingGuidance: |
+  功能章节通常包含：功能模块详细描述、功能流程图。
+---
+`);
+
+      const gen = new KitGenerator(undefined, tempDir);
+      const mapping = createMockMapping('ch001', '功能设计');
+      mapping.type = 'functional';
+      const baseline = createMockBaseline();
+
+      const content = gen.generate(mapping, baseline);
+
+      expect(content).toContain('功能模块详细描述');
+    });
+
+    it('uses default guidance when knowledge base has no writingGuidance', () => {
+      const chapterTypesDir = join(tempDir, 'knowledge', 'chapter-types');
+      mkdirSync(chapterTypesDir, { recursive: true });
+      writeFileSync(join(chapterTypesDir, 'overview.md'), `---
+name: 概述章
+wordBudget:
+  min: 5000
+  max: 8000
+importance: 3
+writingStyle: overview
+---
+`);
+
+      const gen = new KitGenerator(undefined, tempDir);
+      const mapping = createMockMapping('ch001', '系统概述');
+      mapping.type = 'overview';
+      const baseline = createMockBaseline();
+
+      const content = gen.generate(mapping, baseline);
+
+      expect(content).toContain('章节类型说明');
+      expect(content).toContain('请根据上述');
     });
   });
 });

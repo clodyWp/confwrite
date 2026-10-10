@@ -12,6 +12,11 @@ export class OutlineNode {
   spawnLevel?: boolean;
   parent?: OutlineNode;
   children: OutlineNode[];
+  description?: string;
+  type?: string;
+  wordBudget?: { min: number; max: number };
+  importance?: number;
+  style?: string;
 
   constructor(level: number, title: string) {
     this.level = level;
@@ -64,14 +69,60 @@ export class OutlineParser {
     let root: OutlineNode | null = null;
     let virtualRoot: OutlineNode | null = null;
     const stack: OutlineNode[] = [];
+    let currentChapter: OutlineNode | null = null;
+    let descLines: string[] = [];
+
+    const flushDescription = () => {
+      if (currentChapter && descLines.length > 0) {
+        currentChapter.description = descLines.join('\n').trim();
+        if (!currentChapter.description) {
+          currentChapter.description = undefined;
+        }
+        // Extract metadata from description
+        if (currentChapter.description) {
+          // Extract type (e.g. "本章类型: functional" or "本章类型：overview")
+          const typeMatch = currentChapter.description.match(/本章类型[：:]\s*([a-zA-Z0-9\-\/]+)/);
+          if (typeMatch) {
+            currentChapter.type = typeMatch[1];
+          }
+          // Extract wordBudget (e.g. "字数预算: 5000-8000字" or "字数预算：6000–10000字")
+          const budgetMatch = currentChapter.description.match(/字数预算[：:]\s*(\d+)[\-–](\d+)/);
+          if (budgetMatch) {
+            currentChapter.wordBudget = {
+              min: parseInt(budgetMatch[1], 10),
+              max: parseInt(budgetMatch[2], 10),
+            };
+          }
+          // Extract importance (e.g. "重要度: 3/5" or "重要度：4/5")
+          const importanceMatch = currentChapter.description.match(/重要度[：:]\s*(\d+)/);
+          if (importanceMatch) {
+            currentChapter.importance = parseInt(importanceMatch[1], 10);
+          }
+          // Extract style (e.g. "写作风格: technical" or "写作风格：academic")
+          const styleMatch = currentChapter.description.match(/写作风格[：:]\s*(.+)/);
+          if (styleMatch) {
+            currentChapter.style = styleMatch[1].trim();
+          }
+        }
+      }
+      descLines = [];
+    };
 
     for (const line of lines) {
       const trimmed = line.trim();
-      if (!trimmed) continue;
+      if (!trimmed) {
+        // Blank lines: if collecting description, add empty line marker
+        if (currentChapter) {
+          descLines.push('');
+        }
+        continue;
+      }
 
       // 检测标题级别
       const headingMatch = trimmed.match(/^(#+)\s+(.+)/);
       if (headingMatch) {
+        flushDescription();
+        currentChapter = null;
         const level = headingMatch[1].length;
         const title = headingMatch[2].trim();
 
@@ -127,6 +178,7 @@ export class OutlineParser {
       // 检测 ch- 标记
       const chapterMatch = trimmed.match(/^(ch\d+)\s+(.+)/i);
       if (chapterMatch && stack.length > 0) {
+        flushDescription();
         const id = chapterMatch[1].toLowerCase();
         const title = chapterMatch[2].trim();
 
@@ -136,8 +188,18 @@ export class OutlineParser {
 
         node.parent = stack[stack.length - 1];
         stack[stack.length - 1].children.push(node);
+        currentChapter = node;
+        continue;
+      }
+
+      // Collect description lines for current chapter
+      if (currentChapter) {
+        descLines.push(trimmed);
       }
     }
+
+    // Flush any remaining description
+    flushDescription();
 
     // 如果没有找到任何标题，返回空根节点
     return virtualRoot || root || new OutlineNode(0, '');

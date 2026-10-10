@@ -218,6 +218,51 @@ ch001 背景
     });
   });
 
+  describe('description collection', () => {
+    it('collects description text between ch markers', () => {
+      const content = `# 技术方案
+
+## 1. 项目概述
+ch001 项目背景
+
+本章需要覆盖以下内容：
+- 项目发起的背景和原因
+- 当前业务痛点分析
+
+ch002 需求分析
+`;
+
+      const parser = new OutlineParser();
+      const outline = parser.parse(content);
+      const chapters = outline.getAllChapters();
+
+      expect(chapters).toHaveLength(2);
+      expect(chapters[0].id).toBe('ch001');
+      expect(chapters[0].description).toContain('本章需要覆盖以下内容');
+      expect(chapters[0].description).toContain('项目发起的背景和原因');
+      expect(chapters[1].id).toBe('ch002');
+      expect(chapters[1].description).toBeUndefined();
+    });
+
+    it('stops collecting description at next heading', () => {
+      const content = `# 文档
+ch001 标题
+
+这是描述内容
+
+## 下一个标题
+ch002 另一个标题
+`;
+
+      const parser = new OutlineParser();
+      const outline = parser.parse(content);
+      const chapters = outline.getAllChapters();
+
+      expect(chapters[0].description).toContain('这是描述内容');
+      expect(chapters[0].description).not.toContain('下一个标题');
+    });
+  });
+
   describe('OutlineNode.getAllChapters', () => {
     it('returns all chapters in order', () => {
       const content = `
@@ -240,6 +285,197 @@ ch002 第二
       expect(chapters[0].id).toBe('ch003');
       expect(chapters[1].id).toBe('ch001');
       expect(chapters[2].id).toBe('ch002');
+    });
+  });
+
+  describe('type extraction from description', () => {
+    it('extracts type with half-width colon', () => {
+      const content = `# 方案
+ch001 系统概述
+
+本章类型: functional
+`;
+
+      const parser = new OutlineParser();
+      const outline = parser.parse(content);
+      const chapters = outline.getAllChapters();
+
+      expect(chapters[0].type).toBe('functional');
+    });
+
+    it('extracts type with full-width colon', () => {
+      const content = `# 方案
+ch001 系统概述
+
+本章类型：overview
+`;
+
+      const parser = new OutlineParser();
+      const outline = parser.parse(content);
+      const chapters = outline.getAllChapters();
+
+      expect(chapters[0].type).toBe('overview');
+    });
+
+    it('leaves type undefined when not present', () => {
+      const content = `# 方案
+ch001 系统概述
+
+本章需要覆盖系统总体架构。
+`;
+
+      const parser = new OutlineParser();
+      const outline = parser.parse(content);
+      const chapters = outline.getAllChapters();
+
+      expect(chapters[0].type).toBeUndefined();
+    });
+  });
+
+  describe('wordBudget extraction from description', () => {
+    it('extracts wordBudget with format "字数预算: 5000-8000字"', () => {
+      const content = `# 方案
+ch001 系统概述
+
+本章类型: functional。重要度: 3/5。
+字数预算: 5000-8000字
+`;
+
+      const parser = new OutlineParser();
+      const outline = parser.parse(content);
+      const chapters = outline.getAllChapters();
+
+      expect(chapters[0].wordBudget).toEqual({ min: 5000, max: 8000 });
+    });
+
+    it('extracts wordBudget with full-width colon', () => {
+      const content = `# 方案
+ch001 系统概述
+
+字数预算：6000-10000字
+`;
+
+      const parser = new OutlineParser();
+      const outline = parser.parse(content);
+      const chapters = outline.getAllChapters();
+
+      expect(chapters[0].wordBudget).toEqual({ min: 6000, max: 10000 });
+    });
+
+    it('extracts wordBudget with en-dash separator', () => {
+      const content = `# 方案
+ch001 系统概述
+
+字数预算: 5000–8000字
+`;
+
+      const parser = new OutlineParser();
+      const outline = parser.parse(content);
+      const chapters = outline.getAllChapters();
+
+      expect(chapters[0].wordBudget).toEqual({ min: 5000, max: 8000 });
+    });
+
+    it('leaves wordBudget undefined when not present', () => {
+      const content = `# 方案
+ch001 系统概述
+
+本章类型: functional
+`;
+
+      const parser = new OutlineParser();
+      const outline = parser.parse(content);
+      const chapters = outline.getAllChapters();
+
+      expect(chapters[0].wordBudget).toBeUndefined();
+    });
+  });
+
+  describe('importance extraction from description', () => {
+    it('extracts importance with format "重要度: 3/5"', () => {
+      const content = `# 方案
+ch001 系统概述
+
+本章类型: functional。重要度: 4/5。
+`;
+
+      const parser = new OutlineParser();
+      const outline = parser.parse(content);
+      const chapters = outline.getAllChapters();
+
+      expect(chapters[0].importance).toBe(4);
+    });
+
+    it('extracts importance with full-width colon', () => {
+      const content = `# 方案
+ch001 系统概述
+
+重要度：5/5
+`;
+
+      const parser = new OutlineParser();
+      const outline = parser.parse(content);
+      const chapters = outline.getAllChapters();
+
+      expect(chapters[0].importance).toBe(5);
+    });
+
+    it('leaves importance undefined when not present', () => {
+      const content = `# 方案
+ch001 系统概述
+
+本章类型: functional
+`;
+
+      const parser = new OutlineParser();
+      const outline = parser.parse(content);
+      const chapters = outline.getAllChapters();
+
+      expect(chapters[0].importance).toBeUndefined();
+    });
+  });
+
+  describe('style extraction from description', () => {
+    it('extracts style with format "写作风格: technical"', () => {
+      const content = `# 方案
+ch001 系统概述
+
+写作风格: technical
+`;
+
+      const parser = new OutlineParser();
+      const outline = parser.parse(content);
+      const chapters = outline.getAllChapters();
+
+      expect(chapters[0].style).toBe('technical');
+    });
+
+    it('extracts style with full-width colon', () => {
+      const content = `# 方案
+ch001 系统概述
+
+写作风格：academic
+`;
+
+      const parser = new OutlineParser();
+      const outline = parser.parse(content);
+      const chapters = outline.getAllChapters();
+
+      expect(chapters[0].style).toBe('academic');
+    });
+
+    it('leaves style undefined when not present', () => {
+      const content = `# 方案
+ch001 系统概述
+
+本章类型: functional
+`;
+
+      const parser = new OutlineParser();
+      const outline = parser.parse(content);
+      const chapters = outline.getAllChapters();
+
+      expect(chapters[0].style).toBeUndefined();
     });
   });
 });

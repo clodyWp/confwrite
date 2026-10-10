@@ -1,22 +1,25 @@
 {
   "name": "confwrite",
-  "version": "0.12.0",
+  "version": "0.21.1",
   "description": "ConfWrite — 脚本驱动的长文档生成 pi package",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "keywords": ["pi-package"],
+  "keywords": [
+    "pi-package"
+  ],
   "scripts": {
     "build": "node ./node_modules/typescript/bin/tsc",
     "test": "vitest run",
     "test:watch": "vitest",
     "pack": "npm pack",
     "install-pi": "bash scripts/install.sh",
-    "version": "node scripts/version.js"
+    "version": "node scripts/version.js",
+    "docs:check": "node scripts/check-docs.js"
   },
   "pi": {
     "extensions": [
-      "dist/index.js"
+      "./dist/index.js"
     ],
     "skills": [
       "."

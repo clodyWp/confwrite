@@ -127,4 +127,29 @@ describe('KitGenerator — scoped baseline', () => {
     expect(content1).toContain('100ms');
     expect(content2).toContain('10TB');
   });
+
+  it('does not match on 2-character overlap alone (no loose matching)', () => {
+    // Keyword '系统架构' — with loose matching, '系统可用性' would match
+    // because keyword.includes('系统可用性'.slice(0,2)) → '系统架构'.includes('系统') → true
+    // After removing loose matching, this should NOT match.
+    const files = [makeFile('arch-spec.md', '架构', ['系统架构'])];
+    const mapping = makeMapping('ch005', files);
+    const baseline: DataBaseline = {
+      sourceFiles: 1,
+      metrics: {
+        '系统可用性': '99.9%',   // first 2 chars '系统' appear in keyword '系统架构'
+      },
+      timeline: {},
+      technicalTerms: [],
+      requirements: [],
+      generatedAt: '2024-01-01T00:00:00Z',
+    };
+
+    const content = generator.generate(mapping, baseline);
+
+    // '系统可用性' should NOT be included — it doesn't fully contain keyword '系统架构'
+    // and keyword doesn't fully contain it. Only 2-char prefix overlap.
+    expect(content).not.toContain('系统可用性');
+    expect(content).not.toContain('99.9%');
+  });
 });

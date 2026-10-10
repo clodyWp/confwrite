@@ -70,6 +70,7 @@ export class Dispatcher {
   private async dispatchWriters(params: Record<string, unknown>): Promise<DispatchResult> {
     const chapters = params.chapters as string[];
     const round = (params.round as number) || 1;
+    const state = this.store.load();  // 读取 state 以获取 wordBudget
     const tasks: Task[] = [];
     let sequence = 1;
 
@@ -86,7 +87,9 @@ export class Dispatcher {
         prompt: '',
         dependencies: [],
       };
-      task.prompt = this.taskExecutor.generateWriterPrompt(task, kitContent, round);
+      // 从 state 读取 wordBudget 并传递给 prompt
+      const wordBudget = state?.chapters?.[chapterId]?.wordBudget;
+      task.prompt = this.taskExecutor.generateWriterPrompt(task, kitContent, round, wordBudget);
       sequence++;
       tasks.push(task);
       this.scheduler.submit(task);
@@ -103,6 +106,7 @@ export class Dispatcher {
   private async dispatchReviewers(params: Record<string, unknown>): Promise<DispatchResult> {
     const chapters = params.chapters as string[];
     const round = params.round as number;
+    const state = this.store.load();  // 读取 state 以获取 wordBudget
     const tasks: Task[] = [];
     let sequence = 1;
 
@@ -130,7 +134,9 @@ export class Dispatcher {
         prompt: '',
         dependencies: [],
       };
-      task.prompt = this.taskExecutor.generateReviewerPrompt(task, draftContent, baseline, round, knowledgeContent, this.projectDir);
+      // 从 state 读取 wordBudget 并传递给 prompt
+      const wordBudget = state?.chapters?.[chapterId]?.wordBudget;
+      task.prompt = this.taskExecutor.generateReviewerPrompt(task, draftContent, baseline, round, knowledgeContent, this.projectDir, wordBudget);
       sequence++;
       tasks.push(task);
       this.scheduler.submit(task);
@@ -150,11 +156,16 @@ export class Dispatcher {
     const tasks: Task[] = [];
     let sequence = 1;
 
+    // Bug 41 修复：读取 wordBudget 传给 Fixer
+    const state = this.store.load();
+
     for (const chapterId of chapters) {
       // 读取当前版本草稿: ch001-v${round}.md
       const draftContent = this.readChapterDraft(chapterId, round);
       // 读取当前版本审阅报告: ch001-r${round}.json
       const reviewContent = this.readReviewReport(chapterId, round);
+      // Bug 41 修复：读取 wordBudget
+      const wordBudget = state?.chapters?.[chapterId]?.wordBudget;
       const task: Task = {
         id: `fix-${chapterId}-r${round}`,
         type: 'fixer',
@@ -167,7 +178,7 @@ export class Dispatcher {
         dependencies: [],
       };
       // Fixer 输出新版本: ch001-v${round+1}.md
-      task.prompt = this.taskExecutor.generateFixPrompt(task, draftContent, reviewContent, round);
+      task.prompt = this.taskExecutor.generateFixPrompt(task, draftContent, reviewContent, round, wordBudget);
       sequence++;
       tasks.push(task);
       this.scheduler.submit(task);
@@ -184,7 +195,12 @@ export class Dispatcher {
   /**
    * 处理任务结果：更新调度器状态 + 回写章节状态
    */
-  async processTask(taskId: string, outcome: 'success' | 'failed', result: string): Promise<void> {
+  async processTask(
+    taskId: string, 
+    outcome: 'success' | 'failed', 
+    result: string,
+    failureType?: 'execution_failed' | 'validation_failed',
+  ): Promise<void> {
     const task = this.scheduler.getTask(taskId);
     if (!task) return;
 
@@ -202,7 +218,7 @@ export class Dispatcher {
     const state = this.store.load();
     if (!state) return;
 
-    this.writingOrchestrator.updateChapterStatus(state, task, outcome, this.projectDir);
+    this.writingOrchestrator.updateChapterStatus(state, task, outcome, this.projectDir, failureType);
     this.store.save(state);
   }
 

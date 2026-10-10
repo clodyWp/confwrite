@@ -3,6 +3,9 @@ import { dirname, join } from 'node:path';
 import type { ChapterMapping } from './chapter-mapper.js';
 import type { DataBaseline } from './baseline-extractor.js';
 import type { KnowledgeLoader } from '../knowledge/loader.js';
+import type { Outline } from '../outline/types.js';
+import type { RequirementMap } from './requirement-mapper.js';
+import { ChapterTypeLoader } from '../knowledge/chapter-type-loader.js';
 
 /**
  * 生成结果
@@ -28,15 +31,29 @@ export interface BatchStats {
  */
 export class KitGenerator {
   private knowledgeLoader?: KnowledgeLoader;
+  private projectDir?: string;
 
-  constructor(knowledgeLoader?: KnowledgeLoader) {
+  constructor(knowledgeLoader?: KnowledgeLoader, projectDir?: string) {
     this.knowledgeLoader = knowledgeLoader;
+    this.projectDir = projectDir;
   }
 
   /**
    * 生成单个章节的素材包内容
    */
   generate(mapping: ChapterMapping, baseline: DataBaseline): string {
+    return this.generateWithOutline(mapping, baseline);
+  }
+
+  /**
+   * 生成单个章节的素材包内容（带大纲上下文和需求映射）
+   */
+  generateWithOutline(
+    mapping: ChapterMapping,
+    baseline: DataBaseline,
+    outline?: Outline,
+    requirementMap?: RequirementMap
+  ): string {
     const lines: string[] = [];
 
     // 标题
@@ -50,6 +67,41 @@ export class KitGenerator {
       lines.push(`- **相关分类**: ${mapping.relatedCategories.join(', ')}`);
     }
     lines.push('');
+
+    // 章节类型说明（知识库驱动）
+    if (mapping.type) {
+      const guidance = this.generateChapterTypeGuidance(mapping.type);
+      if (guidance) {
+        lines.push(guidance);
+        lines.push('');
+      }
+    }
+
+    // 章节描述（来自大纲）
+    if (mapping.description) {
+      lines.push('## 章节描述');
+      lines.push(mapping.description);
+      lines.push('');
+    }
+
+    // 需求要点（来自 requirement-map.json）
+    if (requirementMap && requirementMap[mapping.chapterId]) {
+      const reqEntry = requirementMap[mapping.chapterId];
+      if (reqEntry.content) {
+        lines.push('## 需求要点');
+        lines.push('以下是本章节对应的需求文档内容，写作时必须覆盖：\n');
+        lines.push(reqEntry.content);
+        lines.push('');
+      }
+    }
+
+    // 上下文参考（前一章和后一章）
+    if (outline) {
+      const contextSection = this.generateContextSection(mapping.chapterId, outline);
+      if (contextSection) {
+        lines.push(contextSection);
+      }
+    }
 
     // 相关文件
     if (mapping.relatedFiles.length > 0) {
@@ -96,6 +148,17 @@ export class KitGenerator {
         lines.push(`- ${req}`);
       }
       lines.push('');
+    }
+
+    // 写作风格注入（从知识库）
+    if (this.knowledgeLoader) {
+      const styleContent = this.knowledgeLoader.generateWritingStyleInjection(
+        mapping.relatedCategories,
+        mapping.title
+      );
+      if (styleContent) {
+        lines.push(styleContent);
+      }
     }
 
     // 写作提示
@@ -190,7 +253,7 @@ export class KitGenerator {
 
     const matchesKeywords = (text: string): boolean => {
       const lower = text.toLowerCase();
-      return keywords.some(k => lower.includes(k) || k.includes(lower.slice(0, 2)));
+      return keywords.some(k => lower.includes(k));
     };
 
     const scopedMetrics: Record<string, string> = {};
@@ -209,5 +272,80 @@ export class KitGenerator {
       technicalTerms: scopedTerms,
       requirements: scopedReqs,
     };
+  }
+
+  /**
+   * 生成上下文参考部分（前一章和后一章）
+   */
+  private generateContextSection(chapterId: string, outline: Outline): string {
+    const lines: string[] = [];
+    const chapters = outline.chapters;
+    const currentIndex = chapters.findIndex(ch => ch.id === chapterId);
+
+    if (currentIndex === -1) {
+      return '';
+    }
+
+    const prevChapter = currentIndex > 0 ? chapters[currentIndex - 1] : null;
+    const nextChapter = currentIndex < chapters.length - 1 ? chapters[currentIndex + 1] : null;
+
+    if (!prevChapter && !nextChapter) {
+      return '';
+    }
+
+    lines.push('## 上下文参考\n');
+    lines.push('以下是与本章相邻的章节信息，有助于保持文档连贯性：\n');
+
+    if (prevChapter) {
+      lines.push('### 前一章');
+      lines.push(`- **章节 ID**: ${prevChapter.id}`);
+      lines.push(`- **标题**: ${prevChapter.title}`);
+      if (prevChapter.description) {
+        lines.push(`- **描述**: ${prevChapter.description}`);
+      }
+      lines.push('');
+    }
+
+    if (nextChapter) {
+      lines.push('### 后一章');
+      lines.push(`- **章节 ID**: ${nextChapter.id}`);
+      lines.push(`- **标题**: ${nextChapter.title}`);
+      if (nextChapter.description) {
+        lines.push(`- **描述**: ${nextChapter.description}`);
+      }
+      lines.push('');
+    }
+
+    return lines.join('\n');
+  }
+
+  /**
+   * 生成章节类型说明（从知识库加载 writingGuidance）
+   */
+  private generateChapterTypeGuidance(type: string): string | null {
+    const defaultGuidance = '请根据上述“章节描述”和“需求要点”编写内容。如果需求要点不足以覆盖本章内容，请根据章节标题和上下文自由发挥，确保内容完整、逻辑清晰。';
+
+    let guidance = defaultGuidance;
+
+    if (this.projectDir) {
+      try {
+        const loader = new ChapterTypeLoader(this.projectDir);
+        const config = loader.loadChapterType(type);
+        if (config.writingGuidance) {
+          guidance = config.writingGuidance;
+        }
+      } catch {
+        // Knowledge file not found or parse error — use default
+      }
+    }
+
+    const lines: string[] = [];
+    lines.push('## 章节类型说明');
+    lines.push('');
+    lines.push(`本章是 **${type}** 类型。`);
+    lines.push('');
+    lines.push(guidance);
+
+    return lines.join('\n');
   }
 }

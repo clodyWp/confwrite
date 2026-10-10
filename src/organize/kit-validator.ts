@@ -94,6 +94,13 @@ export function validateChapterKits(
   const kitsDir = kitsDirOf(projectDir);
   const issues: KitIssue[] = [];
 
+  // 防御性检查：空章节列表意味着 outline.md 不存在或格式错误，
+  // 不应返回 ok: true（vacuously true）—— 这会导致流程跳过素材包校验。
+  // Bug A 修复的一部分：readChaptersFromOutline 返回空时 kitsMatchOutline 应为 false。
+  if (chapters.length === 0) {
+    return { ok: false, checked: 0, issues: [{ chapterId: '(all)', expectedTitle: '(outline)', state: 'missing' }] };
+  }
+
   for (const ch of chapters) {
     const kitPath = join(kitsDir, `${ch.id}.md`);
 

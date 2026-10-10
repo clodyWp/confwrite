@@ -10,6 +10,9 @@ import { existsSync, statSync, readFileSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import { FormatConverter } from '../assemble/converter.js';
 import { validateChapterKitsAgainstOutline } from '../organize/kit-validator.js';
+import { Phase1RequirementAnalysis } from './phase1.js';
+import { Phase2OutlinePlanning } from './phase2.js';
+import { ProjectStore } from '../state/store.js';
 import type { Phase, ProjectState } from '../state/schema.js';
 
 export interface PhaseContext {
@@ -169,7 +172,7 @@ export const phase0b: PhaseDefinition = {
   },
   exits: [
     {
-      target: '2',
+      target: '1',
       condition: (ctx) => ctx.state.status === 'organizing' && hasOrganizedMaterials(ctx),
     },
   ],
@@ -180,14 +183,22 @@ export const phase1: PhaseDefinition = {
   name: '需求分析',
   validate: () => ({ ok: true }),
   async execute(ctx) {
+    // 使用新的 Phase1RequirementAnalysis 类
+    const store = new ProjectStore(ctx.projectDir);
+    const phase1 = new Phase1RequirementAnalysis(ctx.projectDir, store);
+    await phase1.execute();
+    
     return {
-      action: 'spawn_researcher',
-      message: 'Phase 1: 需求分析',
-      params: { projectDir: ctx.projectDir },
+      action: 'phase_entered',
+      message: 'Phase 1: 需求分析完成',
     };
   },
   exits: [
-    { target: '2', condition: (ctx) => hasFile(ctx, 'inputs/requirements.md') },
+    { target: '2', condition: (ctx) => {
+      const store = new ProjectStore(ctx.projectDir);
+      const phase1 = new Phase1RequirementAnalysis(ctx.projectDir, store);
+      return phase1.validate();
+    }},
   ],
 };
 
@@ -196,10 +207,25 @@ export const phase2: PhaseDefinition = {
   name: '大纲规划',
   validate: () => ({ ok: true }),
   async execute(ctx) {
+    // 使用新的 Phase2OutlinePlanning 类
+    const store = new ProjectStore(ctx.projectDir);
+    const phase2 = new Phase2OutlinePlanning(ctx.projectDir, store);
+    await phase2.execute();
+    
+    // outlineCommand 会更新 state.chapters 并保存到磁盘，
+    // 但状态机在 execute 之后会用自己的内存 state 覆盖保存。
+    // 必须从磁盘重新加载 chapters 同步到内存 state（同 Phase 3 修复）。
+    const fresh = new ProjectStore(ctx.projectDir).load();
+    if (fresh?.chapters) {
+      ctx.state.chapters = fresh.chapters;
+      if (fresh.totalChapters !== undefined) {
+        ctx.state.totalChapters = fresh.totalChapters;
+      }
+    }
+    
     return {
-      action: 'outline_collaboration',
-      message: 'Phase 2: 大纲规划（人机协作）',
-      params: { projectDir: ctx.projectDir },
+      action: 'phase_entered',
+      message: 'Phase 2: 大纲规划完成',
     };
   },
   exits: [
@@ -217,13 +243,16 @@ export const phase2: PhaseDefinition = {
   ],
   waitPoint: {
     reason: '大纲规划和图表风格需要用户确认',
+    // 注意：phase 2 使用默认 timing='entry'（进入即暂停）。
+    // 不使用 'after-execute'：因为 phase2.execute() 会修改 currentPhase='3'（副作用），
+    // 与 waitPoint 机制冲突。且 outline.md 已存在时 execute 会跳过，无需先执行。
     instructions: `请确认以下两项内容：
 
 1. 大纲内容
    请编辑 outline.md，用 ch001/ch002 等标记需要独立写作的章节。
 
 2. 图表风格偏好
-   当前配置 (assets/diagram-style.json):
+   当前配置 (assets/diagram-style.json)：
    - 配色方案: 暖色系 (warm)
    - 节点形状: 圆角矩形 (rounded)
    - 布局方向: 从上到下 (top-to-bottom)

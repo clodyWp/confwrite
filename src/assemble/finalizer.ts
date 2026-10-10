@@ -6,6 +6,7 @@
  */
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { checkHeadingHierarchy } from './heading-checker.js';
 
 export interface FinalizationReport {
   /** 文档路径 */
@@ -67,6 +68,13 @@ export function finalize(projectDir: string): FinalizationReport {
 
   // 2. 一致性检查
   const consistency = checkConsistency(projectDir, content);
+
+  // 3. 标题层级检查（Bug K 修复）
+  const headingCheck = checkHeadingHierarchy(projectDir, content);
+  if (!headingCheck.ok && !headingCheck.skipped) {
+    // 记录警告但不阻断导出
+    console.warn('[Finalizer] 标题层级检查发现问题:', headingCheck.issues.join('; '));
+  }
 
   // 3. 生成报告
   const report: FinalizationReport = {

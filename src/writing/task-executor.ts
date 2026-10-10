@@ -8,6 +8,8 @@
  */
 import type { Task } from '../scheduler/types.js';
 import { join } from 'node:path';
+import type { ConfWriteConfig } from '../config/loader.js';
+import { DEFAULT_CONFIG } from '../config/loader.js';
 
 /**
  * 审阅决定
@@ -31,23 +33,59 @@ export interface ReviewBaseline {
  * 任务执行器
  */
 /**
- * 单节（ch）正文合计字数下限。
+ * 单节（ch）正文合计字数下限（默认值）。
  *
  * 度量层级为 **ch**，不是 ch 内部的小节。
  * 历史事故：曾写「每个子节 ≥ 5000 字」，一个 ch 约 27 个小节，
  * 等于要求单次写 135,000 字（模型单次只能产出约 18,000 字），
  * 导致「量字数→补内容→再量」循环吃掉 50% 运行时间。
  */
-export const MIN_CHAPTER_CHARS = 8000;
+// Bug 41 修复：与 config.writing.minChapterChars 保持一致
+export const MIN_CHAPTER_CHARS = 5000;
 
 export class TaskExecutor {
+  private config: ConfWriteConfig;
+
+  constructor(config?: ConfWriteConfig) {
+    this.config = config ?? DEFAULT_CONFIG;
+  }
   /**
    * 生成 Writer subagent 的 prompt
    * 
    * 输出版本化文件: drafts/chapters/${chapterId}-v${round}.md
    */
-  generateWriterPrompt(task: Task, kitContent: string, round: number = 1): string {
+  generateWriterPrompt(
+    task: Task,
+    kitContent: string,
+    round: number = 1,
+    wordBudget?: { min: number; max: number; expected?: number }
+  ): string {
     const outputFile = `drafts/chapters/${task.chapterId}-v${round}.md`;
+    
+    // 字数预算参考部分
+    // Bug 36/41 修复：统一字数配置，消除矛盾
+    // 当 wordBudget 存在时，使用 wordBudget.min 作为最低要求，而非 minChapterChars
+    const expected = wordBudget?.expected ?? Math.round(((wordBudget?.min ?? 0) + (wordBudget?.max ?? 0)) / 2);
+    const minChars = wordBudget ? wordBudget.min : this.config.writing.minChapterChars;
+    const wordBudgetSection = wordBudget ? `
+## 字数预算（硬性要求，必须严格遵守）
+
+**目标字数**：**${expected} 字**
+
+**允许范围**：${wordBudget.min}-${wordBudget.max} 字
+
+**硬性上限**：本章字数**绝对不得超过 ${wordBudget.max} 字**。
+
+**强制最低**：本章字数**不得少于 ${wordBudget.min} 字**。
+
+**重要说明**：
+- 请尽量接近目标字数 **${expected} 字**
+- 字数范围 ${wordBudget.min}-${wordBudget.max} 是**绝对硬性要求**
+- 低于下限或超过上限都将被拒绝并要求修改
+- 不要因为预算而牺牲内容质量，但必须严格遵守字数限制
+
+---
+` : '';
     
     return `# 写作任务
 
@@ -71,7 +109,7 @@ export class TaskExecutor {
 ---
 
 你正在撰写文档的章节：**${task.chapterId}**（第 ${round} 轮）
-
+${wordBudgetSection}
 ## 素材文件位置
 
 所有素材文件都位于 **reference_material/** 目录下。素材包中列出的文件路径都是相对于这个目录的。
@@ -87,11 +125,10 @@ ${kitContent}
 ## 深度要求（强制执行，不可降级）
 
 ### 1. 篇幅要求（强制，按 ch 级衡量）
-- **本次任务产出的整个章节（本 ch）正文合计不少于 ${MIN_CHAPTER_CHARS} 字**
+- **本次任务产出的整个章节（本 ch）正文合计不少于 ${minChars} 字**
 - 字数按**整节合计**衡量，**不按**内部小节（## 或 ###）分别计算
 - **图表前后必须有独立段落说明**（见第 3 条）
-- 宁可写得详细充分，不要写得简略空洞
-- 达到 ${MIN_CHAPTER_CHARS} 字通常需要多个段落、多个示例、多个分析维度
+- 达到 ${minChars} 字通常需要多个段落、多个示例、多个分析维度
 - **不允许通过重复、废话、空洞论述凑字数**——每句话都要有信息量
 
 **职责分工**：写完本章后**直接结束任务**，不要检查字数、不要反复编辑补充。
@@ -330,7 +367,8 @@ diagram-end -->
     baseline: ReviewBaseline,
     round: number = 1,
     knowledgeContent: string = '',
-    projectDir?: string
+    projectDir?: string,
+    wordBudget?: { min: number; max: number }
   ): string {
     const metricsList = Object.entries(baseline.metrics)
       .map(([k, v]) => `- ${k}: ${v}`)
@@ -338,6 +376,23 @@ diagram-end -->
 
     const termsList = baseline.technicalTerms.join(', ');
     const requirementsList = baseline.requirements.map(r => `- ${r}`).join('\n');
+
+    // 字数预算检查部分（Bug M 修复 + T2 三层防御）
+    const wordBudgetSection = wordBudget ? `
+
+### 7. 字数预算检查（硬性要求）
+
+本章的字数预算为 **${wordBudget.min}-${wordBudget.max} 字**。
+
+**硬性上限**：本章字数**不得超过 ${wordBudget.max} 字**。超过将被拒绝并要求精简。
+
+**容差规则**：
+- 实际字数在 ${wordBudget.min}-${wordBudget.max} 字范围内 → 通过
+- 实际字数 > ${wordBudget.max} 字 → **revise**（要求精简，超过上限将被拒绝）
+- 实际字数 < ${wordBudget.min} 字 → revise（要求补充）
+
+请统计本章实际字数，并根据规则判断是否通过。**超过上限的内容会被拒绝，必须精简**。
+` : '';
 
     return `# 审阅任务
 
@@ -376,7 +431,7 @@ ${requirementsList || '无'}
 
 - **最多 5 个问题**：只关注最重要的问题，不要列举所有小问题
 - **优先级**：
-  1. 字数是否达标（≥ ${MIN_CHAPTER_CHARS} 字符）
+  1. 字数是否达标（≥ ${this.config.writing.minChapterChars} 字符）
   2. 图表是否规范（diagram-start 格式、前后说明）
   3. 数据是否与基线一致
   4. 内容深度是否足够
@@ -394,7 +449,7 @@ ${requirementsList || '无'}
 ### 3. 内容深度（重点检查）
 
 **篇幅检查**（Reviewer 核心职责）：
-- **本节（整个章节）正文合计是否 ≥ ${MIN_CHAPTER_CHARS} 字** —— 按整节合计衡量，**不按**内部小节（## 或 ###）分别计算
+- **本节（整个章节）正文合计是否 ≥ ${this.config.writing.minChapterChars} 字** —— 按整节合计衡量，**不按**内部小节（## 或 ###）分别计算
 - 如果整节合计不足，必须标记为 revise，并给出**实际字数与差额**，明确指出**需要扩充多少字**
 - 示例："本节当前约 5000 字，距下限还差约 3000 字，可补充采集流程、技术选型、性能优化等内容"
   （注意：**按整节合计判断**，不要把「某个小节没写够」当作不达标的理由）
@@ -485,7 +540,7 @@ ${knowledgeContent ? `
 ## 图表质量对抗性检查（必须执行）
 
 ${knowledgeContent}
-` : ''}`;
+` : ''}${wordBudgetSection}`;
   }
 
   /**
@@ -498,10 +553,21 @@ ${knowledgeContent}
     task: Task,
     chapterContent: string,
     reviewContent: string,
-    currentRound: number
+    currentRound: number,
+    wordBudget?: { min: number; max: number; expected?: number }
   ): string {
     const nextRound = currentRound + 1;
     const outputFile = `drafts/chapters/${task.chapterId}-v${nextRound}.md`;
+    // Bug 41 修复：Fixer 也使用 wordBudget 控制字数
+    const minChars = wordBudget ? wordBudget.min : MIN_CHAPTER_CHARS;
+    const maxChars = wordBudget ? wordBudget.max : null;
+    const wordBudgetConstraint = wordBudget
+      ? `\n### 字数约束（硬性）
+- 修复后字数必须在 **${wordBudget.min}-${wordBudget.max} 字** 范围内
+- 当前字数如果已超标，修复时必须精简到上限以内
+- 当前字数如果不足，修复时必须扩充到下限以上
+`
+      : '';
     
     return `# 修复任务
 
@@ -537,15 +603,15 @@ ${chapterContent}
 ${reviewContent}
 
 ## 修复要求
-
+${wordBudgetConstraint}
 ### 1. 解决所有问题
 - 逐一解决审阅报告中列出的所有问题
 - 每个问题都要有明确的修复措施
 
-### 2. 保持深度（强制）
-- 本节（整个章节）正文合计 ≥ ${MIN_CHAPTER_CHARS} 字
+### 2. 篇幅要求（强制）
+- 本节（整个章节）正文合计 ≥ ${minChars} 字${maxChars ? `，≤ ${maxChars} 字` : ''}
 - 图表前后有独立段落说明
-- 不允许降低深度要求
+- 不允许通过重复、废话、空洞论述凑字数
 
 ### 3. 如何加深内容
 **根据审阅报告中指出的「本 ch 字数不足」，通过以下方式扩充**：
@@ -654,5 +720,37 @@ ${reviewContent}
     }
 
     return decision;
+  }
+
+  /**
+   * 检查字数是否符合预算
+   * 
+   * @param content - 章节内容
+   * @param budget - 字数预算 { min, max }
+   * @returns 检查结果
+   */
+  checkWordCount(
+    content: string,
+    budget: { min: number; max: number }
+  ): {
+    actual: number;
+    min: number;
+    max: number;
+    exceeds: boolean;
+    below: boolean;
+    valid: boolean;
+  } {
+    // 统计字数：字符数（包括中文和英文字符）
+    // 对于英文，每个字母算一个字符；对于中文，每个汉字算一个字符
+    const actual = content.length;
+
+    return {
+      actual,
+      min: budget.min,
+      max: budget.max,
+      exceeds: actual > budget.max,
+      below: actual < budget.min,
+      valid: actual >= budget.min && actual <= budget.max,
+    };
   }
 }

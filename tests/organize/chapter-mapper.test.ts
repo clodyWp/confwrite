@@ -59,6 +59,21 @@ describe('ChapterMapper', () => {
       expect(mappings[0].relatedFiles.length).toBe(0);
     });
 
+    it('propagates description from outline to mapping', () => {
+      const outline = createMockOutlineWithDescription([
+        { id: 'ch001', title: '项目背景', description: '本章需要覆盖项目发起的背景和原因' },
+        { id: 'ch002', title: '需求分析', description: undefined },
+      ]);
+      const index = createMockIndex([]);
+
+      const mapper = new ChapterMapper();
+      const mappings = mapper.map(outline, index);
+
+      expect(mappings.length).toBe(2);
+      expect(mappings[0].description).toBe('本章需要覆盖项目发起的背景和原因');
+      expect(mappings[1].description).toBeUndefined();
+    });
+
     it('preserves chapter order', () => {
       const outline = createMockOutline(['ch003', 'ch001', 'ch002']);
       const index = createMockIndex([]);
@@ -166,6 +181,37 @@ function createMockIndex(files: MaterialFile[]): IndexData {
     files,
     generatedAt: new Date().toISOString(),
   };
+}
+
+function createMockOutlineWithDescription(
+  chapters: Array<{ id: string; title: string; description?: string }>
+): OutlineNode {
+  const root: OutlineNode = {
+    level: 0,
+    title: 'Test Outline',
+    children: [],
+    findChapter(id: string) {
+      return this.children.find(c => c.id === id);
+    },
+    getAllChapters() {
+      return this.children.filter(c => c.id);
+    },
+  };
+
+  for (const ch of chapters) {
+    root.children.push({
+      level: 1,
+      title: ch.title,
+      id: ch.id,
+      spawnLevel: true,
+      description: ch.description,
+      children: [],
+      findChapter: root.findChapter,
+      getAllChapters: root.getAllChapters,
+    });
+  }
+
+  return root;
 }
 
 function createMockMaterialFile(filename: string, category: string, keywords: string[] = []): MaterialFile {

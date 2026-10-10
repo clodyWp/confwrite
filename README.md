@@ -121,7 +121,13 @@ projects/my-project/
 
 ### 4. 大纲规划
 
-人机协作，多轮迭代。大纲中的层级决定 spawn 粒度：
+```
+/confwrite:outline my-project technical-proposal [targetWords]
+```
+
+支持模板：`technical-proposal`, `bid-document`。
+
+也可手动编辑大纲，人机协作，多轮迭代。大纲中的层级决定 spawn 粒度：
 
 ```markdown
 # 卷一：技术方案
@@ -154,7 +160,7 @@ ch003 技术选型
 | 4b | 审阅 | reviewer subagent 批量 |
 | 4c | 决策 | 自动判断 pass/revise/reject |
 | 4d | 修复 | fixer subagent 批量 |
-| 5 | 图表生成 | 提取 mermaid → SVG → PNG |
+| 5 | 图表生成 | 结构化格式 → 内置布局引擎 → SVG → PNG |
 | 6 | 组装 | 合并章节 → final.md |
 | 7 | 定稿 | 统计文档 + 基线一致性检查 |
 | 8 | 导出 | pandoc → `output/final.docx`（含 TOC） |
@@ -231,22 +237,25 @@ npm run test:watch
 
 | 指标 | 数值 |
 |------|------|
-| 源文件 | 62 个 TypeScript 文件 |
-| 测试文件 | 112 个 |
-| 依赖 | mammoth, pdf-parse, sharp, marked, docx, @sinclair/typebox |
+| 源文件 | 81 个 TypeScript 文件 |
+| 测试文件 | 155 个 |
+| 依赖 | mammoth, pdf-parse, sharp, marked, docx, jszip, @sinclair/typebox |
 
 ### 项目结构
 
 ```
 src/
-├── index.ts                  # Extension 入口 (7 个命令 + runWriteLoop)
+├── index.ts                  # Extension 入口 (8 个命令 + runWriteLoop)
 ├── commands/                 # pi 命令
 │   ├── init.ts               # /confwrite:init
 │   ├── organize.ts           # /confwrite:organize
+│   ├── outline.ts            # /confwrite:outline
 │   └── export.ts             # /confwrite:export
 ├── orchestrator/             # 状态机
 │   ├── state-machine.ts      # 核心状态机
-│   └── phases.ts             # 14 个 Phase 定义
+│   ├── phases.ts             # 14 个 Phase 定义
+│   ├── phase1.ts             # Phase 1 需求分析
+│   └── phase2.ts             # Phase 2 大纲规划
 ├── scheduler/                # Subagent 调度器
 │   ├── index.ts              # SubagentScheduler 主类
 │   ├── executor.ts           # 执行器接口
@@ -269,7 +278,8 @@ src/
 │   ├── chapter-mapper.ts     # 章节-索引映射
 │   ├── chapter-syncer.ts     # 大纲→状态同步
 │   ├── kit-generator.ts      # 素材包生成
-│   └── kit-validator.ts      # 素材包校验
+│   ├── kit-validator.ts      # 素材包校验
+│   └── requirement-mapper.ts # 需求映射
 ├── writing/                  # 写作管线
 │   ├── task-executor.ts      # Prompt 构建 + 审阅解析
 │   ├── content-validator.ts  # 内容深度验证
@@ -281,6 +291,7 @@ src/
 │   ├── assembler.ts          # 章节组装
 │   ├── converter.ts          # 格式转换 (MD→HTML/DOCX)
 │   ├── finalizer.ts          # 定稿处理 (统计+一致性)
+│   ├── heading-checker.ts    # 标题检查
 │   └── cleanup-docx-styles.ts # DOCX 样式清理
 ├── diagrams/                 # 图表管线（结构化格式 + 内置布局引擎）
 │   ├── extractor.ts          # 图表代码块提取
@@ -307,7 +318,23 @@ src/
 │   ├── stats.ts              # 统计汇总
 │   └── types.ts              # 日志类型定义
 ├── knowledge/                # 知识库加载
-│   └── loader.ts             # 知识库加载+注入
+│   ├── loader.ts             # 知识库加载+注入
+│   ├── chapter-type-loader.ts    # 章节类型加载
+│   ├── requirement-category-loader.ts # 需求分类加载
+│   └── validator.ts          # 知识库校验
+├── config/                   # 用户配置
+│   └── loader.ts             # 配置文件加载 (confwrite.config.json)
+├── outline/                  # 大纲生成
+│   ├── generator.ts          # 大纲生成入口
+│   ├── llm-planner.ts        # LLM 大纲规划
+│   ├── adaptive-planner.ts   # 自适应规划器
+│   ├── heading-tree.ts       # 标题树构建
+│   ├── requirement-extractor.ts # 需求提取
+│   ├── requirement-marker.ts # 需求标记
+│   ├── requirement-tracer.ts # 需求追踪
+│   ├── template-loader.ts    # 模板加载
+│   ├── word-count-analyzer.ts # 字数分析
+│   └── types.ts              # 大纲类型定义
 ├── state/                    # 状态管理
 │   ├── schema.ts             # TypeBox schema
 │   └── store.ts              # 原子化持久化
@@ -315,8 +342,8 @@ src/
     ├── paths.ts              # 路径安全
     └── dedent.ts             # 字符串缩进处理
 
-knowledge/diagrams/           # 内置图表知识库 (16 个 MD 文件)
-tests/                        # 112 个测试文件
+knowledge/diagrams/           # 内置图表知识库 (14 个 MD 文件)
+tests/                        # 155 个测试文件
 ```
 
 ### 设计原则

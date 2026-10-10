@@ -46,6 +46,11 @@ export const ChapterState = Type.Object({
   consecutiveFailures: Type.Number({ default: 0 }),
   maxRounds: Type.Number({ default: 5 }),
   failureReason: Type.Optional(Type.String()),
+  // 大纲生成相关字段（v0.13.0）
+  type: Type.Optional(Type.String()),
+  importance: Type.Optional(Type.Number({ minimum: 1, maximum: 5 })),
+  description: Type.Optional(Type.String()),
+  style: Type.Optional(Type.String()),
   // Bug 42 修复：字数预算，用于验证器独立检查
   wordBudget: Type.Optional(Type.Object({
     min: Type.Number(),

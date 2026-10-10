@@ -9,6 +9,7 @@ import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import { initProject } from './commands/init.js';
 import { organizeMaterials } from './commands/organize.js';
 import { exportDocument } from './commands/export.js';
+import { outlineCommand } from './commands/outline.js';
 import { StateMachine } from './orchestrator/state-machine.js';
 import { SubagentScheduler } from './scheduler/index.js';
 import { SchedulerRunner } from './scheduler/runner.js';
@@ -17,10 +18,27 @@ import type { SubagentExecutor } from './scheduler/executor.js';
 import { DEFAULT_SCHEDULER_CONFIG, type SchedulerConfig } from './state/schema.js';
 import { Dispatcher } from './dispatcher/index.js';
 import { TaskExecutor } from './writing/task-executor.js';
+import { readFileSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+function getConfWriteVersion(): string {
+  try {
+    const packagePath = join(__dirname, '..', '..', 'package.json');
+    const pkg = JSON.parse(readFileSync(packagePath, 'utf-8'));
+    return pkg.version || 'unknown';
+  } catch {
+    return 'unknown';
+  }
+}
 import { WritingOrchestrator } from './writing/orchestrator.js';
 import { OutputValidator } from './writing/output-validator.js';
 import { ProjectStore } from './state/store.js';
 import { LoggingSystem } from './logging/index.js';
+import { loadConfig } from './config/loader.js';
 import { resolve } from 'node:path';
 
 export type NotifyLevel = 'info' | 'error' | 'warning';
@@ -80,6 +98,9 @@ export async function runWriteLoop(
 
   const config = { ...DEFAULT_SCHEDULER_CONFIG, ...configOverride };
   
+  // 加载用户配置文件（confwrite.config.json）
+  const userConfig = loadConfig(projectDir);
+  
   // 初始化日志系统（启用文件日志）
   const loggingSystem = new LoggingSystem(notify, {
     enabled: options?.fileLogEnabled ?? true,
@@ -87,25 +108,33 @@ export async function runWriteLoop(
     filename: 'confwrite-log.json',
   });
   
-  const scheduler = new SubagentScheduler(config);
+  // 合并用户配置到调度配置
+  const schedulerConfig = {
+    ...config,
+    maxConcurrency: userConfig.scheduler?.maxConcurrency ?? config.maxConcurrency,
+    maxTurnsPerTask: userConfig.scheduler?.maxTurnsPerTask ?? config.maxTurnsPerTask,
+    maxTaskRetries: userConfig.scheduler?.maxTaskRetries ?? config.maxTaskRetries,
+  };
+  
+  const scheduler = new SubagentScheduler(schedulerConfig);
   const executor = executorOverride ?? new PiSubagentExecutor({
     projectDir,
-    maxTurnsPerTask: config.maxTurnsPerTask,
+    maxTurnsPerTask: schedulerConfig.maxTurnsPerTask,
   });
   const runner = new SchedulerRunner(
     scheduler,
     executor,
-    config.maxConcurrency,
+    schedulerConfig.maxConcurrency,
     config.rateLimitWindowMs,
     config.rateLimitMaxTasks,
     config.rateLimitDelayMs,
-    config.maxTaskRetries,
+    schedulerConfig.maxTaskRetries,
     loggingSystem.eventBus, // 传递 EventBus
   );
-  const taskExecutor = new TaskExecutor();
+  const taskExecutor = new TaskExecutor(userConfig);
   const writingOrchestrator = new WritingOrchestrator();
   const dispatcher = new Dispatcher(projectDir, store, scheduler, taskExecutor, writingOrchestrator);
-  const outputValidator = new OutputValidator(projectDir);
+  const outputValidator = new OutputValidator(projectDir, userConfig);
 
   const EXECUTABLE_ACTIONS = new Set(['spawn_writers', 'spawn_reviewers', 'spawn_fixers']);
   const MAX_TICKS = 2000;  // 足够支持 85 章节 × 3+ 轮
@@ -243,15 +272,18 @@ export async function runWriteLoop(
               // 从 task id 中提取 round (格式: write-ch001-r1)
               const roundMatch = originalTask.id.match(/-r(\d+)$/);
               const taskRound = roundMatch ? parseInt(roundMatch[1], 10) : state.round;
-              // Bug 42 修复：读取 wordBudget 传给验证器
-              // 优先从章节状态读取，否则使用默认值 (target=6500, tolerance=0.2)
-              const chapterWordBudget = state.chapters?.[originalTask.chapterId!]?.wordBudget;
-              const wordBudget = chapterWordBudget || { min: 5200, max: 7800 };
+              // Bug 42 修复：从 state 读取 wordBudget 并传递给 validator
+              const wordBudget = state.chapters?.[originalTask.chapterId!]?.wordBudget;
               const validation = outputValidator.validate(originalTask, taskRound, wordBudget);
               if (!validation.valid) {
                 notify(`⚠️ ${OutputValidator.formatErrors(validation)}`, 'warning');
-                // 验证失败，标记任务为 failed 以便重试
-                await dispatcher.processTask(taskResult.id, 'failed', `Output validation failed: ${validation.errors.join('; ')}`);
+                // Bug 36.1 修复：验证失败时传递 failureType，防止被绕过
+                await dispatcher.processTask(
+                  taskResult.id, 
+                  'failed', 
+                  `Output validation failed: ${validation.errors.join('; ')}`,
+                  'validation_failed'
+                );
                 result.tasksFailed++;
                 result.tasksSucceeded--; // 之前已经加了 succeeded，现在回退
                 continue;
@@ -394,6 +426,44 @@ export default function (pi: ExtensionAPI) {
     },
   });
 
+  // ============ /confwrite:outline ============
+  pi.registerCommand('confwrite:outline', {
+    description: '自动生成大纲（基于模板和需求）',
+    handler: async (args, ctx) => {
+      if (!args) {
+        ctx.ui.notify('用法: /confwrite:outline <slug> <template> [targetWords]', 'info');
+        ctx.ui.notify('模板: technical-proposal, bid-document', 'info');
+        return;
+      }
+
+      const parts = args.split(/\s+/);
+      const slug = parts[0];  // 第一个参数是项目 slug
+      const template = parts[1];  // 第二个参数是模板
+      const targetWords = parts[2] ? parseInt(parts[2], 10) : undefined;
+      const workspaceDir = ctx.cwd || process.cwd();
+      const projectDir = resolve(workspaceDir, 'projects', slug);
+
+      try {
+        ctx.ui.notify('开始生成大纲...', 'info');
+        
+        const result = await outlineCommand({
+          projectDir,
+          template,
+          targetWords,
+        });
+
+        if (result.success) {
+          ctx.ui.notify(result.message, 'info');
+        } else {
+          ctx.ui.notify(`大纲生成失败: ${result.message}`, 'error');
+        }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        ctx.ui.notify(`大纲生成失败: ${msg}`, 'error');
+      }
+    },
+  });
+
   // ============ /confwrite:write ============
   pi.registerCommand('confwrite:write', {
     description: '推进写作流程（自动执行任务）',
@@ -448,7 +518,9 @@ export default function (pi: ExtensionAPI) {
       const failed = chapters.filter(ch => ch.status === 'failed').length;
       const writing = chapters.filter(ch => ['writing', 'reviewing', 'fixing'].includes(ch.status)).length;
 
-      let msg = `📊 项目: ${state.project}\n`;
+      const version = getConfWriteVersion();
+      let msg = `📦 ConfWrite v${version}\n`;
+      msg += `📊 项目: ${state.project}\n`;
       msg += `阶段: ${status.phase} (${status.name})\n`;
       msg += `状态: ${status.status}\n`;
       msg += `章节: ${completed}/${total} 完成`;
@@ -529,15 +601,17 @@ export default function (pi: ExtensionAPI) {
     description: '导出文档（md/html/docx）',
     handler: async (args, ctx) => {
       if (!args) {
-        ctx.ui.notify('用法: /confwrite:export <format> [output-path]', 'info');
+        ctx.ui.notify('用法: /confwrite:export <slug> <format> [output-path]', 'info');
         ctx.ui.notify('格式: md, html, docx', 'info');
         return;
       }
 
       const parts = args.split(/\s+/);
-      const format = parts[0] as 'md' | 'html' | 'docx';
-      const projectDir = ctx.cwd || process.cwd();
-      const outputPath = parts[1] || resolve(projectDir, `output/document.${format}`);
+      const slug = parts[0];  // 第一个参数是项目 slug
+      const format = parts[1] as 'md' | 'html' | 'docx';  // 第二个参数是格式
+      const workspaceDir = ctx.cwd || process.cwd();
+      const projectDir = resolve(workspaceDir, 'projects', slug);
+      const outputPath = parts[2] || resolve(projectDir, `output/document.${format}`);
 
       try {
         ctx.ui.notify(`开始导出 ${format.toUpperCase()}...`, 'info');

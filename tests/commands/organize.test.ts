@@ -115,5 +115,35 @@ describe('organize command', () => {
       // 应该仍然能扫描和索引，但没有章节映射
       expect(result.chapterMappings.length).toBe(0);
     });
+
+    it('passes type from outline.md to chapter mappings', async () => {
+      // Overwrite outline with type info
+      writeFileSync(
+        join(projectDir, 'outline.md'),
+        '# 技术方案\n\n## 1. 概述\nch001 系统概述\n\n本章类型: overview\n\n## 2. 设计\nch002 架构设计\n\n本章类型：architecture\n',
+        'utf-8'
+      );
+
+      const result = await organizeMaterials(projectDir);
+
+      expect(result.chapterMappings.length).toBe(2);
+      expect(result.chapterMappings[0].type).toBe('overview');
+      expect(result.chapterMappings[1].type).toBe('architecture');
+    });
+
+    it('falls back to functional when type is not specified', async () => {
+      // Outline without type info
+      writeFileSync(
+        join(projectDir, 'outline.md'),
+        '# 技术方案\n\n## 1. 概述\nch001 系统概述\n\n## 2. 设计\nch002 架构设计\n',
+        'utf-8'
+      );
+
+      const result = await organizeMaterials(projectDir);
+
+      expect(result.chapterMappings.length).toBe(2);
+      expect(result.chapterMappings[0].type).toBe('functional');
+      expect(result.chapterMappings[1].type).toBe('functional');
+    });
   });
 });

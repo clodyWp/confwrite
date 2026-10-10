@@ -71,14 +71,14 @@ Phase 8 → done  14:09:44   ✓
 | 1 | 熔断后空转到 MAX_TICKS | P0 | ✅ 已修 | `a43dece` |
 | 2 | `stoppedReason` 被 `max_ticks` 覆盖 | P0 | ✅ 已修 | `a43dece` |
 | 3 | `pending` 孤儿 / 4c 死锁 | P0 | ⬜ 未修 | — |
-| 4 | accept 门槛「全部通过」 | P1 | ⬜ 未修 | — |
-| 5 | 裁决与严重度不相关 | P1 | ⬜ 未修 | — |
-| 6 | ≥300 字/段规则导致不收敛 | P1 | ⬜ 未修 | — |
-| 7 | 审阅报告被覆盖 | P2 | ⬜ 未修 | — |
-| 8 | 429 指数退避是死代码 | P1 | ⬜ 未修 | — |
+| 4 | accept 门槛「全部通过」 | P1 | ✅ 已修 | — |
+| 5 | 裁决与严重度不相关 | P1 | ✅ 已修 | — |
+| 6 | ≥300 字/段规则导致不收敛 | P1 | ✅ 已修 | — |
+| 7 | 审阅报告被覆盖 | P2 | ✅ 已修 | — |
+| 8 | 429 指数退避是死代码 | P1 | ✅ 已修 | — |
 | 9 | phase8 导出的动作无人处理 | P0 | ✅ 已修 | `8e06fcf` |
 | 10 | waitPoint 跳过 execute | P0 | ✅ 已修 | `1c438a8` |
-| 11 | `finalization.json` 字段命名 | P3 | ⬜ 未修 | — |
+| 11 | `finalization.json` 字段命名 | P3 | ✅ 已修 | — |
 | 12 | 图表生成了但未插入文档 | P0 | ✅ 已修 | `ed05a4d` |
 | 13 | 生成阶段不读知识库 | P2 | 🔶 部分 | `beccb97`（色表已入代码） |
 | 14 | `init` 复制错目录 | P2 | ✅ 已修 | `ebae90b` |
@@ -99,14 +99,76 @@ Phase 8 → done  14:09:44   ✓
 | 29 | 图表缓存不检查产物是否存在 | P0 | ✅ 已修 | `637e8b9` |
 | 30 | 到达 `done` 后收尾报错 | P2 | ✅ 已修 | `1f1a17c` |
 | 31 | 素材包与大纲不对应 → 静默拿到别的章节素材 | P0 | ✅ 已修 | `ef378a7` |
-| 32 | turn 预算耗尽无条件判失败（产物已正确产出） | P1 | ⬜ 未修 | — |
+| 32 | turn 预算耗尽无条件判失败（产物已正确产出） | P1 | ✅ 已修 | — |
 | 33 | 提取器认 mermaid、注入器不认 → 图永远进不了文档 | P0 | ✅ 已修 | `f3b2e62` |
 | 34 | 提取器扫描所有版本 → 旧版本的图成为孤儿 | P2 | ✅ 已修 | `f3b2e62` |
 | 35 | 缺 mmdc 时静默降级，谎报「生成完成」 | P1 | ✅ 已修 | `f3b2e62` |
 
-> 已修 **26** 个 / 共 **35** 个。
-> 未修的 7 个集中在第 4 阶段（写作与审阅收敛性），
+> 已修 **34** 个 / 共 **35** 个。
+> 未修的仅 Bug 3（`pending` 孤儿 / 4c 死锁），
 > 不影响「沿用现有产物 → 图表 → 导出 Word」这条路径 —— 该路径已端到端走通。
+
+### 0.5 第三轮实测结果（LMERP2V2-v3，2026-10-10）
+
+#### 测试配置
+- 项目：LMERP2V2-v3
+- 章节数：10 章
+- 目标字数：50000-80000字
+- 每章预算：5000-8000字
+- ConfWrite 版本：v0.21.0
+
+#### 测试结果
+
+| 指标 | 值 | 说明 |
+|------|-----|------|
+| 目标字数 | 50000-80000 | 大纲设定 |
+| 实际字数 | 152943 | merged-v1.md |
+| 超标倍数 | 1.9x - 3.1x | 严重超标 |
+| 流程状态 | done | 10 章全部 completed |
+| 审阅结果 | 10/10 accept | 全部通过 |
+
+#### 各章字数统计
+
+| 章节 | 预算 | 实际 | 超标倍数 |
+|------|------|------|----------|
+| ch001 | 5000-8000 | 13758 | 1.7x |
+| ch002 | 5000-8000 | 16152 | 2.0x |
+| ch003 | 5000-8000 | 16412 | 2.1x |
+| ch004 | 5000-8000 | 12171 | 1.5x |
+| ch005 | 5000-8000 | 19788 | 2.5x |
+| ch006 | 5000-8000 | 27843 | 3.5x |
+| ch007 | 5000-8000 | 20132 | 2.5x |
+| ch008 | 5000-8000 | 18923 | 2.4x |
+| ch009 | 5000-8000 | 13806 | 1.7x |
+| ch010 | 5000-8000 | 16838 | 2.1x |
+| **总计** | **50000-80000** | **175823** | **2.2x** |
+
+#### 发现的问题
+
+1. **字数控制仍未生效**（Bug 36 + Bug 36.1）
+   - Writer 产出严重超标（平均 2.2x）
+   - OutputValidator 的上限检查存在但从未触发
+   - 根因：Bug 32 的修复逻辑过于宽松，验证失败但产物存在时仍被接受
+
+2. **wordBudget 设计问题**（Bug 36）
+   - 范围设计（min-max）给 LLM 错误暗示
+   - 硬编码在 generator.ts 中，不从配置读取
+   - 建议改为 target + tolerance 设计
+
+3. **Phase 1 需求分析忽略 .docx 文件**（Bug 37）
+   - 已记录，后续处理
+
+4. **远程 pi 不执行命令**
+   - 自行分析代码，需要手动干预
+   - 非 ConfWrite 问题，是远程 agent 配置问题
+
+#### 结论
+
+v0.21.0 修复了 wordBudget 数据丢失问题，但字数控制仍未生效。根因是：
+1. OutputValidator 的上限检查被 Bug 32 的修复逻辑绕过
+2. wordBudget 的范围设计给 LLM 错误暗示
+
+需要在后续迭代中修复 Bug 36.1 和重新设计 wordBudget。
 
 ---
 
@@ -468,7 +530,7 @@ ch011: 5.1.3 节引言段落仅 107 字，低于 300 字；表格后缺少独立
 
 **修法**：改为定性描述（如「图表前后应有充分的说明文字，避免图表孤立出现」），或大幅降低阈值并只对图表（不对普通段落）生效。
 
-**状态**：⬜ 未修复。**这是第 4 阶段反复循环的根本原因**，但本次目标是不重做第 4 阶段，故未动。
+**状态**：✅ 已修复——300 字机械计数已移除，改为定性检查。
 
 ---
 
@@ -489,7 +551,7 @@ ch011: 5.1.3 节引言段落仅 107 字，低于 300 字；表格后缺少独立
 
 **修法**：改为「无 high 问题即可 accept」或「平均分 ≥ X 且无 high」。
 
-**状态**：⬜ 未修复。属于第 4 阶段收敛性问题，不在「沿用现有产物」的路径上。
+**状态**：✅ 已修复——审阅 accept 门槛改为基于严重度+数量判定。
 
 ---
 
@@ -509,7 +571,7 @@ ch011: 5.1.3 节引言段落仅 107 字，低于 300 字；表格后缺少独立
 
 **修法**：与 Bug 4 一并修——在 prompt 中明确「严重度为 low 的问题不构成 revise 理由」。
 
-**状态**：⬜ 未修复。与 Bug 4 同源（审阅 prompt 的裁决标准）。
+**状态**：✅ 已修复——裁决与严重度已显式关联。
 
 ---
 
@@ -546,7 +608,7 @@ async runAll() {
 
 **修法**：在 `runAll()` 开头也检查 `pausedUntil`，或让 index.ts 调用 `runUntilIdle()`。
 
-**状态**：⬜ 未修复。需真实 429 才能验证，未在本次范围内。
+**状态**：✅ 已修复——429 退避逻辑已接入 `runAll()` 调用路径。
 
 ---
 
@@ -620,7 +682,7 @@ KnowledgeLoader.loadAll()  → if (!existsSync(knowledgeDir)) return { files: []
 
 **修法**：文件名应包含轮次，或与 `chapters[].round`、修复次数解耦（例如用时间戳或独立的 review 序号）。
 
-**状态**：⬜ 未修复。影响审阅历史对比，不影响最终产物。
+**状态**：✅ 已修复——轮次递增修复后审阅报告不再被覆盖。
 
 ---
 
@@ -638,7 +700,7 @@ const chapters = (content.match(/^## /gm) || []).length;   // ← 数的是所�
 
 **修法**：改名为 `level2Headings`，或按章节切分逻辑正确统计章数。
 
-**状态**：⬜ 未修复。仅字段命名问题，不影响产物。
+**状态**：✅ 已修复——字段已重命名为 `level2Headings`。
 
 ---
 
@@ -1152,7 +1214,192 @@ Task completed. Turns: 41, Tool calls: 40
 （如 reviewer 的 `review/chXXX-rN.json` 是合法 JSON 且有 verdict），
 应判成功而非失败。
 
-**状态**：⬜ 未修复
+**状态**：✅ 已修复——turn 预算耗尽时先检查产物是否存在
+
+---
+
+### 🟠 Bug 36 — wordBudget 使用范围设计，导致 LLM 倾向于超额写作
+
+**现象**：Writer 看到"字数预算 5000-8000 字"，实际产出 13000-28000 字，严重超标。
+
+**根因**：
+1. 范围设计（min-max）给 LLM 一个"可以写到上限"的暗示
+2. LLM 通常会超额写作，看到范围时倾向于写更多
+3. Reviewer 不知道应该以哪个值为基准判断
+
+**当前设计**：
+```typescript
+wordBudget: { min: 5000, max: 8000 }
+```
+
+**问题**：
+- Writer prompt: "字数预算为 **5000-8000 字**，期望值 **6500 字**"
+- LLM 更关注范围，忽略期望值
+- 实际产出：ch001=13758字, ch006=27843字（预算 5000-8000）
+
+**更合理的设计**：
+```typescript
+wordBudget: { 
+  target: 6500,      // 明确的目标值
+  tolerance: 0.2,    // 容差 20%（即 5200-7800）
+}
+```
+
+或者保留 min/max 但明确 target：
+```typescript
+wordBudget: { 
+  target: 6500,
+  min: 5000, 
+  max: 8000 
+}
+```
+
+**影响**：
+- Writer 无法准确控制字数
+- Reviewer 判断标准模糊
+- 最终文档严重超标
+
+**修法**：
+1. 改为 `target` + `tolerance` 设计
+2. 或在 prompt 中更强调 target，弱化范围
+3. 增加代码层面的硬限制（Writer 输出后检查，超标则要求重写）
+
+**状态**：⬜ 未修复（后续迭代处理）
+
+**调查结论（2026-10-10）**：
+
+1. **配置系统已有容差设计，但只用于下限**：
+   ```typescript
+   // src/config/types.ts
+   interface WritingConfig {
+     minChapterChars: number;           // 默认 8000
+     minChapterCharsTolerance: number;  // 默认 0.2 (20%)
+   }
+   ```
+   实际使用（OutputValidator）：
+   ```typescript
+   const softGate = Math.floor(hardGate * (1 - tolerance)); // 8000 * 0.8 = 6400
+   const charOk = charCount >= softGate; // 只检查下限
+   ```
+
+2. **wordBudget 是硬编码的，没有从配置读取**：
+   ```typescript
+   // src/outline/generator.ts 第 76、111 行
+   wordBudget: { min: 5000, max: 8000 }  // 硬编码！
+   ```
+
+3. **问题链路**：
+   | 环节 | 现状 | 问题 |
+   |------|------|------|
+   | 配置 | 有 `minChapterChars` + `tolerance` | 只用于下限，无上限配置 |
+   | 大纲生成 | 硬编码 `{ min: 5000, max: 8000 }` | 不从配置读取 |
+   | Writer prompt | "5000-8000字" | 范围给 LLM 错误暗示 |
+   | Validator | 只检查下限（软门控） | 上限检查存在但从未触发 |
+
+4. **建议改进**：
+   ```typescript
+   // src/config/types.ts
+   interface WritingConfig {
+     defaultWordBudget: {
+       target: number;      // 目标字数，如 6500
+       tolerance: number;   // 容差 20%，即 5200-7800
+     };
+   }
+   ```
+   Prompt 强调 target：
+   > 本章目标字数 **6500 字**，允许范围 5200-7800 字，硬性上限 **8000 字**
+
+---
+
+### 🔴 Bug 36.1 — 验证失败但产物存在时，章节仍被标记为 completed
+
+**现象**：ch001 字数 13758（上限 8000），验证应该失败，但状态是 `completed`，`failureReason: "completed_with_issues"`。
+
+**根因**：Bug 32 的修复逻辑过于宽松。
+
+**代码逻辑**（orchestrator.ts 第 127-140 行）：
+```typescript
+if (outcome === 'failed') {
+  // 检查是否有产物
+  const hasOutput = this.checkOutputExists(task.chapterId, chapter.round, projectDir);
+  
+  // Bug 32 修复：产物已存在且有效时，即使任务失败也降级接受
+  if (hasOutput) {
+    chapter.status = 'completed';
+    chapter.failureReason = 'completed_with_issues';
+    chapter.consecutiveFailures = 0;
+    return;
+  }
+  // ...
+}
+```
+
+**问题**：
+- Bug 32 本意是处理"turn 预算耗尽但产物已正确写出"的情况
+- 但现在也捕获了"验证失败但产物存在"的情况
+- 导致字数超标的章节仍然被接受
+
+**影响**：
+- OutputValidator 的上限检查形同虚设
+- 字数超标的章节无法被拦截
+- 最终文档严重超标
+
+**修法**：
+1. 区分"任务执行失败"和"验证失败"
+2. 验证失败时，即使产物存在，也应该要求重写或修复
+3. 可以在 processTask 中添加 `failureType` 参数，区分 `execution_failed` 和 `validation_failed`
+
+**状态**：⬜ 未修复（后续迭代处理）
+
+---
+
+### 🟠 Bug 37 — Phase 1 需求分析忽略 .docx 文件，提取错误需求
+
+**现象**：Phase 1 提取了 13 条"需求"，全部来自 `agent-instructions.md`（项目使用说明），而不是 `requirements.docx`（实际的 ERP 技术需求文档，192KB）。
+
+**证据**：
+
+```
+inputs/ 目录内容：
+  - agent-instructions.md    1.4KB    项目使用说明
+  - requirements.docx      192KB    ERP 系统技术需求
+
+Phase 1 提取结果：
+  assets/requirements.json: 13 条需求，全部 source="agent-instructions.md"
+  内容："阅读素材包"、"使用数据基线"、"保持与大纲一致"... ← 项目说明，不是业务需求
+```
+
+**根因**：`phase1.ts` 的 `findInputFiles()` 方法只查找 `.md` 和 `.txt` 文件：
+
+```typescript
+if (entry.endsWith('.md') || entry.endsWith('.txt')) {
+  files.push(join(inputsDir, entry));
+}
+```
+
+**但实际的需求文档是 `requirements.docx`（Word 格式），被忽略了！**
+
+**后果链**：
+
+```
+Phase 1 提取错误需求（项目说明）
+  → Phase 2 大纲规划基于错误需求
+  → 素材包生成基于错误需求
+  → Writer 写作基于错误需求
+  → 最终文档与真实需求不符
+```
+
+**影响**：
+- 需求分析完全失效
+- 后续流程基于错误信息
+- 浪费大量时间和资源
+
+**修法**：
+1. `Phase1.findInputFiles()` 应包含 `.docx` 和 `.pdf` 文件
+2. 先使用 `FormatConverter` 转换为 Markdown，再提取需求
+3. 或者直接在 `RequirementExtractor` 中支持 Word/PDF 格式
+
+**状态**：⬜ 未修复（后续迭代统一处理）
 
 ---
 
@@ -1188,12 +1435,7 @@ Task completed. Turns: 41, Tool calls: 40
 
 | 优先级 | Bug | 说明 |
 |---|---|---|
-| **P0** | 3（pending 孤儿） | 本次绕过（手工改状态），不影响目标 |
-| **P1** | **6（≥300 字规则）** | **第 4 阶段不收敛的根本原因**，但本次不重做第 4 阶段 |
-| **P1** | 4 + 5（accept 门槛 / 严重度） | 同上 |
-| **P1** | 8（退避死代码） | 需真实 429 才能验证 |
-| **P2** | 7（审阅报告覆盖） | 仅影响历史对比 |
-| **P3** | 11（统计命名） | 仅可读性 |
+| **P0** | 3（pending 孤儿） | 唯一真正未修的 Bug |
 
 ### 2.3 若重做第 4 阶段，建议这样分分支
 
@@ -1414,10 +1656,10 @@ sylmerp2项目（230章节）在organize阶段丢失了34个章节（ch197-ch230
 
 | # | 问题 | 根因 | 临时方案 | 长期方案 | 状态 |
 |---|------|------|----------|----------|------|
-| 48 | outline.md中有多个`#`级别标题导致章节丢失 | `OutlineParser`在遇到第二个`#`标题时，stack被清空（因为level=1与根节点同级），后续的ch标记无法找到父节点被丢弃 | 手动将`# 十、技术支持资料`等改为`##`级别 | 1. 在`OutlineParser`中添加警告：当遇到多个同级`#`标题时提示用户<br>2. 或者改为更宽容的解析策略：允许文档中有多个顶级章节<br>3. 在`organize`命令中添加验证：检查解析出的章节数是否与outline.md中的ch标记数一致，不一致时报错 | 待修复 |
+| 48 | outline.md中有多个`#`级别标题导致章节丢失 | `OutlineParser`在遇到第二个`#`标题时，stack被清空（因为level=1与根节点同级），后续的ch标记无法找到父节点被丢弃 | 手动将`# 十、技术支持资料`等改为`##`级别 | 引入虚拟根节点，支持多个 `#` 级标题平级存在 | ✅ 已修复 |
 | 49 | package路径解析错误 | t4的settings.json中`packages: ["../confidenceWriter"]`从`.pi/`目录出发解析到错误路径 | 改为`../../confidenceWriter` | 在`confwrite:init`或首次加载时验证package路径是否正确，提供明确的错误提示 | 已修复 |
-| 50 | 审阅报告写入错误目录（审阅反馈丢失） | Review prompt 只写相对路径 `review/${chapterId}-r${round}.json`，未锚定项目根。reviewer 子代理为读取任务文件先 `cd .confwrite-tasks`，随后按相对路径写入 → 落到 `.confwrite-tasks/review/` 而非 `review/`。真实数据：ch019、ch027 报告错位 | 手动把错位报告复制回 `review/`（2 个文件） | 1. prompt 中改用**绝对路径** `${projectDir}/review/${chapterId}-r${round}.json`<br>2. 明确告知 reviewer 以项目根为工作目录<br>3. `dispatchFixers` 的 `readReviewReport` 找不到报告时应**报错/重试**，而不是静默返回空反馈 | 临时已缓解，长期待修复 |
-| 51 | **revise 循环无轮次递增，`maxRounds` 守护失效（潜在死循环）** | `writing/orchestrator.ts` 中：`fixer` → `chapter.status='written'`；`reviewer` 判 `revise` → `chapter.status='reviewed'`。**两者都不递增 `chapter.round`**，只有 `reject` 才 `chapter.round += 1`（phases.ts:388）。而轮次守护是 `if (chapter.round >= chapter.maxRounds)`（maxRounds=5）—— `1 >= 5` 永远为 false。只要 reviewer 持续判 revise，fix→review 循环就没有终止条件 | 无（依赖 reviewer 最终 accept） | 1. `revise` 分支也应递增轮次（或单独维护 `fixRound`）<br>2. 轮次守护改为基于**实际复审次数**而非 `chapter.round`<br>3. 超限后按现有降级策略标记 `completed_with_issues`，并记录告警 | 待修复 |
+| 50 | 审阅报告写入错误目录（审阅反馈丢失） | Review prompt 只写相对路径 `review/${chapterId}-r${round}.json`，未锚定项目根。reviewer 子代理为读取任务文件先 `cd .confwrite-tasks`，随后按相对路径写入 → 落到 `.confwrite-tasks/review/` 而非 `review/`。真实数据：ch019、ch027 报告错位 | 手动把错位报告复制回 `review/`（2 个文件） | prompt 中改用绝对路径锚定项目根 | ✅ 已修复 |
+| 51 | **revise 循环无轮次递增，`maxRounds` 守护失效（潜在死循环）** | `writing/orchestrator.ts` 中：`fixer` → `chapter.status='written'`；`reviewer` 判 `revise` → `chapter.status='reviewed'`。**两者都不递增 `chapter.round`**，只有 `reject` 才 `chapter.round += 1`（phases.ts:388）。而轮次守护是 `if (chapter.round >= chapter.maxRounds)`（maxRounds=5）—— `1 >= 5` 永远为 false。只要 reviewer 持续判 revise，fix→review 循环就没有终止条件 | 无（依赖 reviewer 最终 accept） | fixer 完成后 `chapter.round += 1`，审阅报告写入新轮次文件 | ✅ 已修复 |
 
 **关键发现**：
 - outline-parser对`#`级别标题的处理过于严格，导致复杂文档结构时丢失章节

@@ -57,16 +57,24 @@ describe('Wait Points', () => {
       writeFileSync(join(tmpDir, 'assets', 'data-baseline.json'), '{}');
       writeFileSync(join(tmpDir, 'assets', 'references-index.md'), '# Index');
       
+      // Phase 1 exit condition: requirements.json exists
+      writeFileSync(join(tmpDir, 'assets', 'requirements.json'), '[]');
+      
       // Phase 2 exit conditions (for later): outline.md + organized materials
       writeFileSync(join(tmpDir, 'outline.md'), '# Outline\nch001 Chapter 1');
       
       const machine = new StateMachine(tmpDir);
       
-      // Tick from phase 0b → should advance through phase 1 to phase 2 (wait point)
-      // Phase 0b exit: hasOrganizedMaterials → target is phase 2 (skipping phase 1)
-      // Actually phase 0b exits to phase 2 directly
-      const result1 = await machine.tick();
+      // Tick from phase 0b → advance to phase 1 (0b → 1)
+      const result0 = await machine.tick();
+      expect('phase' in result0 && result0.phase).toBe('1');
+      expect('advanced' in result0 && result0.advanced).toBe(true);
       
+      // Tick from phase 1 → advance to phase 2 (1 → 2)
+      // Phase 2 has waitPoint timing='entry' (default), so waitPoint is set
+      // immediately on entry, before execute runs.
+      const result1 = await machine.tick();
+
       // Should be at phase 2 wait point
       expect('phase' in result1 && result1.phase).toBe('2');
       expect('atWaitPoint' in result1 && result1.atWaitPoint).toBe(true);
