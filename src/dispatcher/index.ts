@@ -136,6 +136,8 @@ export class Dispatcher {
       };
       // 从 state 读取 wordBudget 并传递给 prompt
       const wordBudget = state?.chapters?.[chapterId]?.wordBudget;
+      // [DIAG] 诊断日志：检查 wordBudget 是否正确传递
+      console.log(`[DIAG-REVIEW] chapter=${chapterId} wordBudget=${JSON.stringify(wordBudget)} statePhase=${state?.currentPhase} chapterKeys=${Object.keys(state?.chapters || {}).join(',')}`);
       task.prompt = this.taskExecutor.generateReviewerPrompt(task, draftContent, baseline, round, knowledgeContent, this.projectDir, wordBudget);
       sequence++;
       tasks.push(task);
