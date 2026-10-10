@@ -39,7 +39,7 @@ CONFWRITE_REAL_DRAFTS=/path/to/project/drafts/chapters npm test
 
 ### 前置依赖
 
-- **Node.js** >= 18
+- **Node.js** >= 22.19.0 (required by the supported pi host dependency)
 - **pandoc** (可选，仅导出 DOCX/PDF 时需要)
   - macOS: `brew install pandoc`
   - Ubuntu/Debian: `sudo apt install pandoc`
