@@ -8,12 +8,12 @@ on:
 
 jobs:
   test:
-    name: Build & Test
+    name: Build & Test (Node ${{ matrix.node-version }})
     runs-on: ubuntu-latest
     
     strategy:
       matrix:
-        node-version: [18.x, 20.x]
+        node-version: [22.x, 24.x]
     
     steps:
       - uses: actions/checkout@v4
@@ -35,3 +35,12 @@ jobs:
       
       - name: Check docs consistency
         run: npm run docs:check
+
+  pr-evidence:
+    name: PR Evidence
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate PR evidence
+        run: node scripts/check-pr-evidence.js
