@@ -1,8 +1,8 @@
 ---
 name: 功能章
 wordBudget:
-  min: 12000
-  max: 20000
+  min: 5200
+  max: 7800
 importance: 5
 writingStyle: functional
 writingGuidance: |

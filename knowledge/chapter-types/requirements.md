@@ -1,8 +1,8 @@
 ---
 name: 需求章
 wordBudget:
-  min: 8000
-  max: 12000
+  min: 5200
+  max: 7800
 importance: 4
 writingStyle: functional
 writingGuidance: |

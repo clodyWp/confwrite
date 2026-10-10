@@ -1,8 +1,8 @@
 ---
 name: 保障章
 wordBudget:
-  min: 8000
-  max: 12000
+  min: 5200
+  max: 7800
 importance: 3
 writingStyle: functional
 writingGuidance: |

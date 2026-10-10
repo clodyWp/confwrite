@@ -156,11 +156,16 @@ export class Dispatcher {
     const tasks: Task[] = [];
     let sequence = 1;
 
+    // Bug 41 修复：读取 wordBudget 传给 Fixer
+    const state = this.store.load();
+
     for (const chapterId of chapters) {
       // 读取当前版本草稿: ch001-v${round}.md
       const draftContent = this.readChapterDraft(chapterId, round);
       // 读取当前版本审阅报告: ch001-r${round}.json
       const reviewContent = this.readReviewReport(chapterId, round);
+      // Bug 41 修复：读取 wordBudget
+      const wordBudget = state?.chapters?.[chapterId]?.wordBudget;
       const task: Task = {
         id: `fix-${chapterId}-r${round}`,
         type: 'fixer',
@@ -173,7 +178,7 @@ export class Dispatcher {
         dependencies: [],
       };
       // Fixer 输出新版本: ch001-v${round+1}.md
-      task.prompt = this.taskExecutor.generateFixPrompt(task, draftContent, reviewContent, round);
+      task.prompt = this.taskExecutor.generateFixPrompt(task, draftContent, reviewContent, round, wordBudget);
       sequence++;
       tasks.push(task);
       this.scheduler.submit(task);

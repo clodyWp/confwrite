@@ -1,8 +1,8 @@
 ---
 name: 实施章
 wordBudget:
-  min: 10000
-  max: 15000
+  min: 5200
+  max: 7800
 importance: 4
 writingStyle: process
 writingGuidance: |

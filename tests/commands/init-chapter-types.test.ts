@@ -104,17 +104,17 @@ describe('init command - chapter types', () => {
 
     const chapterTypesDir = join(result.projectDir, 'knowledge', 'chapter-types');
     
-    // 检查不同类型的字数预算
+    // Bug 41 修复：所有章节类型统一使用 5200-7800 字数预算
     const overviewContent = readFileSync(join(chapterTypesDir, 'overview.md'), 'utf-8');
     expect(overviewContent).toContain('min: 5000');
     expect(overviewContent).toContain('max: 8000');
 
     const requirementsContent = readFileSync(join(chapterTypesDir, 'requirements.md'), 'utf-8');
-    expect(requirementsContent).toContain('min: 8000');
-    expect(requirementsContent).toContain('max: 12000');
+    expect(requirementsContent).toContain('min: 5200');
+    expect(requirementsContent).toContain('max: 7800');
 
     const architectureContent = readFileSync(join(chapterTypesDir, 'architecture.md'), 'utf-8');
-    expect(architectureContent).toContain('min: 10000');
-    expect(architectureContent).toContain('max: 15000');
+    expect(architectureContent).toContain('min: 5200');
+    expect(architectureContent).toContain('max: 7800');
   });
 });
