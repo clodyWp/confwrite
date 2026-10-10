@@ -1678,3 +1678,85 @@ sylmerp2项目（230章节）在organize阶段丢失了34个章节（ch197-ch230
 - 修复产物同样受影响：`dispatchFixers` 的 `outputFile = chXXX-v${round+1}.md`，round 恒为 1 → 总是输出 **v2**，二次修复会**覆写 v2**
 - 风险评估：内容确实在改进（accept 率明显：已复审的 ch002/ch003 均 accept），所以多数章节能收敛；但**无终止保证**，遇到持续挑刺的 reviewer 会无限循环
 - 验证方法：统计「已有 v2 且状态回到 reviewed」的章节数。若同一章节反复回到 reviewed，则循环在发生
+
+---
+
+## 第八轮：E2E 测试发现的字数控制与配置问题（v0.21.1+）
+
+项目 LMERP2V2-v5 端到端测试中发现 3 个严重问题，导致字数超标 6.1x、审阅验证失效、并发配置不生效。
+
+| # | 问题 | 根因 | 状态 |
+|---|------|------|------|
+| 41 | **minChapterChars 与 wordBudget 矛盾导致字数超标 6x** | Writer prompt 同时要求"不少于 8000 字"（minChapterChars）和"不得超过 7800 字"（wordBudget.max），自相矛盾。章节类型 YAML 的 wordBudget（12000-20000）远超配置（5200-7800）。Fixer 不接收 wordBudget，修复循环无上限约束 | ✅ 已修复（PR #22） |
+| 42 | **OutputValidator 不验证 Reviewer 的字数，verdict 与 issues 矛盾** | validateReviewerOutput 仅检查 JSON 格式，不独立验证字数。wordBudget 在 reviewer 分支被丢弃。WritingOrchestrator 盲信 verdict，verdict=accept 直接标记 completed，无二次验证 | ✅ 已修复（PR #23） |
+| 43 | **E2E 测试计划配置模板格式错误导致 maxConcurrency 未生效** | 测试计划创建扁平配置 `{ "maxConcurrency": 2 }`，但 loader 期望嵌套格式 `{ "scheduler": { "maxConcurrency": 2 } }`。mergeConfig 静默丢弃扁平键，使用默认值 maxConcurrency=1 | ✅ 已修复（PR #27） |
+
+**Bug 41 详细分析**：
+
+E2E 测试数据：
+```
+章节 | 字数 | 预算 | 超标倍数
+ch001 | 32,149 | 5,000-8,000 | 4.0x
+ch002 | 46,556 | 5,000-8,000 | 5.8x
+ch003 | 32,302 | 5,000-8,000 | 4.0x
+ch004 | 39,128 | 5,000-8,000 | 4.9x
+ch005 | 37,922 | 5,000-8,000 | 4.7x
+ch006 | 49,602 | 5,000-8,000 | 6.2x
+ch007 | 48,079 | 5,000-8,000 | 6.0x
+ch008 | 44,924 | 5,000-8,000 | 5.6x
+ch009 | 30,000 | 5,000-8,000 | 3.8x
+ch010 | 37,038 | 5,000-8,000 | 4.6x
+平均 | 39,770 | 6,500 | 6.1x
+```
+
+根因链路：
+1. `minChapterChars=8000` > `wordBudget.max=7800`，prompt 自相矛盾
+2. 模板回退路径使用 `knowledge/chapter-types/functional.md` 的 wordBudget（12000-20000），是配置的 2.5x
+3. Fixer 不接收 wordBudget，修复循环无上限约束
+4. LLM 天然倾向于超额写作，prompt 中的"硬性上限"没有强制约束力
+
+修复方案：
+- 将 `minChapterChars` 默认值从 8000 改为 5000，与 `wordBudget.min` 一致
+- Writer/Fixer prompt 使用 `wordBudget.min` 而非 `minChapterChars`
+- Fixer 增加 `wordBudget` 参数，修复循环也有字数上限约束
+- 章节类型 YAML wordBudget 统一为 5200-7800
+
+**Bug 42 详细分析**：
+
+数据流：
+```
+Writer 完成 → OutputValidator ✅ 检查字数
+    ↓
+Reviewer LLM → verdict=accept（但 issues 中提到字数超标）
+    ↓
+OutputValidator(reviewer) → ✅ 仅检查 JSON 格式，丢弃 wordBudget
+    ↓
+WritingOrchestrator → verdict=accept → completed（盲信 verdict）
+```
+
+修复方案：
+- `validateReviewerOutput` 增加 `wordBudget` 参数，独立验证字数上下限
+- 增加 verdict 一致性检查：issues 提到字数问题但 verdict=accept 时标记失败
+- `validateWriterOutput` 使用 `wordBudget` 而非 `MIN_CHAPTER_CHARS`
+- `ChapterState` 增加 `wordBudget` 字段
+
+**Bug 43 详细分析**：
+
+配置加载流程：
+```
+confwrite.config.json (扁平) 
+    → mergeConfig() 中 override.scheduler = undefined
+    → 使用默认值 maxConcurrency: 1
+    → slice(0, 1) → 每次只执行 1 个任务
+    → 日志显示 "并发 0/1"
+```
+
+修复方案：
+- 修正 E2E 测试计划的配置模板为嵌套格式
+- 添加完整的 `scheduler` 和 `rateLimit` 配置项
+
+**回归测试结果**：
+- 所有测试通过（1288 passed）
+- 字数控制逻辑统一，prompt 不再自相矛盾
+- OutputValidator 独立验证字数，不再盲信 LLM verdict
+- 配置模板格式正确，maxConcurrency 可以正常生效
