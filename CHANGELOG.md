@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.21.2] - 2026-10-10
+### Fixed
+- **Bug #41: minChapterChars 与 wordBudget 矛盾导致字数超标 6x** — 统一字数配置，消除 prompt 自相矛盾
+  - `config/loader.ts`: `minChapterChars` 默认值从 8000 改为 5000，与 `wordBudget.min` 一致
+  - `task-executor.ts`: Writer/Fixer prompt 使用 `wordBudget.min` 而非 `minChapterChars`
+  - `dispatcher/index.ts`: Fixer 增加 `wordBudget` 参数，修复循环也有字数上限约束
+  - `knowledge/chapter-types/*.md`: 章节类型 YAML wordBudget 统一为 5200-7800
+- **Bug #42: OutputValidator 不验证 Reviewer 的字数** — 增加独立字数验证和 verdict 一致性检查
+  - `output-validator.ts`: `validateReviewerOutput` 增加 `wordBudget` 参数，独立验证字数上下限
+  - `output-validator.ts`: 增加 verdict 一致性检查（issues 提到字数问题但 verdict=accept 时标记失败）
+  - `state/schema.ts`: `ChapterState` 增加 `wordBudget` 字段
+  - `index.ts`: 从 state 读取 wordBudget 传给验证器
+- **Bug #43: E2E 测试计划配置模板格式错误** — 修正配置模板为嵌套格式
+  - `scripts/E2E-TEST-PLAN.md`: 将扁平配置格式改为嵌套格式（`scheduler.maxConcurrency` 而非顶层 `maxConcurrency`）
+
+### Added
+- 15 个单元测试覆盖字数验证和 verdict 一致性检查
+
 ## [0.21.1] - 2026-10-10
 ### Fixed
 - **Bug 36: wordBudget 范围设计导致 LLM 超额写作** — 配置化 wordBudget，prompt 强调 target
