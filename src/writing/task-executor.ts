@@ -62,19 +62,23 @@ export class TaskExecutor {
     const outputFile = `drafts/chapters/${task.chapterId}-v${round}.md`;
     
     // 字数预算参考部分
+    // Bug 36 修复：强调 target，弱化范围
     const expected = wordBudget?.expected ?? Math.round(((wordBudget?.min ?? 0) + (wordBudget?.max ?? 0)) / 2);
     const wordBudgetSection = wordBudget ? `
 ## 字数预算（硬性要求，必须严格遵守）
 
-本章的字数预算为 **${wordBudget.min}-${wordBudget.max} 字**，期望值 **${expected} 字**。
+**目标字数**：**${expected} 字**
 
-**硬性上限**：本章字数**不得超过 ${wordBudget.max} 字**。
+**允许范围**：${wordBudget.min}-${wordBudget.max} 字
+
+**硬性上限**：本章字数**绝对不得超过 ${wordBudget.max} 字**。
 
 **重要说明**：
-- 字数上限是**硬性要求**，超过将被审阅拒绝并要求修改
-- **强制要求**是最低 **${this.config.writing.minChapterChars} 字**（必须达到）
-- 字数必须控制在 **${wordBudget.min}-${wordBudget.max} 字** 范围内
+- 请尽量接近目标字数 **${expected} 字**
+- 字数上限是**绝对硬性要求**，超过将被拒绝并要求修改
+- **强制最低**是 **${this.config.writing.minChapterChars} 字**（必须达到）
 - 不要因为预算而牺牲内容质量，但必须严格遵守字数限制
+- 宁可稍微少写，也不要超过上限
 
 ---
 ` : '';

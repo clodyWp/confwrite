@@ -116,6 +116,7 @@ export class WritingOrchestrator {
     task: Task,
     outcome: 'success' | 'failed',
     projectDir?: string,
+    failureType?: 'execution_failed' | 'validation_failed',
   ): void {
     if (!task.chapterId) return;
     
@@ -128,6 +129,21 @@ export class WritingOrchestrator {
 
     if (outcome === 'failed') {
       chapter.consecutiveFailures += 1;
+      
+      // Bug 36.1 修复：区分失败类型
+      // - validation_failed（如字数超标）：即使有产物也要进入修复循环
+      // - execution_failed（如 turn 耗尽）：有产物可降级接受
+      if (failureType === 'validation_failed') {
+        // 验证失败：进入修复循环，不降级接受
+        if (chapter.consecutiveFailures >= 5) {
+          chapter.status = 'failed';
+          chapter.failureReason = 'validation_failed_persistently';
+        } else {
+          chapter.status = 'reviewed';
+          chapter.lastReviewVerdict = 'revise';
+        }
+        return;
+      }
       
       // 检查是否有产物
       const hasOutput = this.checkOutputExists(task.chapterId, chapter.round, projectDir);

@@ -11,6 +11,11 @@ const WritingConfigSchema = Type.Object({
   maxRounds: Type.Number({ minimum: 1, maximum: 20 }),
   styleGuide: Type.Optional(Type.String()),
   minChapterCharsTolerance: Type.Optional(Type.Number({ minimum: 0, maximum: 1 })),
+  // Bug 36 修复：wordBudget 配置化
+  defaultWordBudget: Type.Optional(Type.Object({
+    target: Type.Number({ minimum: 1000, maximum: 50000 }),
+    tolerance: Type.Number({ minimum: 0, maximum: 1 }),
+  })),
 });
 
 /**
@@ -75,6 +80,11 @@ export const DEFAULT_CONFIG: ConfWriteConfig = {
   writing: {
     minChapterChars: 8000,
     maxRounds: 5,
+    // Bug 36 修复：wordBudget 配置化默认值
+    defaultWordBudget: {
+      target: 6500,
+      tolerance: 0.2,  // 20% 容差，即 5200-7800
+    },
   },
   review: {
     acceptMediumMax: 3,
