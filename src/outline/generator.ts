@@ -8,6 +8,8 @@ import { FormatConverter } from '../organize/converter.js';
 import type { Requirement, Outline, OutlineChapter } from './types.js';
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
+import type { ConfWriteConfig } from '../config/loader.js';
+import { loadConfig } from '../config/loader.js';
 
 /**
  * 字数评估结果
@@ -37,12 +39,16 @@ export class OutlineGenerator {
   private chapterTypeLoader: ChapterTypeLoader;
   /** 可选的 LLM 调用函数，由外部注入（如 pi SDK） */
   private llmCaller?: LLMCaller;
+  /** 配置 */
+  private config: ConfWriteConfig;
 
-  constructor(projectDir: string, options?: { llmCaller?: LLMCaller }) {
+  constructor(projectDir: string, options?: { llmCaller?: LLMCaller; config?: ConfWriteConfig }) {
     this.projectDir = projectDir;
     this.templateLoader = new OutlineTemplateLoader(projectDir);
     this.chapterTypeLoader = new ChapterTypeLoader(projectDir);
     this.llmCaller = options?.llmCaller;
+    // Bug 36 修复：从配置读取 wordBudget
+    this.config = options?.config ?? loadConfig(projectDir);
   }
 
   /**
@@ -61,6 +67,9 @@ export class OutlineGenerator {
     // 使用传入的 targetWords，如果没有则使用模板的 targetWords
     const effectiveTargetWords = targetWords || template.targetWords;
 
+    // Bug 36 修复：从配置读取 wordBudget
+    const wordBudget = this.getWordBudget();
+
     // 2. 读取需求文档内容
     const requirementsContent = await this.readRequirementsContent();
     console.log('[OutlineGenerator] requirementsContent:', requirementsContent ? `${requirementsContent.length} chars` : 'null');
@@ -73,7 +82,7 @@ export class OutlineGenerator {
         const chapters = await llmPlanner.plan({
           requirementsContent,
           targetWords: effectiveTargetWords,
-          wordBudget: { min: 5000, max: 8000 },
+          wordBudget,
           templateName,
         });
         console.log('[OutlineGenerator] LLMPlanner returned', chapters.length, 'chapters');
@@ -108,7 +117,7 @@ export class OutlineGenerator {
           const planner = new AdaptiveOutlinePlanner();
           const chapters = planner.plan(headingTree, {
             targetWords: effectiveTargetWords,
-            wordBudget: { min: 5000, max: 8000 },
+            wordBudget,
             tolerance: 0.2,
           });
           console.log('[OutlineGenerator] AdaptiveOutlinePlanner returned', chapters.length, 'chapters');
@@ -377,5 +386,23 @@ export class OutlineGenerator {
     }
 
     return null;
+  }
+
+  /**
+   * Bug 36 修复：从配置获取 wordBudget
+   * 
+   * 根据配置的 target 和 tolerance 计算 min/max 范围
+   */
+  private getWordBudget(): { min: number; max: number } {
+    const budget = this.config.writing.defaultWordBudget;
+    if (budget) {
+      const { target, tolerance } = budget;
+      return {
+        min: Math.round(target * (1 - tolerance)),
+        max: Math.round(target * (1 + tolerance)),
+      };
+    }
+    // 默认回退值
+    return { min: 5000, max: 8000 };
   }
 }

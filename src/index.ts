@@ -277,8 +277,13 @@ export async function runWriteLoop(
               const validation = outputValidator.validate(originalTask, taskRound, wordBudget);
               if (!validation.valid) {
                 notify(`⚠️ ${OutputValidator.formatErrors(validation)}`, 'warning');
-                // 验证失败，标记任务为 failed 以便重试
-                await dispatcher.processTask(taskResult.id, 'failed', `Output validation failed: ${validation.errors.join('; ')}`);
+                // Bug 36.1 修复：验证失败时传递 failureType，防止被绕过
+                await dispatcher.processTask(
+                  taskResult.id, 
+                  'failed', 
+                  `Output validation failed: ${validation.errors.join('; ')}`,
+                  'validation_failed'
+                );
                 result.tasksFailed++;
                 result.tasksSucceeded--; // 之前已经加了 succeeded，现在回退
                 continue;

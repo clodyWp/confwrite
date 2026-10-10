@@ -190,7 +190,12 @@ export class Dispatcher {
   /**
    * 处理任务结果：更新调度器状态 + 回写章节状态
    */
-  async processTask(taskId: string, outcome: 'success' | 'failed', result: string): Promise<void> {
+  async processTask(
+    taskId: string, 
+    outcome: 'success' | 'failed', 
+    result: string,
+    failureType?: 'execution_failed' | 'validation_failed',
+  ): Promise<void> {
     const task = this.scheduler.getTask(taskId);
     if (!task) return;
 
@@ -208,7 +213,7 @@ export class Dispatcher {
     const state = this.store.load();
     if (!state) return;
 
-    this.writingOrchestrator.updateChapterStatus(state, task, outcome, this.projectDir);
+    this.writingOrchestrator.updateChapterStatus(state, task, outcome, this.projectDir, failureType);
     this.store.save(state);
   }
 

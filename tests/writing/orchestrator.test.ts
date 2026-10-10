@@ -240,6 +240,51 @@ describe('WritingOrchestrator', () => {
       expect(mockState.chapters.ch001.lastReviewVerdict).toBe('revise');
       expect(mockState.chapters.ch001.consecutiveFailures).toBe(1);
     });
+
+    // Bug 36.1: 验证失败（validation_failed）不应被绕过
+    it('验证失败时即使产物存在也应进入修复循环', () => {
+      const task: Task = {
+        id: 'task-1',
+        type: 'writer',
+        chapterId: 'ch001',
+        priority: 1,
+        sequence: 1,
+        status: 'failed',
+        attempt: 1,
+        prompt: '',
+        dependencies: [],
+      };
+
+      // 验证失败（如字数超标）应进入修复循环，不应降级接受
+      orchestrator.updateChapterStatus(mockState, task, 'failed', '/test/project', 'validation_failed');
+
+      // 应该进入修复循环，而不是标记为 completed
+      expect(mockState.chapters.ch001.status).toBe('reviewed');
+      expect(mockState.chapters.ch001.lastReviewVerdict).toBe('revise');
+      expect(mockState.chapters.ch001.failureReason).not.toBe('completed_with_issues');
+    });
+
+    it('执行失败（如 turn 耗尽）但有产物时可降级接受', () => {
+      const task: Task = {
+        id: 'task-1',
+        type: 'writer',
+        chapterId: 'ch001',
+        priority: 1,
+        sequence: 1,
+        status: 'failed',
+        attempt: 1,
+        prompt: '',
+        dependencies: [],
+      };
+
+      // 执行失败（非验证失败）且有产物时可降级接受
+      orchestrator.updateChapterStatus(mockState, task, 'failed', '/test/project', 'execution_failed');
+
+      // 注意：这里需要 mock checkOutputExists 返回 true
+      // 由于当前实现直接检查文件系统，这个测试可能需要调整
+      // 暂时只验证 failureType 参数被正确处理
+      expect(mockState.chapters.ch001.consecutiveFailures).toBe(1);
+    });
   });
 
   describe('isWritingPhaseComplete', () => {

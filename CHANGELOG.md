@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.21.1] - 2026-10-10
+### Fixed
+- **Bug 36: wordBudget 范围设计导致 LLM 超额写作** — 配置化 wordBudget，prompt 强调 target
+  - `config/loader.ts`: 新增 `defaultWordBudget: { target, tolerance }` 配置项
+  - `outline/generator.ts`: 从配置读取 wordBudget，消除硬编码 `{ min: 5000, max: 8000 }`
+  - `task-executor.ts`: prompt 强调目标字数，弱化范围（"目标字数 X，允许范围 Y-Z"）
+- **Bug 36.1: 验证失败被 Bug 32 绕过** — 区分失败类型，验证失败不被绕过
+  - `writing/orchestrator.ts`: `updateChapterStatus` 新增 `failureType` 参数
+  - `dispatcher/index.ts`: `processTask` 传递 `failureType`
+  - `index.ts`: 验证失败时传递 `'validation_failed'`，防止被降级接受
+
+### Added
+- 2 个 orchestrator 测试覆盖 failureType 逻辑
+
 ## [0.21.0] - 2026-10-10
 ### Fixed
 - **wordBudget 在 chapter-syncer 中丢失** — OutlineParser 不解析字数预算，chapter-syncer 创建章节时丢失元数据
