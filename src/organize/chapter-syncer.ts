@@ -9,7 +9,7 @@
  */
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { OutlineParser } from './outline-parser.js';
+import { OutlineParser, type OutlineNode } from './outline-parser.js';
 import { ProjectStore } from '../state/store.js';
 import type { ProjectState, ChapterState } from '../state/schema.js';
 
@@ -45,10 +45,10 @@ export function syncChaptersFromOutline(
 
   // Extract all ch-markers from outline
   const outlineChapters = outline.getAllChapters();
-  const outlineMap = new Map<string, { id: string; title: string }>();
+  const outlineMap = new Map<string, OutlineNode>();
   for (const ch of outlineChapters) {
     if (ch.id) {
-      outlineMap.set(ch.id, { id: ch.id, title: ch.title });
+      outlineMap.set(ch.id, ch);
     }
   }
 
@@ -63,7 +63,7 @@ export function syncChaptersFromOutline(
   for (const [id, info] of outlineMap) {
     if (!state.chapters[id]) {
       const newChapter: ChapterState = {
-        id: info.id,
+        id: info.id!,
         title: info.title,
         status: 'pending',
         version: 0,
@@ -73,19 +73,51 @@ export function syncChaptersFromOutline(
         maxRounds: 5,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
+        type: info.type,
+        wordBudget: info.wordBudget,
+        importance: info.importance,
+        description: info.description,
+        style: info.style,
       };
       state.chapters[id] = newChapter;
       result.added.push(id);
     }
   }
 
-  // 2. Update titles for existing chapters
+  // 2. Update titles and metadata for existing chapters
   for (const [id, info] of outlineMap) {
     const existing = state.chapters[id];
-    if (existing && existing.title !== info.title) {
-      existing.title = info.title;
-      existing.updatedAt = new Date().toISOString();
-      result.updated.push(id);
+    if (existing) {
+      let updated = false;
+      if (existing.title !== info.title) {
+        existing.title = info.title;
+        updated = true;
+      }
+      // Update metadata if outline has it and state doesn't
+      if (info.wordBudget && !existing.wordBudget) {
+        existing.wordBudget = info.wordBudget;
+        updated = true;
+      }
+      if (info.importance && !existing.importance) {
+        existing.importance = info.importance;
+        updated = true;
+      }
+      if (info.type && !existing.type) {
+        existing.type = info.type;
+        updated = true;
+      }
+      if (info.description && !existing.description) {
+        existing.description = info.description;
+        updated = true;
+      }
+      if (info.style && !existing.style) {
+        existing.style = info.style;
+        updated = true;
+      }
+      if (updated) {
+        existing.updatedAt = new Date().toISOString();
+        result.updated.push(id);
+      }
     }
   }
 

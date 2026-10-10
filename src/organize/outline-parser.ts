@@ -14,6 +14,9 @@ export class OutlineNode {
   children: OutlineNode[];
   description?: string;
   type?: string;
+  wordBudget?: { min: number; max: number };
+  importance?: number;
+  style?: string;
 
   constructor(level: number, title: string) {
     this.level = level;
@@ -75,11 +78,30 @@ export class OutlineParser {
         if (!currentChapter.description) {
           currentChapter.description = undefined;
         }
-        // Extract type from description (e.g. "本章类型: functional" or "本章类型：overview")
+        // Extract metadata from description
         if (currentChapter.description) {
+          // Extract type (e.g. "本章类型: functional" or "本章类型：overview")
           const typeMatch = currentChapter.description.match(/本章类型[：:]\s*([a-zA-Z0-9\-\/]+)/);
           if (typeMatch) {
             currentChapter.type = typeMatch[1];
+          }
+          // Extract wordBudget (e.g. "字数预算: 5000-8000字" or "字数预算：6000–10000字")
+          const budgetMatch = currentChapter.description.match(/字数预算[：:]\s*(\d+)[\-–](\d+)/);
+          if (budgetMatch) {
+            currentChapter.wordBudget = {
+              min: parseInt(budgetMatch[1], 10),
+              max: parseInt(budgetMatch[2], 10),
+            };
+          }
+          // Extract importance (e.g. "重要度: 3/5" or "重要度：4/5")
+          const importanceMatch = currentChapter.description.match(/重要度[：:]\s*(\d+)/);
+          if (importanceMatch) {
+            currentChapter.importance = parseInt(importanceMatch[1], 10);
+          }
+          // Extract style (e.g. "写作风格: technical" or "写作风格：academic")
+          const styleMatch = currentChapter.description.match(/写作风格[：:]\s*(.+)/);
+          if (styleMatch) {
+            currentChapter.style = styleMatch[1].trim();
           }
         }
       }
