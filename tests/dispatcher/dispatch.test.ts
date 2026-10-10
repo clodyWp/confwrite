@@ -27,6 +27,7 @@ function createState(): ProjectState {
         version: 0,
         round: 1,
         attempt: 0,
+        wordBudget: { min: 5000, max: 8000 },
       },
       ch002: {
         id: 'ch002',
@@ -35,6 +36,7 @@ function createState(): ProjectState {
         version: 0,
         round: 1,
         attempt: 0,
+        wordBudget: { min: 6000, max: 10000 },
       },
     },
     round: 1,
@@ -267,6 +269,57 @@ describe('Dispatcher', () => {
       });
 
       expect(result.tasksCreated).toBe(0);
+    });
+  });
+
+  describe('wordBudget 传递', () => {
+    it('spawn_writers 应该将 wordBudget 传递给 Writer prompt', async () => {
+      const result = await dispatcher.dispatch('spawn_writers', {
+        chapters: ['ch001'],
+        projectDir: TEST_DIR,
+      });
+
+      expect(result.tasks[0].prompt).toContain('字数预算');
+      expect(result.tasks[0].prompt).toContain('5000');
+      expect(result.tasks[0].prompt).toContain('8000');
+    });
+
+    it('spawn_reviewers 应该将 wordBudget 传递给 Reviewer prompt', async () => {
+      // Create draft
+      writeFileSync(
+        join(TEST_DIR, 'drafts', 'chapters', 'ch001-v1.md'),
+        '# ch001 项目概述\n\n## 概述\n这是一个测试章节。'
+      );
+
+      const state = store.load()!;
+      state.chapters.ch001.status = 'written';
+      store.save(state);
+
+      const result = await dispatcher.dispatch('spawn_reviewers', {
+        chapters: ['ch001'],
+        round: 1,
+        projectDir: TEST_DIR,
+      });
+
+      expect(result.tasks[0].prompt).toContain('字数预算');
+      expect(result.tasks[0].prompt).toContain('5000');
+      expect(result.tasks[0].prompt).toContain('8000');
+    });
+
+    it('wordBudget 缺失时不应崩溃', async () => {
+      // 移除 wordBudget
+      const state = store.load()!;
+      delete state.chapters.ch001.wordBudget;
+      store.save(state);
+
+      const result = await dispatcher.dispatch('spawn_writers', {
+        chapters: ['ch001'],
+        projectDir: TEST_DIR,
+      });
+
+      expect(result.tasksCreated).toBe(1);
+      // 没有 wordBudget 时，prompt 不应该包含字数预算部分
+      expect(result.tasks[0].prompt).not.toContain('5000-8000');
     });
   });
 });

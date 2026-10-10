@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.20.0] - 2026-10-10
+### Fixed
+- **字数超标 3.13x 问题** — wordBudget 未传递给 Writer/Reviewer prompt，OutputValidator 缺少上限检查
+  - `dispatcher/index.ts`: 从 state 读取 wordBudget 并传递给 Writer/Reviewer prompt
+  - `output-validator.ts`: 添加字数上限检查（`charCount <= wordBudget.max`）
+  - `index.ts`: 验证调用时传递 wordBudget
+  - `task-executor.ts`: 修改 `generateWriterPrompt` 签名，让 `expected` 可选
+
+### Added
+- 5 个单元测试覆盖字数上限检查逻辑
+- 3 个 dispatcher 测试验证 wordBudget 传递
+
 ## [0.19.0] - 2026-10-09
 ### Added
 - **D2: 章节类型说明** — 素材包写作指南中新增章节类型说明，从知识库 readingGuidance 读取

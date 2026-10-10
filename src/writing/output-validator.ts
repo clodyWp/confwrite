@@ -79,7 +79,7 @@ export class OutputValidator {
   /**
    * 验证任务输出
    */
-  validate(task: Task, round: number): ValidationResult {
+  validate(task: Task, round: number, wordBudget?: {min: number, max: number}): ValidationResult {
     const result: ValidationResult = {
       valid: true,
       taskType: task.type,
@@ -90,7 +90,7 @@ export class OutputValidator {
 
     switch (task.type) {
       case 'writer':
-        this.validateWriterOutput(result, task.chapterId!, round);
+        this.validateWriterOutput(result, task.chapterId!, round, wordBudget);
         break;
       case 'reviewer':
         this.validateReviewerOutput(result, task.chapterId!, round);
@@ -108,7 +108,12 @@ export class OutputValidator {
    * Writer 输出验证
    * 检查: drafts/chapters/${chapterId}-v${round}.md
    */
-  private validateWriterOutput(result: ValidationResult, chapterId: string, round: number): void {
+  private validateWriterOutput(
+    result: ValidationResult, 
+    chapterId: string, 
+    round: number,
+    wordBudget?: {min: number, max: number}
+  ): void {
     const filePath = join(this.projectDir, 'drafts', 'chapters', `${chapterId}-v${round}.md`);
     
     // 1. 文件存在性
@@ -140,7 +145,20 @@ export class OutputValidator {
         result.errors.push(`草稿字数不足: ${charCount} 字 < 软门控 ${softGate} 字（容差 ${tolerance * 100}%）`);
       }
 
-      // 3. 可读性（防编码损坏）
+      // 3. 字数上限检查（如果提供了 wordBudget）
+      if (wordBudget && wordBudget.max > 0) {
+        const upperOk = charCount <= wordBudget.max;
+        result.checks.push({ 
+          name: '字数上限', 
+          passed: upperOk, 
+          detail: `${charCount} 字 (上限 ${wordBudget.max})` 
+        });
+        if (!upperOk) {
+          result.errors.push(`草稿字数超标: ${charCount} 字 > 上限 ${wordBudget.max} 字`);
+        }
+      }
+
+      // 4. 可读性（防编码损坏）
       const hasCorruption = /[\uFFFD]/.test(content.substring(0, 500)) || /[\x00-\x08\x0B\x0C\x0E-\x1F]/.test(content.substring(0, 500));
       result.checks.push({ name: '文件可读', passed: !hasCorruption });
       if (hasCorruption) {
