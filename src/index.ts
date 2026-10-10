@@ -243,7 +243,11 @@ export async function runWriteLoop(
               // 从 task id 中提取 round (格式: write-ch001-r1)
               const roundMatch = originalTask.id.match(/-r(\d+)$/);
               const taskRound = roundMatch ? parseInt(roundMatch[1], 10) : state.round;
-              const validation = outputValidator.validate(originalTask, taskRound);
+              // Bug 42 修复：读取 wordBudget 传给验证器
+              // 优先从章节状态读取，否则使用默认值 (target=6500, tolerance=0.2)
+              const chapterWordBudget = state.chapters?.[originalTask.chapterId!]?.wordBudget;
+              const wordBudget = chapterWordBudget || { min: 5200, max: 7800 };
+              const validation = outputValidator.validate(originalTask, taskRound, wordBudget);
               if (!validation.valid) {
                 notify(`⚠️ ${OutputValidator.formatErrors(validation)}`, 'warning');
                 // 验证失败，标记任务为 failed 以便重试

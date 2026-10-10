@@ -47,7 +47,7 @@ describe('OutputValidator', () => {
       expect(result.valid).toBe(true);
       expect(result.errors).toHaveLength(0);
       expect(result.checks.find(c => c.name === '文件存在')?.passed).toBe(true);
-      expect(result.checks.find(c => c.name === '字数统计')?.passed).toBe(true);
+      expect(result.checks.find(c => c.name === '字数下限')?.passed).toBe(true);
       expect(result.checks.find(c => c.name === '文件可读')?.passed).toBe(true);
     });
 
