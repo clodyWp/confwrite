@@ -322,6 +322,21 @@ export class OutlineGenerator {
   private async readRequirementsContent(): Promise<string | null> {
     let requirementsDocPath = join(this.projectDir, 'inputs', 'requirements.md');
     
+    // [DIAG] 诊断日志：检查文件路径
+    try {
+      const { writeFileSync } = await import('node:fs');
+      const diagPath = join(this.projectDir, 'logs', 'diag-outline-generator.json');
+      const diagData = {
+        timestamp: new Date().toISOString(),
+        projectDir: this.projectDir,
+        requirementsDocPath,
+        exists: existsSync(requirementsDocPath),
+      };
+      writeFileSync(diagPath, JSON.stringify(diagData, null, 2) + '\n', { flag: 'a' });
+    } catch (e) {
+      // ignore
+    }
+    
     if (!existsSync(requirementsDocPath)) {
       const converted = await this.convertWordDocuments();
       if (converted) {

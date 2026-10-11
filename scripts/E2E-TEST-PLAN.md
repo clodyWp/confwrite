@@ -8,13 +8,25 @@
 
 | 变量 | 说明 | 默认值 | 示例值 |
 |------|------|--------|--------|
-| `<PROJECT_SLUG>` | 项目名称 | - | `LMERP2V2-v4` |
+| `<PROJECT_SLUG>` | 项目名称 | - | `LMERP2V2-v6` |
 | `<PANE_ID>` | herdr pane ID | - | `wN:p1` |
 | `<TEMPLATE>` | 大纲模板 | - | `technical-proposal` |
 | `<TARGET_WORDS>` | 目标字数 | - | `50000` |
 | `<MAX_CONCURRENCY>` | 最大并发数 | `2` | `2` |
+| `<SOURCE_VERSION>` | 素材来源版本 | - | `LMERP2V2-v5` |
 
 **替换规则**：文档中所有 `<PROJECT_SLUG>`、`<PANE_ID>` 等占位符，在实际执行时替换为具体值。
+
+### 0.1 测试场景选择
+
+| 场景 | 素材类型 | 测试重点 | 备注 |
+|------|---------|---------|------|
+| **场景 A：完整流程** | Word 文件 (.docx) | 格式转换 + 流程完整性 + 字数控制 | 推荐，测试 mammoth 转换 |
+| **场景 B：降级流程** | 已解析的 Markdown | 流程完整性、字数控制 | 跳过格式转换，快速验证 |
+
+**本次测试（v6）使用场景 B（降级）**，因为 reference_material 已经是 MD 格式。
+
+**下次测试建议**：使用场景 A，拷贝 Word 文件测试完整流程。
 
 ---
 
@@ -71,11 +83,82 @@ herdr --machine water-ali pane read <pane_id> --source recent-unwrapped --lines 
 - [ ] 远程 pi 已安装 confwrite 扩展（最新版本）
 - [ ] 有可用的 workspace 和 pane
 
+**检查命令**：
+```bash
+# 检查 herdr 版本
+herdr --version
+
+# 检查远程 pane 状态
+herdr --machine water-ali pane get <PANE_ID>
+
+# 检查 confwrite 版本
+ssh water@8.160.160.85 'cat /home/water/proj/c4/node_modules/confwrite/package.json | grep version'
+```
+
 ### 2.2 项目准备
 
 - [ ] 确定测试项目名称（如 `<PROJECT_SLUG>`）
-- [ ] 确认 `reference_material/` 目录有测试素材
 - [ ] 清理旧项目（如需要）：`rm -rf /home/water/proj/c4/projects/<slug>`
+
+### 2.3 数据准备（关键步骤）
+
+**⚠️ 重要**：init 创建的项目目录是空的，需要手动拷贝测试素材！
+
+#### 步骤 1：拷贝需求文档（inputs/requirements.docx）
+
+**⚠️ 重要**：优先使用 Word 文件测试完整流程（包含格式转换）！
+
+```bash
+# 从源项目拷贝 Word 格式的需求文档
+ssh water@8.160.160.85 'cp /home/water/proj/c4/projects/<SOURCE_VERSION>/inputs/requirements.docx /home/water/proj/c4/projects/<PROJECT_SLUG>/inputs/'
+
+# 验证拷贝结果
+ssh water@8.160.160.85 'ls -lh /home/water/proj/c4/projects/<PROJECT_SLUG>/inputs/requirements.docx'
+# 预期：文件存在，大小约 189KB
+```
+
+**降级方案**（如果没有 Word 文件）：
+```bash
+# 使用已解析的 Markdown 文件
+ssh water@8.160.160.85 'cp /home/water/proj/c4/projects/<SOURCE_VERSION>/inputs/requirements.md /home/water/proj/c4/projects/<PROJECT_SLUG>/inputs/'
+```
+
+#### 步骤 2：拷贝参考资料（reference_material）
+
+```bash
+# 从源项目拷贝参考资料（通常是已解析的 MD 文件）
+ssh water@8.160.160.85 'cp -r /home/water/proj/c4/projects/<SOURCE_VERSION>/reference_material/* /home/water/proj/c4/projects/<PROJECT_SLUG>/reference_material/'
+
+# 验证拷贝结果
+ssh water@8.160.160.85 'ls /home/water/proj/c4/projects/<PROJECT_SLUG>/reference_material/ | wc -l'
+# 预期：> 0（如 21 个目录/文件）
+```
+
+**注意**：reference_material 通常已经是 MD 格式。如果要测试 Word → MD 转换，需要手动准备 Word 文件。
+
+#### 步骤 3：（可选）使用 Word 文件测试格式转换
+
+如果要测试 Word → Markdown 转换流程（场景 B）：
+
+```bash
+# 清空已解析的 MD 文件
+ssh water@8.160.160.85 'rm -rf /home/water/proj/c4/projects/<PROJECT_SLUG>/reference_material/*'
+
+# 拷贝原始 Word 文件（需要从其他地方获取）
+# ssh water@8.160.160.85 'scp ... /home/water/proj/c4/projects/<PROJECT_SLUG>/reference_material/'
+
+# 验证 Word 文件
+ssh water@8.160.160.85 'ls /home/water/proj/c4/projects/<PROJECT_SLUG>/reference_material/*.docx | wc -l'
+```
+
+**验证清单**：
+- [ ] inputs/requirements.docx 存在（优先）或 requirements.md（降级）
+- [ ] reference_material/ 目录有内容
+- [ ] 文件权限正确（water 用户可读写）
+
+**本次测试记录**：
+- 使用的素材类型：Word / Markdown
+- 是否测试了格式转换：是 / 否
 
 ---
 
@@ -84,6 +167,9 @@ herdr --machine water-ali pane read <pane_id> --source recent-unwrapped --lines 
 ### 3.1 阶段 1：项目初始化
 
 **目标**：创建项目结构
+
+**前置条件**：
+- ✅ 已完成 2.2 和 2.3 的数据准备
 
 **命令**：
 ```
@@ -95,8 +181,25 @@ herdr --machine water-ali pane read <pane_id> --source recent-unwrapped --lines 
 - 生成 `project-state.json`（phase: 0a, status: init）
 - 创建标准子目录结构
 
-**配置并发数**：
-初始化完成后，需要配置并发数（默认值为 2）：
+**验证命令**：
+```bash
+# 检查项目目录
+ssh water@8.160.160.85 'ls /home/water/proj/c4/projects/<PROJECT_SLUG>/'
+
+# 检查状态文件
+ssh water@8.160.160.85 'cat /home/water/proj/c4/projects/<PROJECT_SLUG>/project-state.json | jq "{phase: .currentPhase, status: .status}"'
+# 预期：{"phase": "0a", "status": "init"}
+```
+
+**异常检测**：
+- ❌ 报错 "项目已存在" → 需要先删除旧项目
+- ❌ 目录结构不完整 → 检查 confwrite 版本
+
+### 3.1.1 配置并发数
+
+**⚠️ 重要**：必须在 organize 之前配置，否则默认并发数为 1！
+
+初始化完成后，需要配置并发数：
 
 ```bash
 # 创建或更新 confwrite.config.json
@@ -122,26 +225,18 @@ EOF'
 **验证配置**：
 ```bash
 ssh water@8.160.160.85 'cat /home/water/proj/c4/projects/<PROJECT_SLUG>/confwrite.config.json | jq .'
+# 预期：显示 JSON 配置，maxConcurrency 应为设定值（如 2）
 ```
-
-**验证命令**：
-```bash
-# 检查项目目录
-ssh water@8.160.160.85 'ls /home/water/proj/c4/projects/<PROJECT_SLUG>/'
-
-# 检查状态文件
-ssh water@8.160.160.85 'cat /home/water/proj/c4/projects/<PROJECT_SLUG>/project-state.json | jq "{phase: .currentPhase, status: .status}"'
-```
-
-**异常检测**：
-- ❌ 报错 "项目已存在" → 需要先删除旧项目
-- ❌ 目录结构不完整 → 检查 confwrite 版本
 
 ---
 
 ### 3.2 阶段 2：素材整理
 
 **目标**：扫描、索引、生成素材包
+
+**前置条件**：
+- ✅ 已完成 3.1.1 并发数配置
+- ✅ reference_material/ 目录有测试素材
 
 **命令**：
 ```
@@ -152,21 +247,31 @@ ssh water@8.160.160.85 'cat /home/water/proj/c4/projects/<PROJECT_SLUG>/project-
 - 扫描 reference_material/ 目录
 - 生成 `assets/indexes/index.json`
 - 生成 `assets/data-baseline.json`
-- 提取需求到 `assets/requirements.json`
+- 生成 `assets/references-index.md`
 - 状态推进到 phase 0b
+
+**⚠️ 注意**：organize **不会**生成 `assets/requirements.json`！
+- requirements.json 由 Phase 1（需求分析）生成
+- Phase 1 在 `/confwrite:write` 触发时自动执行
 
 **验证命令**：
 ```bash
 # 检查素材文件
 ssh water@8.160.160.85 'ls /home/water/proj/c4/projects/<PROJECT_SLUG>/assets/'
+# 预期：chapter-kits, data-baseline.json, diagram-style.json, excerpts, generated, indexes, references-index.md
 
 # 检查状态
 ssh water@8.160.160.85 'cat /home/water/proj/c4/projects/<PROJECT_SLUG>/project-state.json | jq "{phase: .currentPhase, status: .status}"'
+# 预期：{"phase": "0b", "status": "organizing"}
+
+# 检查扫描文件数（查看远程 pi 输出）
+# 预期："扫描: XXX 个文件"（如 167 个文件）
 ```
 
 **异常检测**：
-- ❌ "扫描: 0 个文件" → 检查 reference_material/ 是否有内容
+- ❌ "扫描: 0 个文件" → 检查 reference_material/ 是否有内容（回到 2.3 数据准备）
 - ❌ 状态未更新 → 检查 project-state.json 写入权限
+- ❌ "转换: 0/XXX 成功" → 检查文件格式（MD 文件应直接通过，Word 文件需要 mammoth）
 
 ---
 
@@ -174,37 +279,51 @@ ssh water@8.160.160.85 'cat /home/water/proj/c4/projects/<PROJECT_SLUG>/project-
 
 **目标**：基于模板和需求生成章节大纲
 
-**命令**：
+**⚠️ 流程说明**：
+- outline 命令需要 `assets/requirements.json`
+- 但 organize 不会生成这个文件
+- **解决方案**：直接执行 `/confwrite:write`，它会自动触发 Phase 1（需求提取）→ Phase 2（大纲生成）
+
+**命令**（跳过手动 outline，直接 write）：
 ```
-/confwrite:outline <PROJECT_SLUG> technical-proposal 50000
+/confwrite:write <PROJECT_SLUG>
 ```
 
-**参数说明**：
-- `<PROJECT_SLUG>`：项目 slug
-- `technical-proposal`：模板名称
-- `50000`：目标字数
-
-**预期结果**：
-- 生成 `outline.md`
-- 包含 10+ 章节定义
-- 每章有字数预算（基于新配置：target: 6500, tolerance: 0.2）
-- 状态推进到 phase 2 或更高
+**预期流程**：
+```
+Phase 0b → Phase 1 (需求分析，生成 requirements.json)
+         → Phase 2 (大纲规划，生成 outline.md)
+         → Phase 2 waitPoint (暂停等待确认)
+```
 
 **验证命令**：
 ```bash
-# 检查大纲文件
+# 检查 requirements.json 是否生成
+ssh water@8.160.160.85 'ls -lh /home/water/proj/c4/projects/<PROJECT_SLUG>/assets/requirements.json'
+# 预期：文件存在
+
+# 检查 outline.md 是否生成
 ssh water@8.160.160.85 'head -50 /home/water/proj/c4/projects/<PROJECT_SLUG>/outline.md'
 
 # 检查章节数量
 ssh water@8.160.160.85 'grep -c "^ch[0-9]" /home/water/proj/c4/projects/<PROJECT_SLUG>/outline.md'
+# 预期：10+ 章
 
-# 检查字数预算
-ssh water@8.160.160.85 'grep "字数预算" /home/water/proj/c4/projects/<PROJECT_SLUG>/outline.md | head -5'
+# 检查状态
+ssh water@8.160.160.85 'cat /home/water/proj/c4/projects/<PROJECT_SLUG>/project-state.json | jq "{phase: .currentPhase, status: .status}"'
+# 预期：{"phase": "2", "status": "outlining"}（waitPoint 暂停）
 ```
 
 **异常检测**：
-- ❌ "未找到需求文件" → 检查 assets/requirements.json 是否存在
-- ❌ 字数预算仍是 5000-8000 → 检查 confwrite 版本（应 >= 0.21.1）
+- ❌ "未找到需求文件" → Phase 1 未执行，检查 inputs/requirements.md 是否存在
+- ❌ "未找到输入文档" → inputs/ 目录为空，回到 2.3 数据准备
+- ❌ 大纲章节数 < 5 → 需求提取失败，检查 requirements.md 格式
+
+**（可选）手动 outline**：
+如果 Phase 1 已完成但需要重新生成大纲：
+```
+/confwrite:outline <PROJECT_SLUG> technical-proposal 50000
+```
 
 ---
 
@@ -701,4 +820,6 @@ herdr --machine water-ali workspace list
 
 | 版本 | 日期 | 变更 |
 |------|------|------|
+| v1.2 | 2026-01-09 | 数据准备步骤优化：优先使用 Word 文件测试完整流程，MD 文件作为降级方案 |
+| v1.1 | 2026-01-09 | 添加数据准备步骤、测试场景说明、并发数配置时机 |
 | v1.0 | 2026-10-10 | 初始版本，基于 Bug 38/39 讨论 |

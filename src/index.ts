@@ -131,7 +131,7 @@ export async function runWriteLoop(
     schedulerConfig.maxTaskRetries,
     loggingSystem.eventBus, // 传递 EventBus
   );
-  const taskExecutor = new TaskExecutor(userConfig);
+  const taskExecutor = new TaskExecutor(userConfig, projectDir);
   const writingOrchestrator = new WritingOrchestrator();
   const dispatcher = new Dispatcher(projectDir, store, scheduler, taskExecutor, writingOrchestrator);
   const outputValidator = new OutputValidator(projectDir, userConfig);
