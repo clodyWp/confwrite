@@ -71,6 +71,30 @@ export class Dispatcher {
     const chapters = params.chapters as string[];
     const round = (params.round as number) || 1;
     const state = this.store.load();  // 读取 state 以获取 wordBudget
+    
+    // [DIAG] 诊断日志：检查 dispatcher 是否被调用
+    console.log(`[DIAG-DISPATCHER] dispatchWriters called, projectDir=${this.projectDir}, chapters=${chapters?.length}`);
+    
+    // [DIAG-FILE] 写入诊断信息到文件
+    const { writeFileSync, mkdirSync } = await import('node:fs');
+    const { join } = await import('node:path');
+    const logsDir = join(this.projectDir, 'logs');
+    mkdirSync(logsDir, { recursive: true });
+    const diagPath = join(logsDir, 'diag-wordbudget.json');
+    const diagData = {
+      timestamp: new Date().toISOString(),
+      statePhase: state?.currentPhase,
+      chapterKeys: Object.keys(state?.chapters || {}),
+      wordBudgets: Object.fromEntries(
+        Object.entries(state?.chapters || {}).map(([k, v]) => [k, (v as any)?.wordBudget])
+      ),
+    };
+    try {
+      writeFileSync(diagPath, JSON.stringify(diagData, null, 2), 'utf-8');
+    } catch (e) {
+      // ignore
+    }
+    
     const tasks: Task[] = [];
     let sequence = 1;
 
@@ -89,6 +113,28 @@ export class Dispatcher {
       };
       // 从 state 读取 wordBudget 并传递给 prompt
       const wordBudget = state?.chapters?.[chapterId]?.wordBudget;
+      
+      // [DIAG] 诊断日志：检查 wordBudget 读取结果
+      console.log(`[DIAG-WORD BUDGET] chapterId=${chapterId}, wordBudget=${JSON.stringify(wordBudget)}, state.chapters[${chapterId}]=${JSON.stringify(state?.chapters?.[chapterId])}`);
+      
+      // [DIAG-FILE] 记录每个章节的 wordBudget
+      const diagEntry = {
+        chapterId,
+        wordBudget,
+        wordBudgetType: typeof wordBudget,
+        hasMin: wordBudget ? 'min' in wordBudget : false,
+        hasMax: wordBudget ? 'max' in wordBudget : false,
+      };
+      try {
+        const { readFileSync: rf } = await import('node:fs');
+        const existingDiag = JSON.parse(rf(diagPath, 'utf-8'));
+        existingDiag.entries = existingDiag.entries || [];
+        existingDiag.entries.push(diagEntry);
+        writeFileSync(diagPath, JSON.stringify(existingDiag, null, 2), 'utf-8');
+      } catch (e) {
+        // ignore
+      }
+      
       task.prompt = this.taskExecutor.generateWriterPrompt(task, kitContent, round, wordBudget);
       sequence++;
       tasks.push(task);
