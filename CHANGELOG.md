@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Fixed
+- **Issue #47-3: Phase 4d allExceeded 死锁** — validate 检测到所有章节超过 maxRounds 时返回 blocked，但 exit 条件不满足，导致状态机死锁
+  - `src/orchestrator/phases.ts`: phase4d validate 在 allExceeded 时将章节标记为终态（有产物→completed，无产物→failed），而不是返回 blocked
+  - 新增 spec SM-16: Phase 4d allExceeded 死锁防护
+  - 新增回归测试 `tests/orchestrator/phase4d-maxrounds-deadlock.test.ts`（6 个测试）
+
 ## [0.22.0] - 2026-10-12
 
 ### Fixed

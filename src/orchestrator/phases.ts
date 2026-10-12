@@ -476,16 +476,25 @@ export const phase4d: PhaseDefinition = {
   id: '4d',
   name: '修复',
   validate: (ctx) => {
-    const fixable = Object.values(ctx.state.chapters).filter(
-      ch => ch.status === 'reviewed' && ch.lastReviewVerdict === 'revise',
+    const fixable = Object.entries(ctx.state.chapters).filter(
+      ([_, ch]) => ch.status === 'reviewed' && ch.lastReviewVerdict === 'revise',
     );
     if (fixable.length === 0) {
       return { ok: false, error: '没有需要修复的章节' };
     }
-    // Bug 41 修复：如果所有待修复章节都已超过 maxRounds，不再修复
-    const allExceeded = fixable.every(ch => (ch.round || 1) >= (ch.maxRounds || 5));
+    // SM-16: allExceeded 时强制标记为终态，避免死锁
+    // 如果返回 blocked，exit 条件永远不满足（章节仍是 reviewed+revise）
+    const allExceeded = fixable.every(([_, ch]) => (ch.round || 1) >= (ch.maxRounds || 5));
     if (allExceeded) {
-      return { ok: false, error: '所有章节已超过 maxRounds，强制完成' };
+      for (const [id, ch] of fixable) {
+        const hasOutput = existsSync(
+          join(ctx.projectDir, 'drafts', 'chapters', `${id}-v${ch.round}.md`),
+        );
+        ch.status = hasOutput ? 'completed' : 'failed';
+        ch.failureReason = 'exceeded_max_rounds_in_4d';
+      }
+      ctx.state.lastUpdated = new Date().toISOString();
+      // 不返回 blocked，让 execute 发现无待修复章节，下一 tick exit 条件满足
     }
     return { ok: true };
   },

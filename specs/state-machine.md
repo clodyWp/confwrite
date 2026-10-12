@@ -127,6 +127,26 @@
 | SM-12 | **`timing='entry'` 的 waitPoint 在跳转时立即暂停** | 不暂停则用户看不到确认提示 |
 | SM-13 | **`timing='after-execute'` 的 waitPoint 在 execute 后设置** | 设置太早则用户审阅不存在的文件 (Bug #10) |
 
+### 3.6 Phase 4d 死锁防护
+
+| ID | 不变量 | 违反后果（历史事故） |
+|----|--------|-------------------|
+| SM-16 | **Phase 4d 检测到 allExceeded 时必须将章节标记为终态** | 章节卡在 reviewed+revise，validate 返回 blocked 但 exit 条件不满足，死锁 (Issue #47-3) |
+
+当 phase 4d 的 validate 检测到所有待修复章节都已超过 maxRounds 时：
+
+1. **不得返回 blocked**（否则 exit 条件永远不满足，死锁）
+2. **必须将这些章节标记为终态**：
+   - 有产物（`drafts/chapters/{id}-v{round}.md` 存在）→ `completed`
+   - 无产物 → `failed`
+3. 设置 `failureReason = 'exceeded_max_rounds_in_4d'`
+4. 返回 `{ ok: true }`，让 execute 发现无待修复章节，下一 tick exit 条件满足
+
+**注意**：这是对 validate 纯函数规则的例外（§5.1）。此修改是必要的，因为：
+- exit 条件检查在 validate 之前（§4 tick 协议），无法在此处拦截
+- 如果 validate 返回 blocked，状态机无法推进
+- execute 无法处理此场景，因为 validate 已经阻止了 execute 的执行
+
 ---
 
 ## 4. Tick 循环协议
@@ -270,3 +290,4 @@ Phase 4c `execute()` 返回的 `params` 字段定义如下：
 |------|------|------|
 | 2026-10-12 | 初始版本 | 基于 v0.22.0 代码审计，记录所有已发现的行为规范 |
 | 2026-10-12 | Phase 5 出口条件补充 P5-5 重试说明 | 图表生成失败时自动重试一次，重试仍失败才计入 failed |
+| 2026-10-12 | 新增 SM-16: Phase 4d allExceeded 死锁防护 | Issue #47-3: validate 返回 blocked 但 exit 不满足导致死锁 |

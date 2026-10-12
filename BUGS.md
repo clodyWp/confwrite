@@ -1775,3 +1775,26 @@ confwrite.config.json (扁平)
 - 字数控制逻辑统一，prompt 不再自相矛盾
 - OutputValidator 独立验证字数，不再盲信 LLM verdict
 - 配置模板格式正确，maxConcurrency 可以正常生效
+
+---
+
+### 🟡 Bug 39 (Issue #47-3) — Phase 4d allExceeded 死锁
+
+**症状**：当所有章节超过 maxRounds 但仍是 `reviewed/revise` 状态时，状态机死锁。
+
+**复现步骤**：
+1. 章节处于 `reviewed + revise` 状态，`round >= maxRounds`
+2. Phase 4d validate 检测到 allExceeded，返回 `{ ok: false }`
+3. 4d exit 条件检查：仍有 reviewed+revise 章节 → 不满足
+4. **死锁**：validate 失败 + exit 不满足 = 无法推进
+
+**根因**：validate 检测到 allExceeded 后返回 blocked，但没有修改章节状态。章节卡在 `reviewed/revise`，exit 条件永远不满足。
+
+**修复**：
+- validate 检测到 allExceeded 时，将章节标记为终态（有产物→completed，无产物→failed）
+- 返回 `{ ok: true }`，让 execute 发现无待修复章节，下一 tick exit 条件满足
+- 新增 spec SM-16: Phase 4d allExceeded 死锁防护
+
+**状态**：✅ 已修复
+
+**测试**：`tests/orchestrator/phase4d-maxrounds-deadlock.test.ts`（6 个测试）
