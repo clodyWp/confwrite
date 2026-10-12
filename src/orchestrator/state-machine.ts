@@ -9,6 +9,8 @@
  * 5. Execute phase logic
  * 6. Return action for the agent to execute
  */
+import { writeFileSync, mkdirSync, existsSync } from 'node:fs';
+import { join } from 'node:path';
 import type { PhaseContext, PhaseResult } from './phases.js';
 import { phases } from './phases.js';
 import type { Phase, ProjectState } from '../state/schema.js';
@@ -58,6 +60,7 @@ export class StateMachine {
   private store: ProjectStore;
   private projectDir: string;
   private eventBus?: EventBus;
+  private checkpointCounter = 0; // SM-18: 确保同一毫秒内多次 transition 不覆盖
 
   constructor(projectDir: string, eventBus?: EventBus) {
     this.projectDir = projectDir;
@@ -205,6 +208,9 @@ export class StateMachine {
   }
 
   private advance(target: Phase, state: ProjectState, fromPhase: Phase): void {
+    // SM-18: 保存状态快照（在修改 state 之前记录 from/to）
+    this.saveCheckpoint(fromPhase, target, state);
+
     state.currentPhase = target;
 
     if (STATUS_MAP[target]) {
@@ -246,6 +252,37 @@ export class StateMachine {
     }
 
     this.store.save(state);
+  }
+
+  /**
+   * SM-18: 保存状态快照到 logs/checkpoints/
+   *
+   * 快照包含 phase transition 的关键信息，用于断网恢复和执行历史回溯。
+   * 保存失败不影响主流程（try-catch 包裹）。
+   */
+  private saveCheckpoint(from: Phase, to: Phase, state: ProjectState): void {
+    try {
+      const checkpointDir = join(this.projectDir, 'logs', 'checkpoints');
+      if (!existsSync(checkpointDir)) {
+        mkdirSync(checkpointDir, { recursive: true });
+      }
+
+      this.checkpointCounter++;
+      const timestamp = Date.now();
+      const snapshot = {
+        timestamp: new Date().toISOString(),
+        from,
+        to,
+        chapters: { ...state.chapters },
+        tasks: state.tasks ? [...state.tasks] : [],
+      };
+
+      // 使用 counter 确保同一毫秒内多次 transition 不覆盖
+      const snapshotPath = join(checkpointDir, `checkpoint-${timestamp}-${this.checkpointCounter}.json`);
+      writeFileSync(snapshotPath, JSON.stringify(snapshot, null, 2), 'utf-8');
+    } catch {
+      // SM-18: 快照保存失败不影响主流程
+    }
   }
 
   status(): { phase: Phase; name: string; status: string } | null {
