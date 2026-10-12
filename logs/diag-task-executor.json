@@ -3316,3 +3316,8298 @@
   "hasMin": true,
   "hasMax": true
 }
+{
+  "timestamp": "2026-10-12T07:59:13.281Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T07:59:13.416Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T07:59:13.650Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T07:59:13.680Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T07:59:13.726Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T07:59:13.768Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T07:59:13.773Z",
+  "chapterId": "ch002",
+  "wordBudget": {
+    "min": 6000,
+    "max": 10000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T07:59:13.819Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T07:59:13.855Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T07:59:13.859Z",
+  "chapterId": "ch002",
+  "wordBudget": {
+    "min": 6000,
+    "max": 10000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T07:59:13.905Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T07:59:13.907Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T07:59:13.909Z",
+  "chapterId": "ch002",
+  "wordBudget": {
+    "min": 6000,
+    "max": 10000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T07:59:13.911Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T07:59:13.916Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T07:59:14.198Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T07:59:14.245Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T07:59:14.251Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T07:59:14.257Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T07:59:14.341Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T07:59:14.527Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T07:59:14.546Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T07:59:14.559Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T07:59:14.721Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T07:59:14.728Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T07:59:14.734Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T07:59:14.872Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T07:59:14.883Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T07:59:14.893Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T07:59:16.005Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T07:59:16.071Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T07:59:16.170Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T07:59:16.202Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T07:59:16.214Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T07:59:16.219Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T07:59:16.219Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T07:59:16.226Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T07:59:16.233Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T07:59:16.488Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T07:59:16.585Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T07:59:17.032Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T07:59:17.043Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T07:59:17.057Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T07:59:18.466Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T07:59:18.475Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T07:59:18.483Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T07:59:20.164Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T07:59:20.174Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T07:59:20.188Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T07:59:20.193Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T07:59:20.304Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T07:59:20.317Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T07:59:20.322Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T07:59:20.326Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T07:59:20.333Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T07:59:20.337Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T07:59:30.147Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T07:59:30.158Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T07:59:30.700Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T07:59:30.706Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T07:59:30.709Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T07:59:30.714Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T07:59:34.309Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T07:59:34.318Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T07:59:34.322Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T07:59:35.786Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T07:59:35.793Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T07:59:35.798Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T07:59:35.802Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:00:21.204Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:00:21.325Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:00:21.550Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:00:21.677Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:00:21.721Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:00:21.757Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:00:21.761Z",
+  "chapterId": "ch002",
+  "wordBudget": {
+    "min": 6000,
+    "max": 10000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:00:21.800Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:00:21.838Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:00:21.843Z",
+  "chapterId": "ch002",
+  "wordBudget": {
+    "min": 6000,
+    "max": 10000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:00:21.852Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:00:21.856Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:00:21.861Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:00:21.887Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:00:21.891Z",
+  "chapterId": "ch002",
+  "wordBudget": {
+    "min": 6000,
+    "max": 10000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:00:22.194Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:00:22.200Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:00:22.206Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:00:22.212Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:00:22.299Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:00:22.419Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:00:22.431Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:00:22.443Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:00:22.517Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:00:22.524Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:00:22.529Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:00:22.676Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:00:22.685Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:00:22.695Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:00:23.566Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:00:23.577Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:00:23.590Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:00:23.865Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:00:23.918Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:00:23.982Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:00:24.171Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:00:24.179Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:00:24.185Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:00:24.277Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:00:24.329Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:00:24.335Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:00:24.344Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:00:24.348Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:00:25.269Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:00:25.287Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:00:25.303Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:00:27.462Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:00:28.029Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:00:28.039Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:00:28.042Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:00:28.048Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:00:28.051Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:00:28.053Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:00:28.056Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:00:28.065Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:00:28.068Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:00:37.663Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:00:37.673Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:00:38.136Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:00:38.142Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:00:38.148Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:00:38.154Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:00:42.277Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:00:42.283Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:00:42.287Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:00:44.256Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:00:44.265Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:00:44.269Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:00:44.274Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:05:34.060Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:05:34.167Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:05:34.338Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:05:34.460Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:05:34.505Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:05:34.546Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:05:34.551Z",
+  "chapterId": "ch002",
+  "wordBudget": {
+    "min": 6000,
+    "max": 10000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:05:34.589Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:05:34.627Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:05:34.629Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:05:34.632Z",
+  "chapterId": "ch002",
+  "wordBudget": {
+    "min": 6000,
+    "max": 10000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:05:34.633Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:05:34.638Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:05:34.675Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:05:34.679Z",
+  "chapterId": "ch002",
+  "wordBudget": {
+    "min": 6000,
+    "max": 10000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:05:35.007Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:05:35.116Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:05:35.125Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:05:35.137Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:05:35.144Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:05:35.218Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:05:35.231Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:05:35.242Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:05:35.644Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:05:35.659Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:05:35.664Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:05:35.769Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:05:35.777Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:05:35.783Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:05:36.595Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:05:36.605Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:05:36.613Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:05:36.695Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:05:36.763Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:05:36.844Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:05:37.053Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:05:37.059Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:05:37.065Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:05:37.355Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:05:37.361Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:05:37.370Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:05:38.084Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:05:38.095Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:05:38.102Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:05:38.637Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:05:40.241Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:05:40.517Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:05:40.614Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:05:40.617Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:05:40.624Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:05:40.902Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:05:40.919Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:05:40.927Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:05:40.930Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:05:40.939Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:05:40.943Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:05:51.006Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:05:51.020Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:05:51.767Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:05:51.772Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:05:51.776Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:05:51.780Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:05:55.159Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:05:55.167Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:05:55.173Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:05:57.503Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:05:57.510Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:05:57.513Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:05:57.516Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:10:08.059Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:10:08.157Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:10:08.353Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:10:08.505Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:10:08.550Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:10:08.590Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:10:08.596Z",
+  "chapterId": "ch002",
+  "wordBudget": {
+    "min": 6000,
+    "max": 10000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:10:08.635Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:10:08.652Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:10:08.656Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:10:08.662Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:10:08.674Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:10:08.679Z",
+  "chapterId": "ch002",
+  "wordBudget": {
+    "min": 6000,
+    "max": 10000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:10:08.722Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:10:08.726Z",
+  "chapterId": "ch002",
+  "wordBudget": {
+    "min": 6000,
+    "max": 10000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:10:09.056Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:10:09.146Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:10:09.164Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:10:09.166Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:10:09.173Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:10:09.176Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:10:09.181Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:10:09.186Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:10:09.713Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:10:09.718Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:10:09.726Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:10:09.745Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:10:09.752Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:10:09.761Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:10:10.435Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:10:10.442Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:10:10.446Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:10:10.648Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:10:11.342Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:10:11.348Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:10:11.356Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:10:11.575Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:10:12.112Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:10:12.118Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:10:12.125Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:10:12.457Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:10:12.464Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:10:12.470Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:10:12.829Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:10:13.234Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:10:13.321Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:10:14.573Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:10:14.925Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:10:14.930Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:10:14.934Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:10:15.370Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:10:15.393Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:10:15.405Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:10:15.413Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:10:15.432Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:10:15.439Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:10:25.716Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:10:25.727Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:10:26.032Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:10:26.038Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:10:26.044Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:10:26.048Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:10:30.315Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:10:30.322Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:10:30.327Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:10:32.278Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:10:32.286Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:10:32.292Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:10:32.296Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:26:02.596Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:26:02.727Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:26:02.983Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:26:03.133Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:26:03.188Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:26:03.235Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:26:03.240Z",
+  "chapterId": "ch002",
+  "wordBudget": {
+    "min": 6000,
+    "max": 10000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:26:03.291Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:26:03.330Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:26:03.334Z",
+  "chapterId": "ch002",
+  "wordBudget": {
+    "min": 6000,
+    "max": 10000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:26:03.379Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:26:03.383Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:26:03.384Z",
+  "chapterId": "ch002",
+  "wordBudget": {
+    "min": 6000,
+    "max": 10000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:26:03.390Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:26:03.401Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:26:03.778Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:26:03.910Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:26:03.997Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:26:04.009Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:26:04.017Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:26:04.433Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:26:04.453Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:26:04.464Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:26:04.528Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:26:04.534Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:26:04.541Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:26:04.608Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:26:04.616Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:26:04.625Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:26:05.186Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:26:05.241Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:26:05.306Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:26:05.660Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:26:05.669Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:26:05.677Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:26:06.056Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:26:06.113Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:26:06.249Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:26:06.256Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:26:06.263Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:26:06.430Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:26:06.441Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:26:06.452Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:26:07.718Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:26:07.733Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:26:07.750Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:26:09.282Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:26:09.288Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:26:09.292Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:26:09.462Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:26:09.475Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:26:09.482Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:26:09.485Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:26:09.491Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:26:09.496Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:26:09.594Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:26:19.739Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:26:19.754Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:26:20.249Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:26:20.253Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:26:20.258Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:26:20.263Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:26:24.629Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:26:24.637Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:26:24.642Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:26:26.139Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:26:26.149Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:26:26.152Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:26:26.155Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:45:01.052Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:45:01.163Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:45:01.337Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:45:01.599Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:45:01.663Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:45:01.712Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:45:01.717Z",
+  "chapterId": "ch002",
+  "wordBudget": {
+    "min": 6000,
+    "max": 10000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:45:01.762Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:45:01.810Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:45:01.815Z",
+  "chapterId": "ch002",
+  "wordBudget": {
+    "min": 6000,
+    "max": 10000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:45:01.860Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:45:01.863Z",
+  "chapterId": "ch002",
+  "wordBudget": {
+    "min": 6000,
+    "max": 10000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:45:01.876Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:45:01.885Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:45:01.890Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:45:02.201Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:45:02.277Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:45:02.288Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:45:02.295Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:45:02.311Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:45:02.329Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:45:02.345Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:45:02.356Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:45:02.608Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:45:02.615Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:45:02.622Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:45:02.749Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:45:02.756Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:45:02.760Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:45:03.407Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:45:03.448Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:45:03.506Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:45:03.730Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:45:03.790Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:45:04.092Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:45:04.096Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:45:04.101Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:45:04.297Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:45:04.306Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:45:04.318Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:45:05.300Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:45:05.309Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:45:05.318Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:45:06.588Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:45:06.602Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:45:06.611Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:45:06.868Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:45:07.027Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:45:07.038Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:45:07.043Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:45:07.158Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:45:07.165Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:45:07.171Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:45:07.175Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:45:07.182Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:45:07.185Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:45:15.732Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:45:15.741Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:45:16.399Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:45:16.404Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:45:16.407Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:45:16.413Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:45:20.578Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:45:20.584Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:45:20.589Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:45:22.636Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:45:22.644Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T08:45:22.647Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T08:45:22.651Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:01:55.521Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:01:55.821Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:01:55.943Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:01:56.010Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:01:56.067Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:01:56.073Z",
+  "chapterId": "ch002",
+  "wordBudget": {
+    "min": 6000,
+    "max": 10000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:01:56.103Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:01:56.130Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:01:56.193Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:01:56.204Z",
+  "chapterId": "ch002",
+  "wordBudget": {
+    "min": 6000,
+    "max": 10000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:01:56.259Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:01:56.264Z",
+  "chapterId": "ch002",
+  "wordBudget": {
+    "min": 6000,
+    "max": 10000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:01:56.569Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:01:56.576Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:01:56.583Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:01:56.611Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:01:56.721Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:01:56.986Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:01:56.996Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:01:57.004Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:01:57.365Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:01:57.380Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:01:57.398Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:01:57.585Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:01:57.594Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:01:57.603Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:01:58.234Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:01:58.393Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:01:58.404Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:01:58.419Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:01:58.754Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:01:58.833Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:01:59.145Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:01:59.237Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:01:59.471Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:01:59.478Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:01:59.485Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:02:00.117Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:02:00.146Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:02:00.159Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:02:02.015Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:02:02.036Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:02:02.053Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:02:03.199Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:02:03.225Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:02:03.238Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:02:03.818Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:02:03.826Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:02:03.831Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:02:03.985Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:02:04.853Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:02:04.870Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:02:04.878Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:02:04.882Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:02:04.893Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:02:04.899Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:02:16.608Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:02:16.621Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:02:17.200Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:02:17.206Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:02:17.211Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:02:17.215Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:02:22.781Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:02:22.789Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:02:22.793Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:02:25.232Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:02:25.242Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:02:25.250Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:02:25.254Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:03:29.874Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:03:30.747Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:03:31.024Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:03:31.094Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:03:31.179Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:03:31.192Z",
+  "chapterId": "ch002",
+  "wordBudget": {
+    "min": 6000,
+    "max": 10000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:03:31.216Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:03:31.264Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:03:31.331Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:03:31.342Z",
+  "chapterId": "ch002",
+  "wordBudget": {
+    "min": 6000,
+    "max": 10000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:03:31.405Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:03:31.411Z",
+  "chapterId": "ch002",
+  "wordBudget": {
+    "min": 6000,
+    "max": 10000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:03:31.732Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:03:31.738Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:03:31.745Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:03:31.872Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:03:31.967Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:03:31.979Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:03:31.990Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:03:32.053Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:03:32.463Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:03:32.481Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:03:32.497Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:03:32.767Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:03:32.780Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:03:32.795Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:03:33.040Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:03:33.052Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:03:33.065Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:03:34.086Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:03:34.156Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:03:34.235Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:03:34.634Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:03:34.637Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:03:34.653Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:03:34.677Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:03:34.725Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:03:34.734Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:03:34.742Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:03:34.741Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:03:37.148Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:03:37.160Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:03:37.171Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:03:38.816Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:03:38.829Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:03:38.838Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:03:39.197Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:03:39.864Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:03:39.877Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:03:39.894Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:03:40.303Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:03:40.316Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:03:40.323Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:03:40.333Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:03:40.352Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:03:40.357Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:03:52.131Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:03:52.146Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:03:53.591Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:03:53.603Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:03:53.609Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:03:53.618Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:03:58.989Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:03:59.000Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:03:59.006Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:04:01.496Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:04:01.511Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:04:01.516Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:04:01.521Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:08:22.138Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:08:22.426Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:08:22.534Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:08:22.589Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:08:22.628Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:08:22.633Z",
+  "chapterId": "ch002",
+  "wordBudget": {
+    "min": 6000,
+    "max": 10000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:08:22.696Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:08:22.749Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:08:22.756Z",
+  "chapterId": "ch002",
+  "wordBudget": {
+    "min": 6000,
+    "max": 10000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:08:22.820Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:08:22.822Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:08:22.828Z",
+  "chapterId": "ch002",
+  "wordBudget": {
+    "min": 6000,
+    "max": 10000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:08:23.214Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:08:23.221Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:08:23.229Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:08:23.393Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:08:23.523Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:08:23.564Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:08:23.574Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:08:23.582Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:08:23.624Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:08:23.639Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:08:23.651Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:08:23.776Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:08:23.784Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:08:23.791Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:08:24.027Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:08:24.035Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:08:24.043Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:08:24.821Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:08:24.870Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:08:24.931Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:08:25.181Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:08:25.281Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:08:25.283Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:08:25.288Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:08:25.297Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:08:25.931Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:08:25.939Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:08:25.957Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:08:27.078Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:08:27.104Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:08:27.124Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:08:28.330Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:08:28.353Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:08:28.370Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:08:29.042Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:08:29.053Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:08:29.060Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:08:29.214Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:08:30.091Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:08:30.115Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:08:30.143Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:08:30.148Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:08:30.159Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:08:30.167Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:08:42.188Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:08:42.204Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:08:43.420Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:08:43.425Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:08:43.430Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:08:43.436Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:08:48.249Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:08:48.259Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:08:48.264Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:08:50.718Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:08:50.730Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:08:50.735Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:08:50.739Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:15:28.886Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:15:29.000Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:15:29.230Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:15:29.448Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:15:29.496Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:15:29.553Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:15:29.566Z",
+  "chapterId": "ch002",
+  "wordBudget": {
+    "min": 6000,
+    "max": 10000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:15:29.595Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:15:29.601Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:15:29.608Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:15:29.616Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:15:29.671Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:15:29.680Z",
+  "chapterId": "ch002",
+  "wordBudget": {
+    "min": 6000,
+    "max": 10000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:15:29.741Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:15:29.747Z",
+  "chapterId": "ch002",
+  "wordBudget": {
+    "min": 6000,
+    "max": 10000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:15:30.157Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:15:30.311Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:15:30.382Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:15:30.394Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:15:30.404Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:15:30.536Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:15:30.548Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:15:30.567Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:15:30.957Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:15:30.962Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:15:30.965Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:15:30.972Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:15:30.975Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:15:30.984Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:15:31.920Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:15:31.930Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:15:31.934Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:15:31.946Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:15:33.068Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:15:33.138Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:15:33.147Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:15:33.159Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:15:33.245Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:15:33.258Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:15:33.266Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:15:33.266Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:15:33.560Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:15:33.675Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:15:34.673Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:15:34.708Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:15:34.734Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:15:36.602Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:15:37.528Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:15:37.545Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:15:37.553Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:15:37.786Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:15:37.813Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:15:37.830Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:15:37.834Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:15:37.850Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:15:37.858Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:15:49.903Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:15:49.920Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:15:50.951Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:15:50.960Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:15:50.968Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:15:50.973Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:15:55.390Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:15:55.399Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:15:55.405Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:15:57.196Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:15:57.212Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:15:57.217Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:15:57.224Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:16:51.589Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:16:52.019Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:16:52.202Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:16:52.224Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:16:52.246Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:16:52.255Z",
+  "chapterId": "ch002",
+  "wordBudget": {
+    "min": 6000,
+    "max": 10000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:16:52.320Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:16:52.376Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:16:52.381Z",
+  "chapterId": "ch002",
+  "wordBudget": {
+    "min": 6000,
+    "max": 10000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:16:52.445Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:16:52.451Z",
+  "chapterId": "ch002",
+  "wordBudget": {
+    "min": 6000,
+    "max": 10000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:16:52.453Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:16:52.858Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:16:52.921Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:16:52.928Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:16:52.938Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:16:52.985Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:16:53.029Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:16:53.040Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:16:53.046Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:16:53.180Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:16:53.194Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:16:53.206Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:16:53.352Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:16:53.359Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:16:53.368Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:16:53.623Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:16:53.631Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:16:53.640Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:16:54.496Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:16:54.555Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:16:54.621Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:16:54.750Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:16:54.773Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:16:54.788Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:16:54.942Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:16:55.035Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:16:55.132Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:16:55.144Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:16:55.151Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:16:55.855Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:16:55.867Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:16:55.883Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:16:57.182Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:16:57.195Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:16:57.210Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:16:59.013Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:16:59.023Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:16:59.028Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:16:59.372Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:16:59.389Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:16:59.396Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:16:59.402Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:16:59.411Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:16:59.415Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:16:59.655Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:17:11.051Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:17:11.067Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:17:11.978Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:17:11.983Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:17:11.989Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:17:11.995Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:17:16.740Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:17:16.752Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:17:16.758Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:17:19.090Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:17:19.100Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T09:17:19.104Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T09:17:19.111Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T11:02:29.084Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:02:29.261Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:02:29.489Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:02:29.724Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T11:02:29.763Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T11:02:29.801Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T11:02:29.807Z",
+  "chapterId": "ch002",
+  "wordBudget": {
+    "min": 6000,
+    "max": 10000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T11:02:29.842Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T11:02:29.850Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:02:29.856Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:02:29.861Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:02:29.879Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T11:02:29.883Z",
+  "chapterId": "ch002",
+  "wordBudget": {
+    "min": 6000,
+    "max": 10000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T11:02:29.927Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T11:02:29.930Z",
+  "chapterId": "ch002",
+  "wordBudget": {
+    "min": 6000,
+    "max": 10000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T11:02:30.034Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:02:30.043Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:02:30.051Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:02:30.089Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:02:30.099Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:02:30.107Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:02:30.379Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T11:02:30.569Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:02:30.609Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:02:30.614Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:02:30.615Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:02:30.618Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:02:30.621Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:02:30.625Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:02:31.668Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:02:31.717Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:02:31.732Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:02:31.739Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:02:32.048Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:02:32.058Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:02:32.066Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:02:32.298Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:02:32.355Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:02:32.657Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:02:32.742Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:02:32.915Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:02:32.934Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:02:32.942Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:02:34.092Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:02:34.105Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:02:34.113Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:02:34.979Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:02:35.418Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:02:35.428Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:02:35.431Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:02:35.811Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:02:35.824Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:02:35.832Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:02:35.837Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:02:35.846Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:02:35.848Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:02:45.995Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:02:45.999Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:02:46.002Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:02:46.006Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:02:46.062Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:02:46.084Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:02:50.443Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T11:02:50.449Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T11:02:50.454Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T11:02:52.097Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T11:02:52.104Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T11:02:52.109Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:02:52.112Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T11:13:22.851Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:13:22.931Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:13:23.166Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:13:23.350Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T11:13:23.395Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T11:13:23.442Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T11:13:23.447Z",
+  "chapterId": "ch002",
+  "wordBudget": {
+    "min": 6000,
+    "max": 10000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T11:13:23.485Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T11:13:23.527Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T11:13:23.532Z",
+  "chapterId": "ch002",
+  "wordBudget": {
+    "min": 6000,
+    "max": 10000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T11:13:23.538Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:13:23.542Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:13:23.546Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:13:23.571Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T11:13:23.574Z",
+  "chapterId": "ch002",
+  "wordBudget": {
+    "min": 6000,
+    "max": 10000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T11:13:23.832Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:13:23.837Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:13:23.842Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:13:23.858Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T11:13:23.876Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:13:23.886Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:13:23.892Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:13:23.985Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:13:24.357Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:13:24.366Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:13:24.375Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:13:24.494Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:13:24.505Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:13:24.511Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:13:25.280Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:13:25.305Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:13:25.320Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:13:25.330Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:13:25.331Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:13:25.387Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:13:25.669Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:13:25.742Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:13:25.748Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:13:25.755Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:13:25.755Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:13:26.102Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:13:26.111Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:13:26.121Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:13:27.115Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:13:27.129Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:13:27.140Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:13:28.488Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:13:28.496Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:13:28.501Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:13:28.610Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:13:29.136Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:13:29.148Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:13:29.155Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:13:29.159Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:13:29.169Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:13:29.173Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:13:38.580Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:13:38.593Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:13:39.203Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:13:39.208Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:13:39.211Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:13:39.215Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:13:43.641Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T11:13:43.651Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T11:13:43.655Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T11:13:45.105Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T11:13:45.114Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T11:13:45.119Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:13:45.122Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T11:26:07.173Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:26:07.300Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:26:07.515Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:26:07.574Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T11:26:07.623Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T11:26:07.664Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T11:26:07.669Z",
+  "chapterId": "ch002",
+  "wordBudget": {
+    "min": 6000,
+    "max": 10000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T11:26:07.709Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T11:26:07.746Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T11:26:07.750Z",
+  "chapterId": "ch002",
+  "wordBudget": {
+    "min": 6000,
+    "max": 10000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T11:26:07.795Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T11:26:07.799Z",
+  "chapterId": "ch002",
+  "wordBudget": {
+    "min": 6000,
+    "max": 10000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T11:26:07.817Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:26:07.821Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:26:07.826Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:26:08.085Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T11:26:08.103Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:26:08.108Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:26:08.113Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:26:08.168Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:26:08.175Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:26:08.181Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:26:08.207Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:26:08.526Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:26:08.534Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:26:08.542Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:26:08.566Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:26:08.571Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:26:08.576Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:26:09.253Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:26:09.293Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:26:09.363Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:26:09.588Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:26:09.664Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:26:09.801Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:26:09.821Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:26:09.844Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:26:10.525Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:26:10.535Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:26:10.545Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:26:11.216Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:26:11.226Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:26:11.236Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:26:12.371Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:26:12.380Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:26:12.394Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:26:13.397Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:26:13.404Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:26:13.412Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:26:13.417Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:26:13.570Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:26:13.585Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:26:13.591Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:26:13.595Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:26:13.605Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:26:13.609Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:26:22.764Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:26:22.781Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:26:23.493Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:26:23.496Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:26:23.500Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:26:23.504Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:26:27.668Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T11:26:27.676Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T11:26:27.681Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T11:26:29.416Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T11:26:29.424Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T11:26:29.429Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:26:29.434Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T11:32:52.655Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:32:52.823Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:32:53.019Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:32:53.314Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T11:32:53.344Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:32:53.348Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:32:53.352Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:32:53.353Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T11:32:53.387Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T11:32:53.392Z",
+  "chapterId": "ch002",
+  "wordBudget": {
+    "min": 6000,
+    "max": 10000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T11:32:53.434Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T11:32:53.482Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T11:32:53.487Z",
+  "chapterId": "ch002",
+  "wordBudget": {
+    "min": 6000,
+    "max": 10000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T11:32:53.525Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T11:32:53.529Z",
+  "chapterId": "ch002",
+  "wordBudget": {
+    "min": 6000,
+    "max": 10000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T11:32:53.559Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:32:53.564Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:32:53.569Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:32:53.630Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:32:53.642Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:32:53.652Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:32:53.865Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T11:32:54.031Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:32:54.037Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:32:54.039Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:32:54.045Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:32:54.140Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:32:54.145Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:32:54.153Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:32:55.096Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:32:55.107Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:32:55.116Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:32:55.272Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:32:55.328Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:32:55.394Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:32:55.438Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:32:55.445Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:32:55.451Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:32:56.561Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:32:56.570Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:32:56.578Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:32:57.779Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:32:57.946Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:32:58.276Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:32:58.284Z",
+  "chapterId": "ch002",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:32:58.292Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:32:59.581Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:32:59.699Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:32:59.708Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:32:59.717Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:33:00.067Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:33:00.083Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:33:00.090Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:33:00.094Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:33:00.102Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:33:00.108Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:33:09.205Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:33:09.217Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:33:10.074Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:33:10.081Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:33:10.086Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:33:10.090Z",
+  "chapterId": "ch003",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:33:14.096Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T11:33:14.105Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T11:33:14.111Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T11:33:15.690Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T11:33:15.698Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}
+{
+  "timestamp": "2026-10-12T11:33:15.701Z",
+  "chapterId": "ch001",
+  "wordBudgetType": "undefined",
+  "hasMin": false,
+  "hasMax": false
+}
+{
+  "timestamp": "2026-10-12T11:33:15.706Z",
+  "chapterId": "ch001",
+  "wordBudget": {
+    "min": 5000,
+    "max": 8000,
+    "expected": 6500
+  },
+  "wordBudgetType": "object",
+  "hasMin": true,
+  "hasMax": true
+}

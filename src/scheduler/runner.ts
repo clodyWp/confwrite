@@ -134,6 +134,38 @@ export class SchedulerRunner {
       }
     }
 
+    // SM-17: emit stats.progress 事件（每批次完成后报告进度）
+    if (this.eventBus) {
+      const stats = this.scheduler.getStats();
+      this.eventBus.emit({
+        type: 'stats.progress',
+        elapsed: Date.now() - (this as any)._startTime || 0,
+        currentPhase: '',
+        chapterProgress: {
+          total: 0,
+          completed: 0,
+          failed: 0,
+          pending: 0,
+        },
+        taskStats: {
+          executed: stats.completed + stats.failed,
+          succeeded: stats.completed,
+          failed: stats.failed,
+          avgDuration: 0,
+        },
+        resourceUsage: {
+          concurrency: {
+            current: stats.running,
+            max: this.maxConcurrency,
+          },
+          tokenBucket: {
+            current: 0,
+            max: 0,
+          },
+        },
+      });
+    }
+
     return result;
   }
 

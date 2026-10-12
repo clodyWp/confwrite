@@ -177,6 +177,23 @@ ConfWrite 80% 的 bug 出在**模块间交互**——不是单个模块内部逻
 
 ---
 
+## 3.9 日志系统 (Logging)
+
+**输入**：
+- 运行时事件（通过 `EventBus.emit()` 发布）
+
+**输出**：
+- `logs/confwrite-log.jsonl` — JSONL 格式日志文件（每行一个 JSON 对象）
+
+**契约**：
+| ID | 规则 |
+|----|------|
+| LOG-1 | **日志写入必须是增量追加** — 使用 JSONL 格式，每个事件 `appendFileSync` 追加一行，不允许全量重写（O(n²) I/O） |
+| LOG-2 | **日志文件每行必须是合法 JSON** — 包含 `timestamp` 和 `event` 字段 |
+| LOG-3 | **日志文件扩展名为 `.jsonl`** — 默认文件名 `confwrite-log.jsonl` |
+
+---
+
 ## 4. 数据传递契约
 
 ### 4.1 wordBudget 传递链
@@ -263,9 +280,36 @@ pending → writing → written → reviewing → reviewed
 
 ---
 
-## 7. 变更历史
+## 7. 日志写入契约
+
+| ID | 规则 | 违反后果 |
+|----|------|----------|
+| LOG-1 | **日志写入必须是原子操作** — 使用 temp + rename 模式 | 崩溃时日志文件损坏或丢失 (Issue #56) |
+| LOG-2 | **写入失败时清理临时文件** — rename 失败后删除 `.tmp` 文件 | 残留临时文件占用磁盘 |
+| LOG-3 | **日志文件不为空** — 至少包含一个有效 JSON 条目 | 空日志文件让诊断失效 |
+
+### LOG-1 实现细节
+
+日志写入使用 temp + rename 模式：
+
+```typescript
+const tempPath = logPath + '.tmp';
+writeFileSync(tempPath, content, 'utf-8');
+renameSync(tempPath, logPath);
+```
+
+原因：
+- 防止崩溃时日志文件损坏（部分写入）
+- 确保日志文件完整性（要么完整旧版本，要么完整新版本）
+- Windows 和 Linux 上 rename 都是原子操作
+
+---
+
+## 8. 变更历史
 
 | 日期 | 变更 | 原因 |
 |------|------|------|
 | 2026-10-12 | 初始版本 | 基于 v0.22.0 代码审计，汇总所有模块间交互规范 |
+| 2026-10-12 | 新增 §7 日志写入契约 (LOG-1~3) | Issue #56: 防止崩溃时日志丢失 |
 | 2026-10-12 | 新增 LOG-4 | Issue #55: DIAG 日志必须通过 EventBus emit |
+| 2026-10-13 | 新增 §3.9 日志系统契约 (LOG-1~LOG-3) | Issue #54：日志从全量重写改为 JSONL 增量追加 |
