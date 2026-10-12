@@ -35,6 +35,10 @@ export class Logger {
         return Logger.formatRateLimit(event);
       case 'stats.progress':
         return Logger.formatProgress(event);
+      case 'diag.wordbudget':
+        return Logger.formatDiagWordBudget(event);
+      case 'diag.taskexecutor':
+        return Logger.formatDiagTaskExecutor(event);
       default:
         return { message: JSON.stringify(event), level: 'info' };
     }
@@ -169,6 +173,24 @@ export class Logger {
     }
 
     const message = `📈 [进度] 运行 ${elapsed}\n   ├─ 阶段: ${event.currentPhase}\n   ├─ 章节: ${progress} (${percent}%)\n   ├─ 任务: ${event.taskStats.succeeded} 成功 / ${event.taskStats.failed} 失败\n   ├─ 速度: ${avgDuration}/任务\n   └─ 预计: ${remaining ? `~${remaining} 剩余` : '计算中...'}`;
+    return { message, level: 'info' };
+  }
+
+  /**
+   * 格式化 DIAG 字数预算事件 (LOG-4)
+   */
+  private static formatDiagWordBudget(event: Extract<LogEvent, { type: 'diag.wordbudget' }>): FormatResult {
+    const budget = event.wordBudget ? `${event.wordBudget.min}-${event.wordBudget.max}` : 'undefined';
+    const message = `[DIAG] wordBudget: ${event.chapterId} = ${budget} (source: ${event.source})`;
+    return { message, level: 'info' };
+  }
+
+  /**
+   * 格式化 DIAG TaskExecutor 事件 (LOG-4)
+   */
+  private static formatDiagTaskExecutor(event: Extract<LogEvent, { type: 'diag.taskexecutor' }>): FormatResult {
+    const budget = event.wordBudget ? `${event.wordBudget.min}-${event.wordBudget.max}` : 'none';
+    const message = `[DIAG] taskExecutor: ${event.chapterId} prompt=${event.promptLength}chars budget=${budget}`;
     return { message, level: 'info' };
   }
 

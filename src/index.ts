@@ -134,9 +134,9 @@ export async function runWriteLoop(
     loggingSystem.eventBus, // 传递 EventBus
     (chapterId) => store.load()?.chapters[chapterId]?.round ?? 0, // SM-14: 从 state 读取 chapter.round
   );
-  const taskExecutor = new TaskExecutor(userConfig, projectDir);
+  const taskExecutor = new TaskExecutor(userConfig, projectDir, loggingSystem.eventBus);
   const writingOrchestrator = new WritingOrchestrator(loggingSystem.eventBus);
-  const dispatcher = new Dispatcher(projectDir, store, scheduler, taskExecutor, writingOrchestrator);
+  const dispatcher = new Dispatcher(projectDir, store, scheduler, taskExecutor, writingOrchestrator, loggingSystem.eventBus);
   const outputValidator = new OutputValidator(projectDir, userConfig);
 
   const EXECUTABLE_ACTIONS = new Set(['spawn_writers', 'spawn_reviewers', 'spawn_fixers']);
