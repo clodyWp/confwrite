@@ -24,6 +24,7 @@ import {
   type ParsedNode,
   type ParsedConnection,
 } from './description-parser.js';
+import type { EventBus } from '../logging/event-bus.js';
 
 /**
  * 管线选项
@@ -83,12 +84,14 @@ export class DiagramPipeline {
   private cache: DiagramCache;
   private style: DiagramStyle;
   private knowledgeConfig: KnowledgeDiagramConfig;
+  private eventBus?: EventBus;
 
-  constructor(projectDir: string) {
+  constructor(projectDir: string, eventBus?: EventBus) {
     this.projectDir = projectDir;
     this.cache = new DiagramCache(projectDir);
     this.style = loadDiagramStyle(projectDir);
     this.knowledgeConfig = loadKnowledgeDiagramConfig(projectDir);
+    this.eventBus = eventBus;
   }
 
   /**
@@ -153,6 +156,19 @@ export class DiagramPipeline {
     const blocks = this.extractDiagrams();
     result.total = blocks.length;
 
+    // SM-17: emit diagram.scan 事件
+    if (this.eventBus && blocks.length > 0) {
+      const byFormat = {
+        'diagram-start': blocks.filter(b => b.format !== 'mermaid').length,
+        'mermaid': blocks.filter(b => b.format === 'mermaid').length,
+      };
+      this.eventBus.emit({
+        type: 'diagram.scan',
+        total: blocks.length,
+        byFormat,
+      });
+    }
+
     if (blocks.length === 0) {
       return result;
     }
@@ -170,6 +186,17 @@ export class DiagramPipeline {
       // 检查缓存
       if (!this.cache.shouldRegenerate(diagramId, block.rawContent)) {
         result.skipped++;
+        // SM-17: emit diagram.generate 事件（缓存命中）
+        if (this.eventBus) {
+          this.eventBus.emit({
+            type: 'diagram.generate',
+            diagramId,
+            chapterId: block.chapterId,
+            format: block.format as 'diagram-start' | 'mermaid',
+            diagramType: block.type || 'unknown',
+            action: 'cached',
+          });
+        }
         continue;
       }
 
@@ -199,12 +226,26 @@ export class DiagramPipeline {
 
       for (let attempt = 0; attempt <= maxRetries; attempt++) {
         try {
+          const genStart = Date.now();
           await this.processDiagram(block, diagramId, figuresDir, options, result);
           succeeded = true;
           if (attempt > 0) {
             result.retried++;
           }
           result.generated++;
+          // SM-17: emit diagram.generate 事件（生成成功）
+          if (this.eventBus) {
+            this.eventBus.emit({
+              type: 'diagram.generate',
+              diagramId,
+              chapterId: block.chapterId,
+              format: block.format as 'diagram-start' | 'mermaid',
+              diagramType: block.type || 'unknown',
+              action: 'generated',
+              duration: Date.now() - genStart,
+              outputPath: join(figuresDir, `${diagramId}.svg`),
+            });
+          }
           break;
         } catch (error) {
           lastError = error;
@@ -217,6 +258,18 @@ export class DiagramPipeline {
 
       if (!succeeded) {
         result.failed++;
+        // SM-17: emit diagram.generate 事件（生成失败）
+        if (this.eventBus) {
+          this.eventBus.emit({
+            type: 'diagram.generate',
+            diagramId,
+            chapterId: block.chapterId,
+            format: block.format as 'diagram-start' | 'mermaid',
+            diagramType: block.type || 'unknown',
+            action: 'failed',
+            error: lastError instanceof Error ? lastError.message : String(lastError),
+          });
+        }
         result.errors.push({
           diagramId,
           error: lastError instanceof Error ? lastError.message : String(lastError),

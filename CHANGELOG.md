@@ -4,6 +4,25 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+- **Issue #57: Phase transition 时保存状态快照** — 每次 phase transition 时在 `logs/checkpoints/` 保存快照，支持断网恢复和执行历史回溯
+  - `src/orchestrator/state-machine.ts`: advance() 调用前保存快照（`saveCheckpoint()`），包含 timestamp/from/to/chapters/tasks
+  - 快照文件名格式：`checkpoint-{timestamp}.json`
+  - 快照保存失败不影响主流程（try-catch 包裹）
+  - `forceAdvance()` 同样保存快照
+  - 新增 spec SM-18：Phase transition 时必须保存状态快照
+  - 新增测试 `tests/orchestrator/state-snapshot.test.ts`（6 个测试用例）
+- **Issue #53: 补全事件 emit — 11 个事件类型从未 emit** — 关键状态变化现在通过 EventBus emit 事件
+  - `src/orchestrator/state-machine.ts`: advance() emit `phase.transition` 事件（含章节统计）
+  - `src/writing/orchestrator.ts`: updateChapterStatus() emit `chapter.status`、`chapter.failed`、`round.exceeded` 事件
+  - `src/diagrams/pipeline.ts`: run() emit `diagram.scan`、`diagram.generate` 事件
+  - `src/scheduler/pi-executor.ts`: emit `tool.call`、`budget.warning`、`budget.exceeded`、`loop.detected` 事件
+  - `src/scheduler/runner.ts`: runAll() emit `stats.progress` 事件
+  - `src/orchestrator/phases.ts`: PhaseContext 新增可选 `eventBus` 字段，Phase 5 传递 EventBus 给 DiagramPipeline
+  - `src/index.ts`: 将 EventBus 注入 StateMachine、WritingOrchestrator、PiSubagentExecutor
+  - 新增 spec SM-17：关键状态变化必须 emit 事件
+  - 新增测试 `tests/logging/event-emission.test.ts`（12 个测试用例）
+
 ### Fixed
 - **Issue #56: 日志写入原子化，防止崩溃时日志丢失** — `flushLog()` 使用 temp + rename 模式
   - `src/logging/index.ts`: 日志先写入 `.tmp` 临时文件，再 `renameSync` 到目标路径
