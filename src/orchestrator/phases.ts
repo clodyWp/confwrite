@@ -425,7 +425,7 @@ export const phase4c: PhaseDefinition = {
         if (verdict === 'reject') {
           // Process reject: reset to pending for rewrite
           ch.status = 'pending';
-          ch.round = round + 1;
+          // SM-15: round 已在 orchestrator.ts updateChapterStatus() 递增，这里不再递增（避免双重递增）
           reject++;
         } else if (verdict === 'revise') {
           revise++;

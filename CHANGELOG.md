@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 ## [0.22.0] - 2026-10-12
 
 ### Fixed
+- **Issue #47-2: Reject 时 round 双重递增** — 移除 phases.ts 4c execute 中的多余 round 递增
+  - `src/orchestrator/phases.ts`: 4c execute 不再递增 reject 章节的 round（round 已在 orchestrator.ts updateChapterStatus 中递增）
+  - 新增 spec SM-15：Reject 时 round 只递增一次
+  - 新增回归测试 `tests/orchestrator/phase4c-double-increment.test.ts`
 - **Bug #33: Phase 1 状态转换绕过状态机** — 移除 phase1.ts 中的直接状态修改
   - `src/orchestrator/phase1.ts`: 删除 `state.currentPhase = '2'` 直接赋值
   - 状态转换现在由状态机 exit condition 正确驱动
