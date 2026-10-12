@@ -74,6 +74,29 @@ import { Foo } from './bar';
 - Shell 工具按平台选择：Windows → powershell，Linux → bash
 - 字体回退链需覆盖 CJK 字符（`Microsoft YaHei` → `SimHei` → `Noto Sans CJK`）
 
+### 3.6 Spec-Driven 开发流程
+
+本项目采用 Spec-Driven Development（SDD），行为规格定义在 `specs/` 目录：
+
+- `specs/state-machine.md` — 状态机行为规格（13 条不变量）
+- `specs/module-contracts.md` — 模块间契约（通用规则 + Phase 契约 + 数据传递契约）
+
+**开发流程**：
+
+1. **改代码前**：读 `specs/` 下相关 spec，理解模块的行为契约
+2. **spec 不存在或不覆盖**：先补/修 spec，再写代码
+3. **写代码时**：代码必须满足 spec 中的所有不变量
+4. **写测试时**：测试必须覆盖 spec 中定义的前置/后置条件
+5. **修 bug 时**：先写/修 spec（定义"对"是什么），再写失败测试，最后修代码
+
+**验证方式**：
+
+- `tests/orchestrator/spec-invariants.test.ts` — 验证状态机不变量（SM-*）
+- 每条测试名包含不变量 ID（如 `SM-4: index.ts 在 tick 之前判定终态`）
+- `npm test` 通过 = spec 被遵守；测试失败 = spec 被违反
+
+**违反 spec = 违反 AGENTS.md = 不可接受**
+
 ## 4. 架构速查
 
 详细架构设计见 `DESIGN.md`。此处仅提供快速导航：
