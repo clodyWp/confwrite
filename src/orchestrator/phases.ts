@@ -406,15 +406,27 @@ export const phase4c: PhaseDefinition = {
   validate: () => ({ ok: true }),
   async execute(ctx) {
     const chapters = Object.entries(ctx.state.chapters);
-    let pass = 0, revise = 0, reject = 0;
+    let pass = 0, revise = 0, reject = 0, forced = 0;
 
     for (const [id, ch] of chapters) {
       if (ch.status === 'reviewed') {
+        // Bug 41 修复：maxRounds 兜底守护
+        // 超过 maxRounds 的章节强制完成，不再循环
+        const maxRounds = ch.maxRounds || 5;
+        const round = ch.round || 1;
+        if (round >= maxRounds) {
+          ch.status = 'completed';
+          ch.failureReason = 'exceeded_max_rounds';
+          pass++;
+          forced++;
+          continue;
+        }
+
         const verdict = ch.lastReviewVerdict;
         if (verdict === 'reject') {
           // Process reject: reset to pending for rewrite
           ch.status = 'pending';
-          ch.round = (ch.round || 1) + 1;
+          ch.round = round + 1;
           reject++;
         } else if (verdict === 'revise') {
           revise++;
@@ -428,10 +440,11 @@ export const phase4c: PhaseDefinition = {
     // Persist state changes
     ctx.state.lastUpdated = new Date().toISOString();
 
+    const forcedMsg = forced > 0 ? ` (forced ${forced} by maxRounds)` : '';
     return {
       action: 'decide',
-      message: `Phase 4c: pass=${pass}, revise=${revise}, reject=${reject}`,
-      params: { pass, revise, reject },
+      message: `Phase 4c: pass=${pass}, revise=${revise}, reject=${reject}${forcedMsg}`,
+      params: { pass, revise, reject, forced },
     };
   },
   exits: [
@@ -469,6 +482,11 @@ export const phase4d: PhaseDefinition = {
     );
     if (fixable.length === 0) {
       return { ok: false, error: '没有需要修复的章节' };
+    }
+    // Bug 41 修复：如果所有待修复章节都已超过 maxRounds，不再修复
+    const allExceeded = fixable.every(ch => (ch.round || 1) >= (ch.maxRounds || 5));
+    if (allExceeded) {
+      return { ok: false, error: '所有章节已超过 maxRounds，强制完成' };
     }
     return { ok: true };
   },
