@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.22.0] - 2026-10-12
+
+### Fixed
+- **Bug #33: Phase 1 状态转换绕过状态机** — 移除 phase1.ts 中的直接状态修改
+  - `src/orchestrator/phase1.ts`: 删除 `state.currentPhase = '2'` 直接赋值
+  - 状态转换现在由状态机 exit condition 正确驱动
+- **Bug #34: Phase 1 不生成 requirements.json** — 修复 Phase 1 文件生成逻辑
+  - 修复后 Phase 1 正确生成 `assets/requirements.json`
+  - 添加回归测试验证文件生成
+- **Bug #35: 组装后章节数与大纲不一致** — 排除 TOC 标题计数
+  - `src/assemble/finalizer.ts`: 使用负向 lookahead 排除 `## 目录`
+  - `src/assemble/heading-checker.ts`: 跳过标题为 `目录` 的条目
+- **Bug #36: 跨平台路径拼接** — 使用 path.join() 替代模板字符串
+  - `src/state/store.ts`: 修复 Windows/Linux 路径分隔符问题
+
+### Added
+- 5 个新测试文件覆盖状态转换、章节计数、路径拼接
+- 跨平台 E2E 测试脚本 `scripts/e2e-test-herdr.sh` (bash 版本)
+
+### Changed
+- E2E 测试计划 P1 问题全部修复
+  - 命令签名与 SKILL.md 对齐
+  - §5 章节编号修复 (4.x → 5.x)
+  - 添加 compact/export 测试场景
+
 ## [0.21.2] - 2026-10-11
 ### Added
 - **PR #32: DIAG 日志追踪 wordBudget 传递** — 添加文件级诊断日志，确保字数控制可追踪
