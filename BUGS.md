@@ -70,7 +70,7 @@ Phase 8 → done  14:09:44   ✓
 |---|---|---|---|---|
 | 1 | 熔断后空转到 MAX_TICKS | P0 | ✅ 已修 | `a43dece` |
 | 2 | `stoppedReason` 被 `max_ticks` 覆盖 | P0 | ✅ 已修 | `a43dece` |
-| 3 | `pending` 孤儿 / 4c 死锁 | P0 | ⬜ 未修 | — |
+| 3 | `pending` 孤儿 / 4c 死锁 | P0 | ✅ 已修 | 2026-10-13 (Issue #47 子任务 1) |
 | 4 | accept 门槛「全部通过」 | P1 | ✅ 已修 | — |
 | 5 | 裁决与严重度不相关 | P1 | ✅ 已修 | — |
 | 6 | ≥300 字/段规则导致不收敛 | P1 | ✅ 已修 | — |
@@ -104,9 +104,8 @@ Phase 8 → done  14:09:44   ✓
 | 34 | 提取器扫描所有版本 → 旧版本的图成为孤儿 | P2 | ✅ 已修 | `f3b2e62` |
 | 35 | 缺 mmdc 时静默降级，谎报「生成完成」 | P1 | ✅ 已修 | `f3b2e62` |
 
-> 已修 **34** 个 / 共 **35** 个。
-> 未修的仅 Bug 3（`pending` 孤儿 / 4c 死锁），
-> 不影响「沿用现有产物 → 图表 → 导出 Word」这条路径 —— 该路径已端到端走通。
+> 已修 **35** 个 / 共 **35** 个。
+> 所有已知 bug 均已修复（Bug 3 的 `&& ch.round > 1` 死代码已于 2026-10-13 移除）。
 
 ### 0.5 第三轮实测结果（LMERP2V2-v3，2026-10-10）
 
@@ -240,8 +239,12 @@ index.ts:111  EXECUTABLE_ACTIONS = {spawn_writers, spawn_reviewers, spawn_fixers
 
 **修法**：4c 的 → 4a 条件改为 `ch.status === 'pending'`（不限 round）；同时应加**单章轮次上限**（如 3 轮后强制 accept/fail），否则会变成另一种无限循环。
 
-**状态**：⬜ 未修复。本次通过手工改状态绕开（15 章全标 completed），
-> 不影响「不重做第 4 阶段」的路径。
+**状态**：✅ 已修复（2026-10-13，Issue #47 子任务 1）
+> 4c → 4a 的 `&& ch.round > 1` 死代码已移除，改为只检查 `ch.status === 'pending'`。
+> 当前代码所有设置 `pending` 的路径都会递增 `round`（phases.ts 4c reject、`orchestrator.ts` reject、Bug 51 fixer），
+> 故 `pending` 必然 `round > 1`，原始孤儿场景不再被死代码排除。
+> 另：单章轮次上限由 `maxRounds` 守护（§6.3 + Bug 41/51）防止无限循环。
+> 回归测试：`tests/orchestrator/phase4c-pending-orphan.test.ts`。
 
 ---
 
@@ -1413,6 +1416,25 @@ Phase 1 提取错误需求（项目说明）
 1. 新增 `chapterRoundLookup` 参数到 `SchedulerRunner` 构造函数
 2. 在 `src/index.ts` 传入 lookup 函数从 `store.load()` 读取 `chapter.round`
 3. 新增 spec SM-14 和回归测试
+
+**状态**：✅ 已修复
+
+---
+
+### 🟡 Bug 39 (Issue #47-2) — Reject 时 round 双重递增
+
+**症状**：一次 reviewer reject 导致章节 round 从 1 跳到 3（应该只到 2），章节更快触达 maxRounds，减少实际修复机会。
+
+**根因**：round 在两处被递增：
+1. `src/writing/orchestrator.ts:211` — `updateChapterStatus()` 的 reviewer reject 分支：`chapter.round += 1`
+2. `src/orchestrator/phases.ts:427` — 4c execute 的 reject 分支：`ch.round = round + 1`
+
+两处代码对同一次 reject 事件都递增了 round，导致双重递增。
+
+**修法**：
+1. 移除 `phases.ts` 4c execute 中的 `ch.round = round + 1`（round 已在 orchestrator.ts 递增）
+2. 新增 spec SM-15：Reject 时 round 只递增一次
+3. 新增回归测试 `tests/orchestrator/phase4c-double-increment.test.ts`
 
 **状态**：✅ 已修复
 

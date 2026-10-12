@@ -14,10 +14,12 @@ import { Phase1RequirementAnalysis } from './phase1.js';
 import { Phase2OutlinePlanning } from './phase2.js';
 import { ProjectStore } from '../state/store.js';
 import type { Phase, ProjectState } from '../state/schema.js';
+import type { EventBus } from '../logging/event-bus.js';
 
 export interface PhaseContext {
   state: ProjectState;
   projectDir: string;
+  eventBus?: EventBus;
 }
 
 export interface PhaseResult {
@@ -425,7 +427,7 @@ export const phase4c: PhaseDefinition = {
         if (verdict === 'reject') {
           // Process reject: reset to pending for rewrite
           ch.status = 'pending';
-          ch.round = round + 1;
+          // SM-15: round 已在 orchestrator.ts updateChapterStatus() 递增，这里不再递增（避免双重递增）
           reject++;
         } else if (verdict === 'revise') {
           revise++;
@@ -456,7 +458,7 @@ export const phase4c: PhaseDefinition = {
     {
       target: '4a',
       condition: (ctx) => Object.values(ctx.state.chapters).some(
-        ch => ch.status === 'pending' && ch.round > 1,
+        ch => ch.status === 'pending',
       ),
     },
     {
@@ -557,7 +559,7 @@ export const phase5: PhaseDefinition = {
   validate: () => ({ ok: true }),
   async execute(ctx) {
     const { DiagramPipeline } = await import('../diagrams/pipeline.js');
-    const pipeline = new DiagramPipeline(ctx.projectDir);
+    const pipeline = new DiagramPipeline(ctx.projectDir, ctx.eventBus);
     const result = await pipeline.run();
 
     // 把管线结果落盘（Bug 35）
