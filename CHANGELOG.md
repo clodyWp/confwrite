@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+- **Issue #55: DIAG 日志整合到 EventBus (LOG-4)** — 统一日志查询入口
+  - `src/dispatcher/index.ts`: 移除直接写入 `diag-wordbudget.json`，改为通过 EventBus emit `diag.wordbudget` 事件
+  - `src/writing/task-executor.ts`: 移除直接写入 `diag-task-executor.json`，改为通过 EventBus emit `diag.taskexecutor` 事件
+  - `src/logging/types.ts`: 新增 `DiagWordBudgetEvent` 和 `DiagTaskExecutorEvent` 类型定义
+  - `src/logging/logger.ts`: 新增 DIAG 事件格式化方法
+  - `src/index.ts`: 传递 EventBus 到 Dispatcher 和 TaskExecutor
+  - `specs/module-contracts.md`: 新增 LOG-4 不变量
+  - 新增 `tests/logging/diag-integration.test.ts` 回归测试
+
 ### Fixed
 - **Bug #47 子任务 1：移除 `phases.ts:459` 的 `&& ch.round > 1` 死代码** — 4c → 4a 退出条件不再检查 `round > 1`
   - `src/orchestrator/phases.ts`: 4c → 4a 条件改为 `ch.status === 'pending'`（不检查 `round`）

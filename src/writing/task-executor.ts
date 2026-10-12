@@ -8,8 +8,8 @@
  */
 import type { Task } from '../scheduler/types.js';
 import { join } from 'node:path';
-import { writeFileSync, mkdirSync } from 'node:fs';
 import type { ConfWriteConfig } from '../config/loader.js';
+import type { EventBus } from '../logging/event-bus.js';
 import { DEFAULT_CONFIG } from '../config/loader.js';
 
 /**
@@ -47,10 +47,12 @@ export const MIN_CHAPTER_CHARS = 5000;
 export class TaskExecutor {
   private config: ConfWriteConfig;
   private projectDir?: string;
+  private eventBus?: EventBus;
 
-  constructor(config?: ConfWriteConfig, projectDir?: string) {
+  constructor(config?: ConfWriteConfig, projectDir?: string, eventBus?: EventBus) {
     this.config = config ?? DEFAULT_CONFIG;
     this.projectDir = projectDir;
+    this.eventBus = eventBus;
   }
   /**
    * 生成 Writer subagent 的 prompt
@@ -65,23 +67,15 @@ export class TaskExecutor {
   ): string {
     const outputFile = `drafts/chapters/${task.chapterId}-v${round}.md`;
     
-    // [DIAG] 诊断日志：检查 wordBudget 参数（使用项目目录绝对路径）
-    try {
-      const projectDir = this.projectDir || process.cwd();
-      const logsDir = join(projectDir, 'logs');
-      mkdirSync(logsDir, { recursive: true });
-      const diagPath = join(logsDir, 'diag-task-executor.json');
-      const diagData = {
-        timestamp: new Date().toISOString(),
+    // [DIAG] 诊断日志 (LOG-4: 通过 EventBus emit)
+    if (task.chapterId) {
+      this.eventBus?.emit({
+        type: 'diag.taskexecutor',
         chapterId: task.chapterId,
+        promptLength: 0, // Will be updated after prompt generation
         wordBudget,
-        wordBudgetType: typeof wordBudget,
-        hasMin: wordBudget ? 'min' in wordBudget : false,
-        hasMax: wordBudget ? 'max' in wordBudget : false,
-      };
-      writeFileSync(diagPath, JSON.stringify(diagData, null, 2) + '\n', { flag: 'a' });
-    } catch (e) {
-      // ignore
+        timestamp: new Date().toISOString(),
+      });
     }
     
     // 字数预算参考部分
