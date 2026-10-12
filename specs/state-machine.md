@@ -176,6 +176,36 @@ reviewer reject
 
 这些事件用于日志记录和 E2E 测试验证。EventBus 实例通过构造函数注入到需要 emit 事件的模块。
 
+### 3.9 状态快照
+
+| ID | 不变量 | 违反后果 |
+|----|--------|-------------------|
+| SM-18 | **Phase transition 时必须保存状态快照** | 断网恢复时无法知道"之前发生了什么"，无法回溯执行历史 |
+
+每次 phase transition 时，必须在 `logs/checkpoints/` 目录下保存状态快照。
+
+快照文件名格式：`checkpoint-{timestamp}.json`（timestamp 为 Unix 毫秒时间戳）
+
+快照内容：
+```json
+{
+  "timestamp": "2026-10-12T10:00:00.000Z",
+  "from": "4a",
+  "to": "4b",
+  "chapters": { ... },
+  "tasks": [ ... ]
+}
+```
+
+原因：
+- 支持断网恢复
+- 支持执行历史回溯
+- 便于调试问题
+
+约束：
+- 快照保存失败不应影响主流程（try-catch 包裹）
+- 快照保存是轻量级的，只包含关键字段
+
 ---
 
 ## 4. Tick 循环协议
@@ -322,3 +352,4 @@ Phase 4c `execute()` 返回的 `params` 字段定义如下：
 | 2026-10-13 | 新增 SM-14：4c → 4a 退出条件不依赖 `round` | 移除 `&& ch.round > 1` 死代码，补充原始 Bug 3 症状与回归测试要求 |
 | 2026-10-13 | 新增 SM-15：Reject 时 round 只递增一次 | 修复 Issue #47-2 双重递增 bug |
 | 2026-10-14 | 新增 SM-17：关键状态变化必须 emit 事件 | Issue #53：11 个事件类型从未 emit |
+| 2026-10-14 | 新增 SM-18：Phase transition 时必须保存状态快照 | Issue #57：无执行历史，断网恢复困难 |
