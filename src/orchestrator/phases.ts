@@ -406,7 +406,7 @@ export const phase4c: PhaseDefinition = {
   validate: () => ({ ok: true }),
   async execute(ctx) {
     const chapters = Object.entries(ctx.state.chapters);
-    let pass = 0, revise = 0, reject = 0, forced = 0;
+    let pass = 0, revise = 0, reject = 0, exceeded = 0;
 
     for (const [id, ch] of chapters) {
       if (ch.status === 'reviewed') {
@@ -417,8 +417,7 @@ export const phase4c: PhaseDefinition = {
         if (round >= maxRounds) {
           ch.status = 'completed';
           ch.failureReason = 'exceeded_max_rounds';
-          pass++;
-          forced++;
+          exceeded++;  // 独立计数，不计入 pass/revise/reject
           continue;
         }
 
@@ -440,11 +439,11 @@ export const phase4c: PhaseDefinition = {
     // Persist state changes
     ctx.state.lastUpdated = new Date().toISOString();
 
-    const forcedMsg = forced > 0 ? ` (forced ${forced} by maxRounds)` : '';
+    const exceededMsg = exceeded > 0 ? ` (exceeded ${exceeded} by maxRounds)` : '';
     return {
       action: 'decide',
-      message: `Phase 4c: pass=${pass}, revise=${revise}, reject=${reject}${forcedMsg}`,
-      params: { pass, revise, reject, forced },
+      message: `Phase 4c: pass=${pass}, revise=${revise}, reject=${reject}${exceededMsg}`,
+      params: { pass, revise, reject, exceeded },
     };
   },
   exits: [
