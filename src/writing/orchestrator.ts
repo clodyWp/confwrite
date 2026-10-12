@@ -3,6 +3,7 @@ import type { Task } from '../scheduler/types.js';
 import type { ReviewDecision } from './task-executor.js';
 import { readFileSync, existsSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+import type { EventBus } from '../logging/event-bus.js';
 
 /**
  * 下一步动作
@@ -17,6 +18,12 @@ export interface NextAction {
  * 负责协调写作、审阅、修复的循环
  */
 export class WritingOrchestrator {
+  private eventBus?: EventBus;
+
+  constructor(eventBus?: EventBus) {
+    this.eventBus = eventBus;
+  }
+
   /**
    * 生成写作任务
    */
@@ -127,6 +134,9 @@ export class WritingOrchestrator {
     if (chapter.consecutiveFailures === undefined) chapter.consecutiveFailures = 0;
     if (chapter.maxRounds === undefined) chapter.maxRounds = 5;
 
+    // SM-17: 记录旧状态用于事件发射
+    const oldStatus = chapter.status;
+
     if (outcome === 'failed') {
       chapter.consecutiveFailures += 1;
       
@@ -142,6 +152,7 @@ export class WritingOrchestrator {
           const hasOutput = this.checkOutputExists(task.chapterId, chapter.round - 1, projectDir);
           chapter.status = hasOutput ? 'completed' : 'failed';
           chapter.failureReason = 'exceeded_max_rounds_validation';
+          this.emitChapterEvents(task.chapterId, oldStatus, chapter, projectDir);
           return;
         }
         
@@ -153,6 +164,7 @@ export class WritingOrchestrator {
           chapter.status = 'reviewed';
           chapter.lastReviewVerdict = 'revise';
         }
+        this.emitChapterEvents(task.chapterId, oldStatus, chapter, projectDir);
         return;
       }
       
@@ -165,6 +177,7 @@ export class WritingOrchestrator {
         chapter.status = 'completed';
         chapter.failureReason = 'completed_with_issues';
         chapter.consecutiveFailures = 0;
+        this.emitChapterEvents(task.chapterId, oldStatus, chapter, projectDir);
         return;
       }
       
@@ -177,6 +190,7 @@ export class WritingOrchestrator {
         chapter.status = 'reviewed';
         chapter.lastReviewVerdict = 'revise';
       }
+      this.emitChapterEvents(task.chapterId, oldStatus, chapter, projectDir);
       return;
     }
 
@@ -225,6 +239,61 @@ export class WritingOrchestrator {
           chapter.failureReason = 'exceeded_max_rounds';
         }
         break;
+    }
+
+    // SM-17: 方法出口统一发射事件
+    this.emitChapterEvents(task.chapterId, oldStatus, chapter, projectDir);
+  }
+
+  /**
+   * SM-17: 发射章节相关事件
+   * - chapter.status: 状态变化时
+   * - chapter.failed: 章节失败时
+   * - round.exceeded: 轮次超限时
+   */
+  private emitChapterEvents(
+    chapterId: string,
+    oldStatus: string,
+    chapter: ChapterState,
+    projectDir?: string,
+  ): void {
+    if (!this.eventBus) return;
+
+    // chapter.status: 状态变化时发射
+    if (chapter.status !== oldStatus) {
+      this.eventBus.emit({
+        type: 'chapter.status',
+        chapterId,
+        from: oldStatus,
+        to: chapter.status,
+        version: chapter.round,
+      });
+    }
+
+    // chapter.failed: 章节失败时发射
+    if (chapter.status === 'failed') {
+      const hasOutput = this.checkOutputExists(chapterId, chapter.round, projectDir);
+      this.eventBus.emit({
+        type: 'chapter.failed',
+        chapterId,
+        round: chapter.round,
+        failureReason: (chapter.failureReason || 'unknown') as 'exceeded_max_rounds' | 'too_many_failures' | 'no_output',
+        hasOutput,
+        finalAction: 'failed',
+      });
+    }
+
+    // round.exceeded: 轮次超限时发射
+    if (chapter.round >= chapter.maxRounds) {
+      const hasOutput = this.checkOutputExists(chapterId, chapter.round, projectDir);
+      this.eventBus.emit({
+        type: 'round.exceeded',
+        chapterId,
+        currentRound: chapter.round,
+        maxRounds: chapter.maxRounds,
+        hasOutput,
+        finalAction: chapter.status === 'completed' ? 'completed' : 'failed',
+      });
     }
   }
 

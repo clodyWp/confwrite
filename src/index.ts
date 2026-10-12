@@ -80,22 +80,6 @@ export async function runWriteLoop(
     completed: true,
   };
 
-  const machine = new StateMachine(projectDir);
-  const store = machine.getStore();
-  const state = store.load();
-  if (!state) {
-    notify('未找到项目状态文件，请先运行 /confwrite:init', 'error');
-    result.stoppedReason = 'no_state';
-    result.completed = false;
-    return result;
-  }
-
-  // Clear waitPoint on resume — user explicitly requested to continue
-  if (state.waitPoint) {
-    state.waitPoint = undefined;
-    store.save(state);
-  }
-
   const config = { ...DEFAULT_SCHEDULER_CONFIG, ...configOverride };
   
   // 加载用户配置文件（confwrite.config.json）
@@ -107,6 +91,23 @@ export async function runWriteLoop(
     projectDir,
     filename: 'confwrite-log.json',
   });
+
+  const machine = new StateMachine(projectDir, loggingSystem.eventBus);
+  const store = machine.getStore();
+  const state = store.load();
+  if (!state) {
+    notify('未找到项目状态文件，请先运行 /confwrite:init', 'error');
+    loggingSystem.dispose();
+    result.stoppedReason = 'no_state';
+    result.completed = false;
+    return result;
+  }
+
+  // Clear waitPoint on resume — user explicitly requested to continue
+  if (state.waitPoint) {
+    state.waitPoint = undefined;
+    store.save(state);
+  }
   
   // 合并用户配置到调度配置
   const schedulerConfig = {
@@ -120,6 +121,7 @@ export async function runWriteLoop(
   const executor = executorOverride ?? new PiSubagentExecutor({
     projectDir,
     maxTurnsPerTask: schedulerConfig.maxTurnsPerTask,
+    eventBus: loggingSystem.eventBus,
   });
   const runner = new SchedulerRunner(
     scheduler,
@@ -133,7 +135,7 @@ export async function runWriteLoop(
     (chapterId) => store.load()?.chapters[chapterId]?.round ?? 0, // SM-14: 从 state 读取 chapter.round
   );
   const taskExecutor = new TaskExecutor(userConfig, projectDir);
-  const writingOrchestrator = new WritingOrchestrator();
+  const writingOrchestrator = new WritingOrchestrator(loggingSystem.eventBus);
   const dispatcher = new Dispatcher(projectDir, store, scheduler, taskExecutor, writingOrchestrator);
   const outputValidator = new OutputValidator(projectDir, userConfig);
 

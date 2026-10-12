@@ -157,6 +157,25 @@ reviewer reject
   → 下一 tick → 4c execute → 仅设置 status = pending（不再递增 round）
 ```
 
+### 3.8 事件发射
+
+| ID | 不变量 | 违反后果 |
+|----|--------|-------------------|
+| SM-17 | **关键状态变化必须通过 EventBus emit 事件** | 日志系统无法记录关键状态变化，E2E 测试无法验证状态转换 |
+
+以下状态变化必须通过 EventBus emit 事件：
+
+- **phase.transition**: 阶段转换时（`state-machine.ts` `advance()`）
+  - 字段：`from`, `to`, `phaseName`, `reason`, `stats`
+- **chapter.status**: 章节状态变化时（`writing/orchestrator.ts` `updateChapterStatus()`）
+  - 字段：`chapterId`, `from`, `to`, `version`
+- **chapter.failed**: 章节失败时（`writing/orchestrator.ts` `updateChapterStatus()`）
+  - 字段：`chapterId`, `round`, `failureReason`, `hasOutput`, `finalAction`
+- **round.exceeded**: 轮次超限时（`writing/orchestrator.ts` `updateChapterStatus()`）
+  - 字段：`chapterId`, `currentRound`, `maxRounds`, `hasOutput`, `finalAction`
+
+这些事件用于日志记录和 E2E 测试验证。EventBus 实例通过构造函数注入到需要 emit 事件的模块。
+
 ---
 
 ## 4. Tick 循环协议
@@ -300,8 +319,6 @@ Phase 4c `execute()` 返回的 `params` 字段定义如下：
 |------|------|------|
 | 2026-10-12 | 初始版本 | 基于 v0.22.0 代码审计，记录所有已发现的行为规范 |
 | 2026-10-12 | Phase 5 出口条件补充 P5-5 重试说明 | 图表生成失败时自动重试一次，重试仍失败才计入 failed |
-<<<<<<< HEAD
 | 2026-10-13 | 新增 SM-14：4c → 4a 退出条件不依赖 `round` | 移除 `&& ch.round > 1` 死代码，补充原始 Bug 3 症状与回归测试要求 |
-=======
-| 2026-10-12 | 新增 SM-15：Reject 时 round 只递增一次 | 修复 Issue #47-2 双重递增 bug |
->>>>>>> origin/master
+| 2026-10-13 | 新增 SM-15：Reject 时 round 只递增一次 | 修复 Issue #47-2 双重递增 bug |
+| 2026-10-14 | 新增 SM-17：关键状态变化必须 emit 事件 | Issue #53：11 个事件类型从未 emit |

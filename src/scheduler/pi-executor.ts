@@ -17,6 +17,7 @@ import { join, dirname } from 'node:path';
 import { platform } from 'node:os';
 import type { SubagentExecutor, ExecutorResult } from './executor.js';
 import type { Task } from './types.js';
+import type { EventBus } from '../logging/event-bus.js';
 
 export interface PiExecutorOptions {
   projectDir: string;
@@ -30,6 +31,8 @@ export interface PiExecutorOptions {
   maxTurnsPerTask?: number;
   /** 启用详细日志 */
   verboseLog?: boolean;
+  /** 事件总线（SM-17: 用于发射 tool.call / budget.* / loop.detected 事件） */
+  eventBus?: EventBus;
 }
 
 /**
@@ -189,6 +192,13 @@ export class PiSubagentExecutor implements SubagentExecutor {
       let toolCallCount = 0;
       const budget = new TurnBudget(this.options.maxTurnsPerTask);
       let budgetExhausted = false;
+      // SM-17: 循环检测状态
+      let lastToolName = '';
+      let lastCommandPrefix = '';
+      let consecutiveSameTool = 0;
+      const TOOL_BUDGET_LIMIT = 30; // 工具调用预算上限
+      let budgetWarningEmitted = false;
+      let budgetExceededEmitted = false;
 
       const unsubscribe = session.subscribe((event: any) => {
         // —— 始终生效：turn 计数 + 硬预算 ——
@@ -206,6 +216,65 @@ export class PiSubagentExecutor implements SubagentExecutor {
           }
         } else if (event.type === 'tool_execution_start') {
           toolCallCount++;
+
+          // SM-17: emit tool.call 事件
+          if (this.options.eventBus) {
+            const commandPrefix = event.args?.command?.substring(0, 100) || undefined;
+            const targetFile = event.args?.path || event.args?.file || undefined;
+            this.options.eventBus.emit({
+              type: 'tool.call',
+              taskId: task.id,
+              toolName: event.toolName || 'unknown',
+              commandPrefix,
+              targetFile,
+              callCount: toolCallCount,
+            });
+
+            // SM-17: emit budget.warning 事件
+            if (!budgetWarningEmitted && toolCallCount >= Math.floor(TOOL_BUDGET_LIMIT * 0.8)) {
+              budgetWarningEmitted = true;
+              this.options.eventBus.emit({
+                type: 'budget.warning',
+                taskId: task.id,
+                warningType: 'approaching_limit',
+                currentCount: toolCallCount,
+                limit: TOOL_BUDGET_LIMIT,
+              });
+            }
+
+            // SM-17: emit budget.exceeded 事件
+            if (!budgetExceededEmitted && toolCallCount > TOOL_BUDGET_LIMIT) {
+              budgetExceededEmitted = true;
+              this.options.eventBus.emit({
+                type: 'budget.exceeded',
+                taskId: task.id,
+                totalCalls: toolCallCount,
+                limit: TOOL_BUDGET_LIMIT,
+                action: 'completed_with_warning',
+              });
+            }
+
+            // SM-17: 循环检测 — 同一工具连续调用 3+ 次
+            const currentPrefix = commandPrefix || '';
+            if (event.toolName === lastToolName && currentPrefix === lastCommandPrefix && currentPrefix) {
+              consecutiveSameTool++;
+            } else {
+              consecutiveSameTool = 1;
+            }
+            lastToolName = event.toolName || '';
+            lastCommandPrefix = currentPrefix;
+
+            if (consecutiveSameTool >= 3) {
+              this.options.eventBus.emit({
+                type: 'loop.detected',
+                taskId: task.id,
+                toolName: event.toolName || 'unknown',
+                commandPrefix: currentPrefix,
+                consecutiveCount: consecutiveSameTool,
+                action: consecutiveSameTool >= 5 ? 'terminated' : 'warning',
+              });
+            }
+          }
         }
 
         if (!verboseLog) return;
