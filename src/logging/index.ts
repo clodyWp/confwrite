@@ -12,7 +12,7 @@ import { StatsCollector } from './stats.js';
 import { Logger } from './logger.js';
 import type { LogEvent } from './types.js';
 import type { NotifyLevel } from '../index.js';
-import { appendFileSync, mkdirSync, existsSync } from 'node:fs';
+import { appendFileSync, mkdirSync, existsSync, readFileSync, writeFileSync, renameSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 
 export type NotifyFn = (message: string, level: NotifyLevel) => void;
@@ -59,12 +59,15 @@ export class LoggingSystem {
     const result = Logger.format(event);
     this.notify(result.message, result.level);
 
-    // 追加日志到文件（JSONL 增量写入，LOG-1）
+    // 追加日志到文件（JSONL 增量写入 + 原子写入，LOG-1）
     this.appendLog(event);
   }
 
   /**
-   * 追加单条日志到 JSONL 文件（LOG-1：增量追加，不重写）
+   * 追加单条日志到 JSONL 文件（LOG-1：增量追加 + 原子写入）
+   * 
+   * 使用 JSONL 格式（每行一个 JSON），支持增量追加。
+   * 使用 temp + rename 模式防止崩溃时日志损坏。
    */
   private appendLog(event: LogEvent): void {
     if (!this.fileLogConfig?.enabled) return;
@@ -76,15 +79,36 @@ export class LoggingSystem {
 
     const filename = this.fileLogConfig.filename || 'confwrite-log.jsonl';
     const logPath = join(logsDir, filename);
+    const tempPath = logPath + '.tmp';
 
     try {
       const entry = {
         timestamp: new Date().toISOString(),
         event,
       };
-      appendFileSync(logPath, JSON.stringify(entry) + '\n', 'utf-8');
+      const newLine = JSON.stringify(entry) + '\n';
+      
+      // 读取现有内容（如果存在）
+      let existingContent = '';
+      if (existsSync(logPath)) {
+        existingContent = readFileSync(logPath, 'utf-8');
+      }
+      
+      // 写入临时文件（原子写入）
+      writeFileSync(tempPath, existingContent + newLine, 'utf-8');
+      
+      // 原子重命名
+      renameSync(tempPath, logPath);
     } catch {
       // 静默处理文件写入错误
+      // LOG-2: 写入失败时清理临时文件
+      try {
+        if (existsSync(tempPath)) {
+          unlinkSync(tempPath);
+        }
+      } catch {
+        // 忽略清理错误
+      }
     }
   }
 

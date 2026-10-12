@@ -4,9 +4,28 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+- **Issue #57: Phase transition 时保存状态快照** — 每次 phase transition 时在 `logs/checkpoints/` 保存快照，支持断网恢复和执行历史回溯
+  - `src/orchestrator/state-machine.ts`: advance() 调用前保存快照（`saveCheckpoint()`），包含 timestamp/from/to/chapters/tasks
+  - 快照文件名格式：`checkpoint-{timestamp}.json`
+  - 快照保存失败不影响主流程（try-catch 包裹）
+  - `forceAdvance()` 同样保存快照
+  - 新增 spec SM-18：Phase transition 时必须保存状态快照
+  - 新增测试 `tests/orchestrator/state-snapshot.test.ts`（6 个测试用例）
+- **Issue #53: 补全事件 emit — 11 个事件类型从未 emit** — 关键状态变化现在通过 EventBus emit 事件
+  - `src/orchestrator/state-machine.ts`: advance() emit `phase.transition` 事件（含章节统计）
+  - `src/writing/orchestrator.ts`: updateChapterStatus() emit `chapter.status`、`chapter.failed`、`round.exceeded` 事件
+  - `src/diagrams/pipeline.ts`: run() emit `diagram.scan`、`diagram.generate` 事件
+  - `src/scheduler/pi-executor.ts`: emit `tool.call`、`budget.warning`、`budget.exceeded`、`loop.detected` 事件
+  - `src/scheduler/runner.ts`: runAll() emit `stats.progress` 事件
+  - `src/orchestrator/phases.ts`: PhaseContext 新增可选 `eventBus` 字段，Phase 5 传递 EventBus 给 DiagramPipeline
+  - `src/index.ts`: 将 EventBus 注入 StateMachine、WritingOrchestrator、PiSubagentExecutor
+  - 新增 spec SM-17：关键状态变化必须 emit 事件
+  - 新增测试 `tests/logging/event-emission.test.ts`（12 个测试用例）
+
 ### Changed
 - **Issue #54: 日志从全量重写改为 JSONL 增量追加** — 消除 O(n²) I/O
-  - `src/logging/index.ts`: `flushLog()` → `appendLog()`，每个事件 `appendFileSync` 追加一行 JSONL
+  - `src/logging/index.ts`: `flushLog()` → `appendLog()`，每个事件追加一行 JSONL
   - 移除 `logEntries` 内存缓存（不再需要）
   - 默认文件名从 `confwrite-log.json` 改为 `confwrite-log.jsonl`
   - `dispose()` 不再需要最终刷新
@@ -14,6 +33,15 @@ All notable changes to this project will be documented in this file.
   - 新增 `tests/logging/jsonl-incremental.test.ts` (5 tests)
 
 ### Fixed
+- **Issue #47-3: Phase 4d allExceeded 死锁** — validate 检测到所有章节超过 maxRounds 时返回 blocked，但 exit 条件不满足，导致状态机死锁
+  - `src/orchestrator/phases.ts`: phase4d validate 在 allExceeded 时将章节标记为终态（有产物→completed，无产物→failed），而不是返回 blocked
+  - 新增 spec SM-16: Phase 4d allExceeded 死锁防护
+  - 新增回归测试 `tests/orchestrator/phase4d-maxrounds-deadlock.test.ts`（6 个测试）
+- **Issue #56: 日志写入原子化，防止崩溃时日志丢失** — `flushLog()` 使用 temp + rename 模式
+  - `src/logging/index.ts`: 日志先写入 `.tmp` 临时文件，再 `renameSync` 到目标路径
+  - 写入失败时自动清理临时文件（LOG-2）
+  - 新增 spec LOG-1~3（`specs/module-contracts.md` §7）
+  - 新增 `tests/logging/atomic-writing.test.ts` 回归测试
 - **Bug #47 子任务 1：移除 `phases.ts:459` 的 `&& ch.round > 1` 死代码** — 4c → 4a 退出条件不再检查 `round > 1`
   - `src/orchestrator/phases.ts`: 4c → 4a 条件改为 `ch.status === 'pending'`（不检查 `round`）
   - 原因：所有设置 `pending` 的路径（phases.ts 4c reject、orchestrator.ts reject、Bug 51 fixer）都会递增 `round`，`pending` 必然 `round > 1`，原条件恒为 true

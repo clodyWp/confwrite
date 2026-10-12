@@ -9,10 +9,13 @@
  * 5. Execute phase logic
  * 6. Return action for the agent to execute
  */
+import { writeFileSync, mkdirSync, existsSync } from 'node:fs';
+import { join } from 'node:path';
 import type { PhaseContext, PhaseResult } from './phases.js';
 import { phases } from './phases.js';
 import type { Phase, ProjectState } from '../state/schema.js';
 import { ProjectStore } from '../state/store.js';
+import type { EventBus } from '../logging/event-bus.js';
 
 export interface StepResult {
   phase: Phase;
@@ -56,10 +59,13 @@ const STATUS_MAP: Record<string, ProjectState['status']> = {
 export class StateMachine {
   private store: ProjectStore;
   private projectDir: string;
+  private eventBus?: EventBus;
+  private checkpointCounter = 0; // SM-18: 确保同一毫秒内多次 transition 不覆盖
 
-  constructor(projectDir: string) {
+  constructor(projectDir: string, eventBus?: EventBus) {
     this.projectDir = projectDir;
     this.store = new ProjectStore(projectDir);
+    this.eventBus = eventBus;
   }
 
   async tick(): Promise<TickResult> {
@@ -89,7 +95,7 @@ export class StateMachine {
       };
     }
 
-    const ctx: PhaseContext = { state, projectDir: this.projectDir };
+    const ctx: PhaseContext = { state, projectDir: this.projectDir, eventBus: this.eventBus };
 
     // 0. waitPoint 优先于出口判定（Bug 10）
     //
@@ -202,6 +208,9 @@ export class StateMachine {
   }
 
   private advance(target: Phase, state: ProjectState, fromPhase: Phase): void {
+    // SM-18: 保存状态快照（在修改 state 之前记录 from/to）
+    this.saveCheckpoint(fromPhase, target, state);
+
     state.currentPhase = target;
 
     if (STATUS_MAP[target]) {
@@ -217,16 +226,63 @@ export class StateMachine {
       action: `Phase ${fromPhase} → ${target}`,
     });
 
+    // SM-17: emit phase.transition 事件
+    if (this.eventBus) {
+      const targetDef = phases.get(target);
+      this.eventBus.emit({
+        type: 'phase.transition',
+        from: fromPhase,
+        to: target,
+        phaseName: targetDef?.name || target,
+        reason: 'exit condition met',
+        stats: {
+          completedChapters: Object.values(state.chapters).filter(ch => ch.status === 'completed').length,
+          failedChapters: Object.values(state.chapters).filter(ch => ch.status === 'failed').length,
+        },
+      });
+    }
+
     // 进入新阶段时清理「本阶段自己产物」的残留（Bug 28）
     //
     // 必须在保存状态**之前**、且只在真正跳转时执行：
     // 出口条件都是 hasFile，残件会让阶段跳过自己的工作直接流下去。
     const targetDef = phases.get(target);
     if (targetDef?.onEnter) {
-      targetDef.onEnter({ state, projectDir: this.projectDir });
+      targetDef.onEnter({ state, projectDir: this.projectDir, eventBus: this.eventBus });
     }
 
     this.store.save(state);
+  }
+
+  /**
+   * SM-18: 保存状态快照到 logs/checkpoints/
+   *
+   * 快照包含 phase transition 的关键信息，用于断网恢复和执行历史回溯。
+   * 保存失败不影响主流程（try-catch 包裹）。
+   */
+  private saveCheckpoint(from: Phase, to: Phase, state: ProjectState): void {
+    try {
+      const checkpointDir = join(this.projectDir, 'logs', 'checkpoints');
+      if (!existsSync(checkpointDir)) {
+        mkdirSync(checkpointDir, { recursive: true });
+      }
+
+      this.checkpointCounter++;
+      const timestamp = Date.now();
+      const snapshot = {
+        timestamp: new Date().toISOString(),
+        from,
+        to,
+        chapters: { ...state.chapters },
+        tasks: state.tasks ? [...state.tasks] : [],
+      };
+
+      // 使用 counter 确保同一毫秒内多次 transition 不覆盖
+      const snapshotPath = join(checkpointDir, `checkpoint-${timestamp}-${this.checkpointCounter}.json`);
+      writeFileSync(snapshotPath, JSON.stringify(snapshot, null, 2), 'utf-8');
+    } catch {
+      // SM-18: 快照保存失败不影响主流程
+    }
   }
 
   status(): { phase: Phase; name: string; status: string } | null {
