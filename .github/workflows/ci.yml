@@ -35,3 +35,6 @@ jobs:
       
       - name: Check docs consistency
         run: npm run docs:check
+      
+      - name: Check SDD compliance
+        run: npm run sdd:check

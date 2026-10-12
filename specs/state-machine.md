@@ -74,7 +74,7 @@
 | 4c | 4a | 有章节被 reject 需重写 |
 | 4c | 5 | 所有章节 ∈ {completed, skipped, failed}，且至少一个 completed |
 | 4d | 4b | 无章节仍需修复（所有 reviewed+revise 已处理） |
-| 5 | 6 | `figures/manifest.json` 存在，且图表健康检查通过 |
+| 5 | 6 | `figures/manifest.json` 存在，且图表健康检查通过（P5-5：生成失败的图自动重试一次后再判失败） |
 | 6 | 7 | `assembly/merged-v1.md` 存在 |
 | 7 | 8 | `output/finalization.json` 存在 |
 | 8 | done | `output/final.docx` 存在 |
@@ -240,3 +240,4 @@ outline.md (字数预算)
 | 日期 | 变更 | 原因 |
 |------|------|------|
 | 2026-10-12 | 初始版本 | 基于 v0.22.0 代码审计，记录所有已发现的行为规范 |
+| 2026-10-12 | Phase 5 出口条件补充 P5-5 重试说明 | 图表生成失败时自动重试一次，重试仍失败才计入 failed |

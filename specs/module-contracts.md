@@ -119,6 +119,7 @@ ConfWrite 80% 的 bug 出在**模块间交互**——不是单个模块内部逻
 | P5-2 | 管线结果必须写入 `logs/diagram-pipeline.json`（持久诊断） |
 | P5-3 | 未渲染的图不计入 `generated`（如实汇报） |
 | P5-4 | 缺 mmdc 时不写 manifest 记录，不清谎报 `success: true` |
+| P5-5 | 生成失败的图表必须自动重试一次（`maxRetries` 默认 1）；重试仍失败才计入 `failed`；重试成功计入 `generated`，并在结果中记录 `retried` 数量 |
 
 ### 3.6 Phase6 (组装)
 

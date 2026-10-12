@@ -15,7 +15,8 @@
     "pack": "npm pack",
     "install-pi": "bash scripts/install.sh",
     "version": "node scripts/version.js",
-    "docs:check": "node scripts/check-docs.js"
+    "docs:check": "node scripts/check-docs.js",
+    "sdd:check": "node scripts/check-sdd.js"
   },
   "pi": {
     "extensions": [
