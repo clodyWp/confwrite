@@ -1418,6 +1418,25 @@ Phase 1 提取错误需求（项目说明）
 
 ---
 
+### 🟡 Bug 39 (Issue #47-2) — Reject 时 round 双重递增
+
+**症状**：一次 reviewer reject 导致章节 round 从 1 跳到 3（应该只到 2），章节更快触达 maxRounds，减少实际修复机会。
+
+**根因**：round 在两处被递增：
+1. `src/writing/orchestrator.ts:211` — `updateChapterStatus()` 的 reviewer reject 分支：`chapter.round += 1`
+2. `src/orchestrator/phases.ts:427` — 4c execute 的 reject 分支：`ch.round = round + 1`
+
+两处代码对同一次 reject 事件都递增了 round，导致双重递增。
+
+**修法**：
+1. 移除 `phases.ts` 4c execute 中的 `ch.round = round + 1`（round 已在 orchestrator.ts 递增）
+2. 新增 spec SM-15：Reject 时 round 只递增一次
+3. 新增回归测试 `tests/orchestrator/phase4c-double-increment.test.ts`
+
+**状态**：✅ 已修复
+
+---
+
 ## 2. 修法优先级与执行情况
 
 ### 2.1 已在 `fix/diagram-and-export` 分支完成（22 个）

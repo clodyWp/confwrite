@@ -127,6 +127,23 @@
 | SM-12 | **`timing='entry'` 的 waitPoint 在跳转时立即暂停** | 不暂停则用户看不到确认提示 |
 | SM-13 | **`timing='after-execute'` 的 waitPoint 在 execute 后设置** | 设置太早则用户审阅不存在的文件 (Bug #10) |
 
+### 3.6 Round 递增
+
+| ID | 不变量 | 违反后果（历史事故） |
+|----|--------|-------------------|
+| SM-15 | **Reject 时 round 只递增一次** | 一次 reject 事件导致 round 从 1 跳到 3（应只到 2），章节更快触达 maxRounds，减少实际修复机会 (Issue #47-2) |
+
+当 reviewer 判 reject 时，round 只递增一次。
+递增发生在 `orchestrator.ts` 的 `updateChapterStatus()` 中（reviewer case 的 reject 分支）。
+`phases.ts` 的 4c execute 不再递增 round（避免双重递增）。
+
+数据流：
+```
+reviewer reject
+  → orchestrator.ts updateChapterStatus() → round += 1, status = pending
+  → 下一 tick → 4c execute → 仅设置 status = pending（不再递增 round）
+```
+
 ---
 
 ## 4. Tick 循环协议
@@ -270,3 +287,4 @@ Phase 4c `execute()` 返回的 `params` 字段定义如下：
 |------|------|------|
 | 2026-10-12 | 初始版本 | 基于 v0.22.0 代码审计，记录所有已发现的行为规范 |
 | 2026-10-12 | Phase 5 出口条件补充 P5-5 重试说明 | 图表生成失败时自动重试一次，重试仍失败才计入 failed |
+| 2026-10-12 | 新增 SM-15：Reject 时 round 只递增一次 | 修复 Issue #47-2 双重递增 bug |
