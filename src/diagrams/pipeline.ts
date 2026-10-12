@@ -33,6 +33,13 @@ export interface PipelineOptions {
   skipValidation?: boolean;
   /** 是否跳过 PNG 转换 */
   skipPng?: boolean;
+  /**
+   * 生成失败时的最大重试次数（默认 1）
+   *
+   * P5-5：图表生成可能因瞬时问题失败（如 sharp 内存不足、布局引擎偶发异常），
+   * 自动重试一次可恢复大部分瞬时故障，避免用户手动重跑整条管线。
+   */
+  maxRetries?: number;
 }
 
 /**
@@ -55,6 +62,13 @@ export interface PipelineResult {
    * 让写手/fixer 知道该改哪里，而不是静默少一张图（Bug 35 的教训）。
    */
   unsupportedFormat: number;
+  /**
+   * 重试后成功的数量（P5-5）
+   *
+   * 首次失败、重试成功的图表数。这些图已计入 `generated`，
+   * 单独记录是为了诊断：如果 retried 很高，说明管线有系统性问题。
+   */
+  retried: number;
   /** 错误列表 */
   errors: Array<{ diagramId: string; error: string }>;
   /** 验证警告 */
@@ -122,12 +136,15 @@ export class DiagramPipeline {
    * 运行完整管线
    */
   async run(options: PipelineOptions = {}): Promise<PipelineResult> {
+    const maxRetries = options.maxRetries ?? 1;
+
     const result: PipelineResult = {
       total: 0,
       generated: 0,
       skipped: 0,
       failed: 0,
       unsupportedFormat: 0,
+      retried: 0,
       errors: [],
       warnings: [],
     };
@@ -150,123 +167,59 @@ export class DiagramPipeline {
     for (const block of blocks) {
       const diagramId = `${block.chapterId}-fig${block.index + 1}`;
 
-      try {
-        // 检查缓存
-        if (!this.cache.shouldRegenerate(diagramId, block.rawContent)) {
-          result.skipped++;
-          continue;
-        }
+      // 检查缓存
+      if (!this.cache.shouldRegenerate(diagramId, block.rawContent)) {
+        result.skipped++;
+        continue;
+      }
 
-        // mermaid 已废弃：不渲染，但**明确报错**而不是静默跳过。
-        //
-        // 项目已统一到结构化格式（containers / nodes / edges）。写手提示词和
-        // 知识注入都写着「严禁 mermaid」，如果这里静默少一张图，就会出现
-        // 「文档里没有图，也没人知道为什么」——Bug 33/35 都是这么来的。
-        if (block.format === 'mermaid') {
-          result.unsupportedFormat++;
-          result.errors.push({
-            diagramId,
-            error:
-              '图表使用了 mermaid 代码块，已废弃不再渲染。' +
-              '请改写为 diagram-start 结构化格式（containers / nodes / edges）',
-          });
-          continue;
-        }
+      // mermaid 已废弃：不渲染，但**明确报错**而不是静默跳过。
+      //
+      // 项目已统一到结构化格式（containers / nodes / edges）。写手提示词和
+      // 知识注入都写着「严禁 mermaid」，如果这里静默少一张图，就会出现
+      // 「文档里没有图，也没人知道为什么」——Bug 33/35 都是这么来的。
+      if (block.format === 'mermaid') {
+        result.unsupportedFormat++;
+        result.errors.push({
+          diagramId,
+          error:
+            '图表使用了 mermaid 代码块，已废弃不再渲染。' +
+            '请改写为 diagram-start 结构化格式（containers / nodes / edges）',
+        });
+        continue;
+      }
 
+      // 带重试的图表生成（P5-5）
+      //
+      // 图表生成可能因瞬时问题失败（sharp 内存不足、布局引擎偶发异常等）。
+      // 自动重试一次可恢复大部分瞬时故障，避免用户手动重跑整条管线。
+      // 重试仍失败才计入 failed；重试成功计入 generated + retried。
+      let lastError: unknown;
+      let succeeded = false;
 
-        // 解析为节点与连接
-        //
-        // **结构化格式优先**：写手实际产出的就是 containers / nodes / edges，
-        // 里面带着 owner / timing / high_weight / direction / style。
-        // 只读散文 description 会把这些全丢掉，图退化成「散文里的几个方框」
-        // —— 而知识库 layout.md 的 7 条布局原则，每条都有对应的结构化字段。
-        //
-        // 散文格式（提示词里教的写法）仍然支持，作为回退。
-        const structured = hasStructuredFormat(block.rawContent)
-          ? parseStructuredDiagram(block.rawContent)
-          : null;
-
-        // 结构化格式优先；散文作为回退，适配成同一个 DiagramSpec
-        let spec: DiagramSpec;
-        if (structured && structured.nodes.length > 0) {
-          spec = structured;
-        } else {
-          const prose = parseDiagramDescription({
-            description: block.description,
-            title: block.title,
-          });
-          spec = proseToSpec(prose.nodes, prose.connections);
-        }
-
-        // 生成 SVG —— 走布局引擎（正交路由 + 压缩到单页可读）
-        //
-        // 原实现调 generateSVG（旧渲染器）：真实数据上画布最高 4290px、
-        // 高宽比 8.0、字号小到 3.3pt，18/23 张超过一页。新引擎实测
-        // 最高 727px、高宽比全部 ≤1.5、字号全部可读。
-        const layout = layoutDiagram(spec, this.style, block.title, this.knowledgeConfig.layoutConstraints);
-        const svgResult = { svg: layout.svg, width: layout.width, height: layout.height };
-        
-        // 传播布局引擎的告警 ✓
-        if (layout.warnings.length > 0) {
-          result.warnings.push({
-            diagramId,
-            warnings: layout.warnings,
-          });
-        }
-        const svgPath = join(figuresDir, `${diagramId}.svg`);
-        writeFileSync(svgPath, svgResult.svg, 'utf-8');
-
-        // 生成 PNG
-        let pngPath: string | undefined;
-        if (!options.skipPng) {
-          pngPath = join(figuresDir, `${diagramId}.png`);
-          await convertToPng(svgPath, pngPath);
-        }
-
-        // 验证
-        if (!options.skipValidation) {
-          const diagramData: DiagramData = {
-            id: diagramId,
-            nodes: layout.nodes.map(n => ({
-              id: n.id,
-              label: n.label.join(''),
-              layer: n.layer,
-              x: n.x,
-              y: n.y,
-              width: n.w,
-              height: n.h,
-            })),
-            connections: layout.edges.map(e => ({ from: e.from, to: e.to, label: e.label })),
-            svgContent: svgResult.svg,
-            svgWidth: svgResult.width,
-            svgHeight: svgResult.height,
-            pngPath,
-            type: block.type,
-          };
-
-          const validation = validateDiagram(diagramData, this.knowledgeConfig.layoutConstraints);
-          if (!validation.overallPassed) {
-            result.warnings.push({
-              diagramId,
-              warnings: validation.warnings,
-            });
+      for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+          await this.processDiagram(block, diagramId, figuresDir, options, result);
+          succeeded = true;
+          if (attempt > 0) {
+            result.retried++;
+          }
+          result.generated++;
+          break;
+        } catch (error) {
+          lastError = error;
+          // 还有重试机会就继续，否则记录失败
+          if (attempt < maxRetries) {
+            continue;
           }
         }
+      }
 
-        // 更新缓存
-        this.cache.setEntry(diagramId, {
-          sourceHash: this.cache.computeHash(block.rawContent),
-          svgFile: `${diagramId}.svg`,
-          pngFile: `${diagramId}.png`,
-          generatedAt: new Date().toISOString(),
-        });
-
-        result.generated++;
-      } catch (error) {
+      if (!succeeded) {
         result.failed++;
         result.errors.push({
           diagramId,
-          error: error instanceof Error ? error.message : String(error),
+          error: lastError instanceof Error ? lastError.message : String(lastError),
         });
       }
     }
@@ -285,5 +238,104 @@ export class DiagramPipeline {
     return match ? match[1] : 'unknown';
   }
 
+  /**
+   * 处理单个图表（解析 → 布局 → SVG → PNG → 验证 → 缓存）
+   *
+   * 从 run() 的循环体中提取出来，方便重试时复用（P5-5）。
+   * 失败时抛出异常，由调用方决定是否重试。
+   */
+  protected async processDiagram(
+    block: DiagramBlock,
+    diagramId: string,
+    figuresDir: string,
+    options: PipelineOptions,
+    result: PipelineResult,
+  ): Promise<void> {
+    // 解析为节点与连接
+    //
+    // **结构化格式优先**：写手实际产出的就是 containers / nodes / edges，
+    // 里面带着 owner / timing / high_weight / direction / style。
+    // 只读散文 description 会把这些全丢掉，图退化成「散文里的几个方框」
+    // —— 而知识库 layout.md 的 7 条布局原则，每条都有对应的结构化字段。
+    //
+    // 散文格式（提示词里教的写法）仍然支持，作为回退。
+    const structured = hasStructuredFormat(block.rawContent)
+      ? parseStructuredDiagram(block.rawContent)
+      : null;
 
+    // 结构化格式优先；散文作为回退，适配成同一个 DiagramSpec
+    let spec: DiagramSpec;
+    if (structured && structured.nodes.length > 0) {
+      spec = structured;
+    } else {
+      const prose = parseDiagramDescription({
+        description: block.description,
+        title: block.title,
+      });
+      spec = proseToSpec(prose.nodes, prose.connections);
+    }
+
+    // 生成 SVG —— 走布局引擎（正交路由 + 压缩到单页可读）
+    //
+    // 原实现调 generateSVG（旧渲染器）：真实数据上画布最高 4290px、
+    // 高宽比 8.0、字号小到 3.3pt，18/23 张超过一页。新引擎实测
+    // 最高 727px、高宽比全部 ≤1.5、字号全部可读。
+    const layout = layoutDiagram(spec, this.style, block.title, this.knowledgeConfig.layoutConstraints);
+    const svgResult = { svg: layout.svg, width: layout.width, height: layout.height };
+    
+    // 传播布局引擎的告警 ✓
+    if (layout.warnings.length > 0) {
+      result.warnings.push({
+        diagramId,
+        warnings: layout.warnings,
+      });
+    }
+    const svgPath = join(figuresDir, `${diagramId}.svg`);
+    writeFileSync(svgPath, svgResult.svg, 'utf-8');
+
+    // 生成 PNG
+    let pngPath: string | undefined;
+    if (!options.skipPng) {
+      pngPath = join(figuresDir, `${diagramId}.png`);
+      await convertToPng(svgPath, pngPath);
+    }
+
+    // 验证
+    if (!options.skipValidation) {
+      const diagramData: DiagramData = {
+        id: diagramId,
+        nodes: layout.nodes.map(n => ({
+          id: n.id,
+          label: n.label.join(''),
+          layer: n.layer,
+          x: n.x,
+          y: n.y,
+          width: n.w,
+          height: n.h,
+        })),
+        connections: layout.edges.map(e => ({ from: e.from, to: e.to, label: e.label })),
+        svgContent: svgResult.svg,
+        svgWidth: svgResult.width,
+        svgHeight: svgResult.height,
+        pngPath,
+        type: block.type,
+      };
+
+      const validation = validateDiagram(diagramData, this.knowledgeConfig.layoutConstraints);
+      if (!validation.overallPassed) {
+        result.warnings.push({
+          diagramId,
+          warnings: validation.warnings,
+        });
+      }
+    }
+
+    // 更新缓存
+    this.cache.setEntry(diagramId, {
+      sourceHash: this.cache.computeHash(block.rawContent),
+      svgFile: `${diagramId}.svg`,
+      pngFile: `${diagramId}.png`,
+      generatedAt: new Date().toISOString(),
+    });
+  }
 }

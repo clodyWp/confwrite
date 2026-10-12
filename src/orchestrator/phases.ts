@@ -556,6 +556,7 @@ export const phase5: PhaseDefinition = {
     // 如实汇报（Bug 35）：没渲染出来的图不能算「生成完成」。
     const parts = [`生成 ${result.generated} 个图表`];
     if (result.skipped > 0) parts.push(`跳过 ${result.skipped} 个（缓存）`);
+    if (result.retried > 0) parts.push(`重试成功 ${result.retried} 个`);
     if (result.unsupportedFormat > 0) {
       parts.push(
         `❌ ${result.unsupportedFormat} 个图表格式不受支持（mermaid 已废弃，需改为结构化格式）`,
@@ -574,6 +575,7 @@ export const phase5: PhaseDefinition = {
         diagramCount: result.total,
         generated: result.generated,
         skipped: result.skipped,
+        retried: result.retried,
         unsupportedFormat: result.unsupportedFormat,
         failed: result.failed,
         errors: result.errors,
