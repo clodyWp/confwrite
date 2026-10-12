@@ -23,6 +23,15 @@ All notable changes to this project will be documented in this file.
   - 新增 spec SM-17：关键状态变化必须 emit 事件
   - 新增测试 `tests/logging/event-emission.test.ts`（12 个测试用例）
 
+### Changed
+- **Issue #54: 日志从全量重写改为 JSONL 增量追加** — 消除 O(n²) I/O
+  - `src/logging/index.ts`: `flushLog()` → `appendLog()`，每个事件追加一行 JSONL
+  - 移除 `logEntries` 内存缓存（不再需要）
+  - 默认文件名从 `confwrite-log.json` 改为 `confwrite-log.jsonl`
+  - `dispose()` 不再需要最终刷新
+  - `specs/module-contracts.md`: 新增 §3.9 日志系统契约 (LOG-1~LOG-3)
+  - 新增 `tests/logging/jsonl-incremental.test.ts` (5 tests)
+
 ### Fixed
 - **Issue #47-3: Phase 4d allExceeded 死锁** — validate 检测到所有章节超过 maxRounds 时返回 blocked，但 exit 条件不满足，导致状态机死锁
   - `src/orchestrator/phases.ts`: phase4d validate 在 allExceeded 时将章节标记为终态（有产物→completed，无产物→failed），而不是返回 blocked
