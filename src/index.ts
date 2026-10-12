@@ -89,7 +89,7 @@ export async function runWriteLoop(
   const loggingSystem = new LoggingSystem(notify, {
     enabled: options?.fileLogEnabled ?? true,
     projectDir,
-    filename: 'confwrite-log.json',
+    filename: 'confwrite-log.jsonl',
   });
 
   const machine = new StateMachine(projectDir, loggingSystem.eventBus);
