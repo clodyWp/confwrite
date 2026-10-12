@@ -2,7 +2,40 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.21.2] - 2026-10-10
+## [0.22.0] - 2026-10-12
+
+### Fixed
+- **Bug #33: Phase 1 状态转换绕过状态机** — 移除 phase1.ts 中的直接状态修改
+  - `src/orchestrator/phase1.ts`: 删除 `state.currentPhase = '2'` 直接赋值
+  - 状态转换现在由状态机 exit condition 正确驱动
+- **Bug #34: Phase 1 不生成 requirements.json** — 修复 Phase 1 文件生成逻辑
+  - 修复后 Phase 1 正确生成 `assets/requirements.json`
+  - 添加回归测试验证文件生成
+- **Bug #35: 组装后章节数与大纲不一致** — 排除 TOC 标题计数
+  - `src/assemble/finalizer.ts`: 使用负向 lookahead 排除 `## 目录`
+  - `src/assemble/heading-checker.ts`: 跳过标题为 `目录` 的条目
+- **Bug #36: 跨平台路径拼接** — 使用 path.join() 替代模板字符串
+  - `src/state/store.ts`: 修复 Windows/Linux 路径分隔符问题
+
+### Added
+- 5 个新测试文件覆盖状态转换、章节计数、路径拼接
+- 跨平台 E2E 测试脚本 `scripts/e2e-test-herdr.sh` (bash 版本)
+
+### Changed
+- E2E 测试计划 P1 问题全部修复
+  - 命令签名与 SKILL.md 对齐
+  - §5 章节编号修复 (4.x → 5.x)
+  - 添加 compact/export 测试场景
+
+## [0.21.2] - 2026-10-11
+### Added
+- **PR #32: DIAG 日志追踪 wordBudget 传递** — 添加文件级诊断日志，确保字数控制可追踪
+  - `dispatcher/index.ts`: 写入 `logs/diag-wordbudget.json`，记录 wordBudget 读取和传递
+  - `task-executor.ts`: 写入 `logs/diag-task-executor.json`，验证 wordBudget 到达 Writer prompt
+  - `task-executor.ts`: 新增 `projectDir` 参数，支持日志文件写入
+  - `index.ts`: 传递 `projectDir` 给 TaskExecutor 构造函数
+- 15 个单元测试覆盖字数验证和 verdict 一致性检查
+
 ### Fixed
 - **Bug #41: minChapterChars 与 wordBudget 矛盾导致字数超标 6x** — 统一字数配置，消除 prompt 自相矛盾
   - `config/loader.ts`: `minChapterChars` 默认值从 8000 改为 5000，与 `wordBudget.min` 一致
@@ -16,9 +49,14 @@ All notable changes to this project will be documented in this file.
   - `index.ts`: 从 state 读取 wordBudget 传给验证器
 - **Bug #43: E2E 测试计划配置模板格式错误** — 修正配置模板为嵌套格式
   - `scripts/E2E-TEST-PLAN.md`: 将扁平配置格式改为嵌套格式（`scheduler.maxConcurrency` 而非顶层 `maxConcurrency`）
-
-### Added
-- 15 个单元测试覆盖字数验证和 verdict 一致性检查
+- **Pi 加载错误扩展路径** — 修复 Pi 通过 `settings.json` 加载旧版本 confwrite 的问题
+  - 更新 `/home/water/confwrite/` 为最新版本
+  - 清理 `settings.json` 中的旧 tgz 引用
+  - 确保 DIAG 日志正确生成
+- **字数控制效果验证** — v8 E2E 测试证明字数控制从 3.5x 超限改善到目标范围内
+  - 平均字数从 17,500 降至 4,800 字符/章
+  - 超限章节从 100% 降至 0%
+  - 总字数从 175,000 降至 48,000（目标 50,000）
 
 ## [0.21.1] - 2026-10-10
 ### Fixed

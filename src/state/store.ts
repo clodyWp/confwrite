@@ -5,7 +5,7 @@
  * Windows fallback: copy + delete if rename fails
  */
 import { readFileSync, writeFileSync, existsSync, renameSync, copyFileSync, unlinkSync, mkdirSync } from 'node:fs';
-import { dirname } from 'node:path';
+import { dirname, join } from 'node:path';
 import type { ProjectState } from './schema.js';
 
 export class ProjectStore {
@@ -13,7 +13,7 @@ export class ProjectStore {
   private state: ProjectState | null = null;
 
   constructor(projectDir: string) {
-    this.statePath = `${projectDir}/project-state.json`;
+    this.statePath = join(projectDir, 'project-state.json');
   }
 
   /**

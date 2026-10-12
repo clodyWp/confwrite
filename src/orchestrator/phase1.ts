@@ -55,15 +55,12 @@ export class Phase1RequirementAnalysis {
     const reportPath = join(assetsDir, 'requirement-report.md');
     writeFileSync(reportPath, report, 'utf-8');
 
-    // 7. 更新项目状态
+    // 7. 更新项目状态（仅更新 lastUpdated，不修改 currentPhase）
+    // currentPhase 的转换由状态机的 exit condition 处理
     const state = this.store.load();
     if (state) {
-      // [DIAG] 诊断日志：Phase 1 内部状态修改
-      console.log(`[DIAG-PHASE1] before: currentPhase=${state.currentPhase} status=${state.status}`);
-      state.currentPhase = '2';
       state.lastUpdated = new Date().toISOString();
       this.store.save(state);
-      console.log(`[DIAG-PHASE1] after: currentPhase=${state.currentPhase} status=${state.status}`);
     }
   }
 

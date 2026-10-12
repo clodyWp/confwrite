@@ -52,14 +52,27 @@
 
 | 命令 | 格式 | 说明 |
 |------|------|------|
-| init | `/confwrite:init <slug>` | 创建项目 |
-| organize | `/confwrite:organize <slug>` | 整理素材 |
-| outline | `/confwrite:outline <slug> <template> [targetWords]` | 生成大纲 |
-| write | `/confwrite:write <slug>` | 启动写作流程 |
-| status | `/confwrite:status <slug>` | 查看进度 |
-| resume | `/confwrite:resume <slug>` | 恢复中断的流程 |
+| init | `/confwrite:init <slug> [material-dir]` | 创建项目（slug 必填） |
+| organize | `/confwrite:organize [slug]` | 整理素材（slug 可选，默认当前目录） |
+| outline | `/confwrite:outline <slug> <template> [words]` | 生成大纲（slug 必填） |
+| write | `/confwrite:write [slug]` | 启动写作流程（slug 可选） |
+| status | `/confwrite:status [slug]` | 查看进度（slug 可选） |
+| resume | `/confwrite:resume [slug]` | 恢复中断的流程（slug 可选） |
+| compact | `/confwrite:compact` | 手动压缩上下文（无参数） |
+| export | `/confwrite:export <slug> <format> [output-path]` | 导出文档（slug 和 format 必填） |
 
-### 1.3 herdr 使用方式
+> **注意**：`organize`、`write`、`status`、`resume` 命令的 `<slug>` 参数是可选的。如果在项目目录内执行，可以省略 slug；如果在 workspace 根目录执行，需要指定 slug。
+
+### 1.3 跨平台支持
+
+| 平台 | 自动化脚本 | 手动执行 |
+|------|-----------|--------|
+| Windows | `scripts/e2e-test-herdr.ps1` | ✅ |
+| Linux/macOS | `scripts/e2e-test-herdr.sh` | ✅ |
+
+两个脚本功能完全对等，选择对应平台的脚本即可。
+
+### 1.4 herdr 使用方式
 
 ```bash
 # 查看远程 pane 状态
@@ -368,7 +381,7 @@ ssh water@8.160.160.85 'for f in /home/water/proj/c4/projects/<PROJECT_SLUG>/dra
 - ❌ 字数超标 > 1.5x → Bug 36 修复未生效
 - ❌ 验证失败但流程继续 → Bug 36.1 修复未生效
 - ❌ "达到最大推进次数" → 状态机空转
-- ❌ pi 自行分析代码 → 需要纠正（见 4.2 节）
+- ❌ pi 自行分析代码 → 需要纠正（见 5.3 节）
 
 ---
 
@@ -395,7 +408,39 @@ ssh water@8.160.160.85 'ls -lh /home/water/proj/c4/projects/<PROJECT_SLUG>/outpu
 ssh water@8.160.160.85 'wc -c /home/water/proj/c4/projects/<PROJECT_SLUG>/output/final.md'
 ```
 
----
+### 3.5.1 上下文压缩测试（可选）
+
+如果写作过程中遇到 429 错误或上下文溢出：
+
+**命令**：
+```
+/confwrite:compact
+```
+
+**预期结果**：
+- 上下文 tokens 减少
+- 项目状态保留
+- 可以继续执行 `/confwrite:write`
+
+### 3.6 阶段 6：导出测试
+
+**目标**：验证导出功能
+
+**命令**：
+```
+/confwrite:export <PROJECT_SLUG> docx
+```
+
+**预期结果**：
+- 生成 `output/final.docx`
+- 文件可打开
+- 包含目录和所有章节
+
+**验证命令**：
+```bash
+ssh water@8.160.160.85 'ls -lh /home/water/proj/c4/projects/<PROJECT_SLUG>/output/final.docx'
+# 预期：文件存在，大小 > 100KB
+```
 
 ---
 
@@ -439,7 +484,7 @@ ssh water@8.160.160.85 'ls -lh /home/water/proj/c4/projects/<PROJECT_SLUG>/draft
 | **P2 - 警告** | 字数超标、验证失败 | 记录并继续，测试后分析 |
 | **P3 - 信息** | 非关键警告 | 记录，不影响流程 |
 
-### 4.2 P0：命令执行失败
+### 5.2 P0：命令执行失败
 
 **症状**：
 - 报错 "未找到项目状态文件"
@@ -466,7 +511,7 @@ herdr --machine water-ali pane get <PANE_ID> | jq '.result.pane.cwd'
 | "项目已存在" | 旧项目未清理 | `rm -rf /home/water/proj/c4/projects/<PROJECT_SLUG>` 后重试 |
 | "请先运行 /confwrite:init" | 状态文件丢失 | 重新初始化或从备份恢复 |
 
-### 4.3 P1：远程 pi 自行分析代码
+### 5.3 P1：远程 pi 自行分析代码
 
 **症状**：
 - pi 不执行命令，而是分析代码逻辑
@@ -555,7 +600,7 @@ herdr --machine water-ali pane run <PANE_ID> "pi"
 herdr --machine water-ali pane run <PANE_ID> "/confwrite:status <PROJECT_SLUG>"
 ```
 
-### 4.4 P1：流程卡住
+### 5.4 P1：流程卡住
 
 **症状**：
 - 单任务执行超过 15 分钟（日志无新事件）
@@ -617,7 +662,7 @@ ssh water@8.160.160.85 'cat /home/water/proj/c4/projects/<PROJECT_SLUG>/logs/con
 /confwrite:resume <PROJECT_SLUG>
 ```
 
-### 4.5 P2：字数超标
+### 5.5 P2：字数超标
 
 **症状**：
 - 章节字数超过预算的 1.5 倍
@@ -646,7 +691,7 @@ ssh water@8.160.160.85 'for f in /home/water/proj/c4/projects/<PROJECT_SLUG>/dra
 - target: 6500, tolerance: 0.2 → 范围 5200-7800
 - 超标 > 1.5x 说明修复未生效
 
-### 4.6 P2：验证失败但流程继续
+### 5.6 P2：验证失败但流程继续
 
 **症状**：
 - OutputValidator 报告验证失败
@@ -666,7 +711,7 @@ ssh water@8.160.160.85 'cat /home/water/proj/c4/projects/<PROJECT_SLUG>/project-
 - 检查 OutputValidator 是否正确调用
 - 必要时手动触发修复：修改章节状态为 failed，然后 resume
 
-### 4.7 P3：非关键警告
+### 5.7 P3：非关键警告
 
 **症状**：
 - "字数预算超出目标 30%"
@@ -676,7 +721,7 @@ ssh water@8.160.160.85 'cat /home/water/proj/c4/projects/<PROJECT_SLUG>/project-
 - 记录但不影响流程
 - 测试后统一分析
 
-### 4.8 异常恢复决策树
+### 5.8 异常恢复决策树
 
 ```
 异常发生
@@ -702,7 +747,7 @@ P2（警告）？
 汇总所有异常，分析根因
 ```
 
-### 4.9 异常记录模板
+### 5.9 异常记录模板
 
 ```
 异常时间: 2026-10-10 13:45:23
@@ -718,9 +763,9 @@ P2（警告）？
 
 ---
 
-## 5. 测试记录模板
+## 6. 测试记录模板
 
-### 5.1 基本信息
+### 6.1 基本信息
 
 ```
 测试日期: YYYY-MM-DD
@@ -731,7 +776,7 @@ ConfWrite 版本: v0.21.x
 Pane ID: 
 ```
 
-### 5.2 阶段记录
+### 6.2 阶段记录
 
 | 阶段 | 开始时间 | 结束时间 | 结果 | 备注 |
 |------|----------|----------|------|------|
@@ -741,7 +786,7 @@ Pane ID:
 | write | | | ✅/❌ | 字数控制: |
 | 验证 | | | ✅/❌ | 最终产物: |
 
-### 5.3 字数统计
+### 6.3 字数统计
 
 | 章节 | 字数 | 预算 | 超标倍数 | 备注 |
 |------|------|------|----------|------|
@@ -750,7 +795,7 @@ Pane ID:
 | ... | | | | |
 | **平均** | | | | |
 
-### 5.4 异常记录
+### 6.4 异常记录
 
 | 时间 | 阶段 | 异常描述 | 处理方式 | 结果 |
 |------|------|----------|----------|------|
@@ -758,9 +803,9 @@ Pane ID:
 
 ---
 
-## 6. 快速参考
+## 7. 快速参考
 
-### 6.1 常用命令
+### 7.1 常用命令
 
 ```bash
 # 初始化项目
@@ -782,7 +827,7 @@ Pane ID:
 /confwrite:resume <PROJECT_SLUG>
 ```
 
-### 6.2 远程检查命令
+### 7.2 远程检查命令
 
 ```bash
 # 检查项目状态
@@ -798,7 +843,7 @@ ssh water@8.160.160.85 'tail -30 /home/water/proj/c4/projects/<PROJECT_SLUG>/log
 ssh water@8.160.160.85 'rm -rf /home/water/proj/c4/projects/<PROJECT_SLUG>'
 ```
 
-### 6.3 herdr 命令
+### 7.3 herdr 命令
 
 ```bash
 # 查看 pane 状态
@@ -816,10 +861,11 @@ herdr --machine water-ali workspace list
 
 ---
 
-## 7. 版本历史
+## 8. 版本历史
 
 | 版本 | 日期 | 变更 |
 |------|------|------|
+| v1.3 | 2026-01-09 | 修复 P1 问题：统一命令签名（与 SKILL.md 对齐）、修复§5章节编号、添加 compact/export 命令测试、添加跨平台说明、创建 bash 脚本 |
 | v1.2 | 2026-01-09 | 数据准备步骤优化：优先使用 Word 文件测试完整流程，MD 文件作为降级方案 |
 | v1.1 | 2026-01-09 | 添加数据准备步骤、测试场景说明、并发数配置时机 |
 | v1.0 | 2026-10-10 | 初始版本，基于 Bug 38/39 讨论 |

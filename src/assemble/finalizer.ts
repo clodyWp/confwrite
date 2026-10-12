@@ -99,7 +99,8 @@ export function finalize(projectDir: string): FinalizationReport {
  * 计算文档统计信息
  */
 function computeStats(content: string): FinalizationReport['stats'] {
-  const level2Headings = (content.match(/^## /gm) || []).length;
+  // 排除 TOC 标题 `## 目录`，不计入章节数 (Issue #35)
+  const level2Headings = (content.match(/^## (?!目录)/gm) || []).length;
   const characters = content.length;
   // 中文按字符计，英文按空格分词
   const chineseChars = (content.match(/[\u4e00-\u9fff]/g) || []).length;

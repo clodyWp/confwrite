@@ -99,9 +99,10 @@ chapters:
       expect(existsSync(join(projectDir, 'outline.md'))).toBe(true);
       expect(existsSync(join(assetsDir, 'outline-evaluation.md'))).toBe(true);
 
-      // 6. 验证状态已更新
+      // 6. 验证状态已更新（章节信息已填充，但 currentPhase 由状态机驱动）
       const state = store.load();
-      expect(state?.currentPhase).toBe('3');
+      expect(state?.currentPhase).toBe('2'); // outline 命令不应直接修改 currentPhase
+      expect(Object.keys(state?.chapters || {}).length).toBeGreaterThan(0);
     });
 
     it('应该验证知识库格式', async () => {

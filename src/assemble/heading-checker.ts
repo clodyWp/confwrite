@@ -86,7 +86,10 @@ function extractH2Headings(content: string): string[] {
   for (const line of lines) {
     const match = line.trim().match(/^##\s+(.+)$/);
     if (match) {
-      headings.push(match[1].trim());
+      const heading = match[1].trim();
+      // 排除 TOC 标题 `目录`，不计入章节数 (Issue #35)
+      if (heading === '目录') continue;
+      headings.push(heading);
     }
   }
 
