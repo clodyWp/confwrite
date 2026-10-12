@@ -13,6 +13,7 @@ import type { PhaseContext, PhaseResult } from './phases.js';
 import { phases } from './phases.js';
 import type { Phase, ProjectState } from '../state/schema.js';
 import { ProjectStore } from '../state/store.js';
+import type { EventBus } from '../logging/event-bus.js';
 
 export interface StepResult {
   phase: Phase;
@@ -56,10 +57,12 @@ const STATUS_MAP: Record<string, ProjectState['status']> = {
 export class StateMachine {
   private store: ProjectStore;
   private projectDir: string;
+  private eventBus?: EventBus;
 
-  constructor(projectDir: string) {
+  constructor(projectDir: string, eventBus?: EventBus) {
     this.projectDir = projectDir;
     this.store = new ProjectStore(projectDir);
+    this.eventBus = eventBus;
   }
 
   async tick(): Promise<TickResult> {
@@ -89,7 +92,7 @@ export class StateMachine {
       };
     }
 
-    const ctx: PhaseContext = { state, projectDir: this.projectDir };
+    const ctx: PhaseContext = { state, projectDir: this.projectDir, eventBus: this.eventBus };
 
     // 0. waitPoint 优先于出口判定（Bug 10）
     //
@@ -217,13 +220,29 @@ export class StateMachine {
       action: `Phase ${fromPhase} → ${target}`,
     });
 
+    // SM-17: emit phase.transition 事件
+    if (this.eventBus) {
+      const targetDef = phases.get(target);
+      this.eventBus.emit({
+        type: 'phase.transition',
+        from: fromPhase,
+        to: target,
+        phaseName: targetDef?.name || target,
+        reason: 'exit condition met',
+        stats: {
+          completedChapters: Object.values(state.chapters).filter(ch => ch.status === 'completed').length,
+          failedChapters: Object.values(state.chapters).filter(ch => ch.status === 'failed').length,
+        },
+      });
+    }
+
     // 进入新阶段时清理「本阶段自己产物」的残留（Bug 28）
     //
     // 必须在保存状态**之前**、且只在真正跳转时执行：
     // 出口条件都是 hasFile，残件会让阶段跳过自己的工作直接流下去。
     const targetDef = phases.get(target);
     if (targetDef?.onEnter) {
-      targetDef.onEnter({ state, projectDir: this.projectDir });
+      targetDef.onEnter({ state, projectDir: this.projectDir, eventBus: this.eventBus });
     }
 
     this.store.save(state);

@@ -14,10 +14,12 @@ import { Phase1RequirementAnalysis } from './phase1.js';
 import { Phase2OutlinePlanning } from './phase2.js';
 import { ProjectStore } from '../state/store.js';
 import type { Phase, ProjectState } from '../state/schema.js';
+import type { EventBus } from '../logging/event-bus.js';
 
 export interface PhaseContext {
   state: ProjectState;
   projectDir: string;
+  eventBus?: EventBus;
 }
 
 export interface PhaseResult {
@@ -548,7 +550,7 @@ export const phase5: PhaseDefinition = {
   validate: () => ({ ok: true }),
   async execute(ctx) {
     const { DiagramPipeline } = await import('../diagrams/pipeline.js');
-    const pipeline = new DiagramPipeline(ctx.projectDir);
+    const pipeline = new DiagramPipeline(ctx.projectDir, ctx.eventBus);
     const result = await pipeline.run();
 
     // 把管线结果落盘（Bug 35）
