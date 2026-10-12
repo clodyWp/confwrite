@@ -134,6 +134,17 @@ export class WritingOrchestrator {
       // - validation_failed（如字数超标）：即使有产物也要进入修复循环
       // - execution_failed（如 turn 耗尽）：有产物可降级接受
       if (failureType === 'validation_failed') {
+        // Bug 41 修复：递增轮次，确保 maxRounds 守护生效
+        chapter.round += 1;
+        
+        // Bug 41 修复：先检查 maxRounds（兜底机制）
+        if (chapter.round >= chapter.maxRounds) {
+          const hasOutput = this.checkOutputExists(task.chapterId, chapter.round - 1, projectDir);
+          chapter.status = hasOutput ? 'completed' : 'failed';
+          chapter.failureReason = 'exceeded_max_rounds_validation';
+          return;
+        }
+        
         // 验证失败：进入修复循环，不降级接受
         if (chapter.consecutiveFailures >= 5) {
           chapter.status = 'failed';
@@ -207,6 +218,12 @@ export class WritingOrchestrator {
         chapter.status = 'written';
         chapter.attempt = task.attempt;
         chapter.round += 1;  // Bug 51: 递增轮次，确保 maxRounds 守护生效
+        
+        // Bug 41 修复：fixer 成功后检查 maxRounds（兜底机制）
+        if (chapter.round >= chapter.maxRounds) {
+          chapter.status = 'completed';
+          chapter.failureReason = 'exceeded_max_rounds';
+        }
         break;
     }
   }
