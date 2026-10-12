@@ -118,6 +118,19 @@
 | SM-12 | **`timing='entry'` 的 waitPoint 在跳转时立即暂停** | 不暂停则用户看不到确认提示 |
 | SM-13 | **`timing='after-execute'` 的 waitPoint 在 execute 后设置** | 设置太早则用户审阅不存在的文件 (Bug #10) |
 
+### 3.5 写作循环兜底
+
+| ID | 不变量 | 违反后果（历史事故） |
+|----|--------|-------------------|
+| SM-14 | **写作循环（4a↔4b↔4c↔4d）必须有 maxRounds 兜底** | 超过 maxRounds 后循环无法终止，无限消耗 token (Bug #41) |
+| SM-15 | **maxRounds 检查必须覆盖所有路径** | validation_failed、fixer 成功、phase4c/4d 都必须检查，否则绕过兜底 (Bug #41) |
+| SM-16 | **超过 maxRounds 的章节标记为 `completed` + `failureReason='exceeded_max_rounds'`** | 标记为 `failed` 会阻塞后续流程；不标记 failureReason 则无法区分正常完成与强制完成 |
+
+**设计原则**：
+- **偏差率是目标**：字数在 `[wordBudget.min, wordBudget.max]` 范围内 → 正常结束
+- **轮次是兜底**：`round >= maxRounds` → 强制结束（不管质量）
+- **两者是顺序检查，不是互斥的**：先检查偏差率，再检查轮次
+
 ---
 
 ## 4. Tick 循环协议
@@ -231,6 +244,9 @@ outline.md (字数预算)
 | SM-5 | onEnter 清理残件后，出口条件不成立 |
 | SM-9 | execute 内部写入 state 后，ctx.state 同步更新 |
 | SM-11 | waitPoint 存在时，tick 返回 wait_point 而非 advance |
+| SM-14 | round >= maxRounds 时，章节被强制完成 |
+| SM-15 | validation_failed 路径、fixer 成功路径、phase4c/4d 都检查 maxRounds |
+| SM-16 | 超过 maxRounds 的章节 status='completed' 且 failureReason='exceeded_max_rounds' |
 | 完整流转 | 0a → done 的端到端测试（mock executor） |
 
 ---
@@ -241,3 +257,4 @@ outline.md (字数预算)
 |------|------|------|
 | 2026-10-12 | 初始版本 | 基于 v0.22.0 代码审计，记录所有已发现的行为规范 |
 | 2026-10-12 | Phase 5 出口条件补充 P5-5 重试说明 | 图表生成失败时自动重试一次，重试仍失败才计入 failed |
+| 2026-10-12 | 新增 3.5 写作循环兜底 (SM-14/15/16) | Bug #41: maxRounds 守护失效导致写作循环无法终止 |

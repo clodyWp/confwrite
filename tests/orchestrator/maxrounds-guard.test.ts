@@ -1,11 +1,10 @@
 /**
  * Bug 41: maxRounds 守护失效导致写作循环无法终止
  * 
- * 问题：maxRounds 守护只在 WritingOrchestrator 的 reviewer 成功路径存在，
- * 但有 3 条旁路绕过它：
- * 1. validation_failed 路径
- * 2. fixer 成功路径
- * 3. Phase 状态机 (phase4c/4d)
+ * Spec 不变量：
+ * - SM-14: 写作循环必须有 maxRounds 兜底
+ * - SM-15: maxRounds 检查必须覆盖所有路径
+ * - SM-16: 超过 maxRounds 的章节标记为 completed + failureReason
  * 
  * 设计原则：
  * - 偏差率是目标：字数达标 → 正常结束
@@ -80,8 +79,8 @@ describe('Bug 41: maxRounds guard', () => {
     rmSync(tempDir, { recursive: true, force: true });
   });
 
-  describe('WritingOrchestrator.updateChapterStatus', () => {
-    it('should force complete when validation_failed and round >= maxRounds', () => {
+  describe('WritingOrchestrator.updateChapterStatus (SM-15)', () => {
+    it('SM-14/15: should force complete when validation_failed and round >= maxRounds', () => {
       const state = createTestState();
       state.chapters['ch001'] = createChapter('ch001', 5, 5); // round >= maxRounds
       
@@ -97,7 +96,7 @@ describe('Bug 41: maxRounds guard', () => {
       expect(state.chapters['ch001'].failureReason).toBe('exceeded_max_rounds_validation');
     });
 
-    it('should increment round in validation_failed path', () => {
+    it('SM-15: should increment round in validation_failed path', () => {
       const state = createTestState();
       state.chapters['ch001'] = createChapter('ch001', 2, 5);
       
@@ -110,7 +109,7 @@ describe('Bug 41: maxRounds guard', () => {
       expect(state.chapters['ch001'].round).toBe(initialRound + 1);
     });
 
-    it('should force complete when fixer succeeds and round >= maxRounds', () => {
+    it('SM-14/16: should force complete when fixer succeeds and round >= maxRounds', () => {
       const state = createTestState();
       state.chapters['ch001'] = createChapter('ch001', 4, 5);
       
@@ -125,8 +124,8 @@ describe('Bug 41: maxRounds guard', () => {
     });
   });
 
-  describe('Phase 4c execute', () => {
-    it('should force complete chapters exceeding maxRounds', async () => {
+  describe('Phase 4c execute (SM-15)', () => {
+    it('SM-14/16: should force complete chapters exceeding maxRounds', async () => {
       const state = createTestState();
       state.chapters['ch001'] = createChapter('ch001', 5, 5); // round >= maxRounds
       state.chapters['ch001'].lastReviewVerdict = 'revise';
@@ -157,8 +156,8 @@ describe('Bug 41: maxRounds guard', () => {
     });
   });
 
-  describe('Phase 4d validate', () => {
-    it('should reject when all fixable chapters exceed maxRounds', () => {
+  describe('Phase 4d validate (SM-15)', () => {
+    it('SM-14: should reject when all fixable chapters exceed maxRounds', () => {
       const state = createTestState();
       state.chapters['ch001'] = createChapter('ch001', 5, 5);
       state.chapters['ch001'].lastReviewVerdict = 'revise';
