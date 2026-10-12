@@ -456,7 +456,7 @@ export const phase4c: PhaseDefinition = {
     {
       target: '4a',
       condition: (ctx) => Object.values(ctx.state.chapters).some(
-        ch => ch.status === 'pending' && ch.round > 1,
+        ch => ch.status === 'pending',
       ),
     },
     {

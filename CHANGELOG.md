@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Fixed
+- **Bug #47 子任务 1：移除 `phases.ts:459` 的 `&& ch.round > 1` 死代码** — 4c → 4a 退出条件不再检查 `round > 1`
+  - `src/orchestrator/phases.ts`: 4c → 4a 条件改为 `ch.status === 'pending'`（不检查 `round`）
+  - 原因：所有设置 `pending` 的路径（phases.ts 4c reject、orchestrator.ts reject、Bug 51 fixer）都会递增 `round`，`pending` 必然 `round > 1`，原条件恒为 true
+  - 新增 `tests/orchestrator/phase4c-pending-orphan.test.ts` 回归原始 Bug 3 症状（`pending(round=1)` 触发 4c → 4a）
+  - `specs/state-machine.md`: 新增不变量 SM-14
+
 ## [0.22.0] - 2026-10-12
 
 ### Fixed
