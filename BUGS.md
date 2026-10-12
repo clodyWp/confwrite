@@ -1403,6 +1403,21 @@ Phase 1 提取错误需求（项目说明）
 
 ---
 
+### 🟡 Bug 38 (Issue #47-4) — task.start 事件 round 字段硬编码为 1
+
+**症状**：日志中所有 task.start 事件的 `round` 字段始终为 1，无法区分重试轮次。
+
+**根因**：`src/scheduler/runner.ts:150` 中 `round: 1, // TODO: get from task` 硬编码。`SubagentTask` schema 没有 `round` 字段，`round` 属于 `ChapterState`。
+
+**修法**：
+1. 新增 `chapterRoundLookup` 参数到 `SchedulerRunner` 构造函数
+2. 在 `src/index.ts` 传入 lookup 函数从 `store.load()` 读取 `chapter.round`
+3. 新增 spec SM-14 和回归测试
+
+**状态**：✅ 已修复
+
+---
+
 ## 2. 修法优先级与执行情况
 
 ### 2.1 已在 `fix/diagram-and-export` 分支完成（22 个）

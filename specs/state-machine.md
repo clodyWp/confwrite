@@ -110,7 +110,16 @@
 | SM-9 | **`execute()` 中对 state 的修改必须同步回 `ctx.state`** | organizeMaterials 写入磁盘后，状态机用内存 state 覆盖保存，同步被回滚 (Bug #31) |
 | SM-10 | **`advance()` 必须在 save 之前调用 `onEnter`** | 顺序颠倒时残件清理不生效 |
 
-### 3.4 waitPoint
+### 3.4 事件数据
+
+| ID | 不变量 | 违反后果（历史事故） |
+|----|--------|-------------------|
+| SM-14 | **task.start 事件的 round 字段必须从 chapter.round 读取，不能硬编码** | 日志中所有任务的 round 始终为 1，无法区分重试轮次 |
+
+当 task 有 chapterId 时，从 state.chapters[chapterId].round 获取。
+当 task 无 chapterId 时，round 为 0。
+
+### 3.5 waitPoint
 
 | ID | 不变量 | 违反后果（历史事故） |
 |----|--------|-------------------|
