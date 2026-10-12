@@ -214,6 +214,34 @@ export interface RoundExceededEvent {
 }
 
 /**
+ * DIAG 字数预算事件 (LOG-4)
+ * 
+ * 替代原先直接写入 diag-wordbudget.json 的方式，
+ * 通过 EventBus 统一传递诊断信息。
+ */
+export interface DiagWordBudgetEvent {
+  type: 'diag.wordbudget';
+  chapterId: string;
+  wordBudget: { min: number; max: number } | undefined;
+  source: string;
+  timestamp: string;
+}
+
+/**
+ * DIAG TaskExecutor 事件 (LOG-4)
+ * 
+ * 替代原先直接写入 diag-task-executor.json 的方式，
+ * 通过 EventBus 统一传递诊断信息。
+ */
+export interface DiagTaskExecutorEvent {
+  type: 'diag.taskexecutor';
+  chapterId: string;
+  promptLength: number;
+  wordBudget?: { min: number; max: number; expected?: number };
+  timestamp: string;
+}
+
+/**
  * 所有事件的联合类型
  */
 export type LogEvent =
@@ -231,7 +259,9 @@ export type LogEvent =
   | BudgetExceededEvent
   | LoopDetectedEvent
   | ChapterFailedEvent
-  | RoundExceededEvent;
+  | RoundExceededEvent
+  | DiagWordBudgetEvent
+  | DiagTaskExecutorEvent;
 
 /**
  * 事件类型字符串

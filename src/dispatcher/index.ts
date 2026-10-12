@@ -19,6 +19,7 @@ import type { SubagentScheduler } from '../scheduler/index.js';
 import type { Task } from '../scheduler/types.js';
 import type { TaskExecutor, ReviewBaseline } from '../writing/task-executor.js';
 import type { WritingOrchestrator } from '../writing/orchestrator.js';
+import type { EventBus } from '../logging/event-bus.js';
 import { KnowledgeLoader } from '../knowledge/loader.js';
 import { validateChapterKits } from '../organize/kit-validator.js';
 
@@ -35,6 +36,7 @@ export class Dispatcher {
   private scheduler: SubagentScheduler;
   private taskExecutor: TaskExecutor;
   private writingOrchestrator: WritingOrchestrator;
+  private eventBus?: EventBus;
 
   constructor(
     projectDir: string,
@@ -42,12 +44,14 @@ export class Dispatcher {
     scheduler: SubagentScheduler,
     taskExecutor: TaskExecutor,
     writingOrchestrator: WritingOrchestrator,
+    eventBus?: EventBus,
   ) {
     this.projectDir = projectDir;
     this.store = store;
     this.scheduler = scheduler;
     this.taskExecutor = taskExecutor;
     this.writingOrchestrator = writingOrchestrator;
+    this.eventBus = eventBus;
   }
 
   async dispatch(action: string, params: Record<string, unknown>): Promise<DispatchResult> {
@@ -75,26 +79,6 @@ export class Dispatcher {
     // [DIAG] 诊断日志：检查 dispatcher 是否被调用
     console.log(`[DIAG-DISPATCHER] dispatchWriters called, projectDir=${this.projectDir}, chapters=${chapters?.length}`);
     
-    // [DIAG-FILE] 写入诊断信息到文件
-    const { writeFileSync, mkdirSync } = await import('node:fs');
-    const { join } = await import('node:path');
-    const logsDir = join(this.projectDir, 'logs');
-    mkdirSync(logsDir, { recursive: true });
-    const diagPath = join(logsDir, 'diag-wordbudget.json');
-    const diagData = {
-      timestamp: new Date().toISOString(),
-      statePhase: state?.currentPhase,
-      chapterKeys: Object.keys(state?.chapters || {}),
-      wordBudgets: Object.fromEntries(
-        Object.entries(state?.chapters || {}).map(([k, v]) => [k, (v as any)?.wordBudget])
-      ),
-    };
-    try {
-      writeFileSync(diagPath, JSON.stringify(diagData, null, 2), 'utf-8');
-    } catch (e) {
-      // ignore
-    }
-    
     const tasks: Task[] = [];
     let sequence = 1;
 
@@ -114,26 +98,16 @@ export class Dispatcher {
       // 从 state 读取 wordBudget 并传递给 prompt
       const wordBudget = state?.chapters?.[chapterId]?.wordBudget;
       
-      // [DIAG] 诊断日志：检查 wordBudget 读取结果
+      // [DIAG] 诊断日志：检查 wordBudget 读取结果 (LOG-4: 通过 EventBus emit)
       console.log(`[DIAG-WORD BUDGET] chapterId=${chapterId}, wordBudget=${JSON.stringify(wordBudget)}, state.chapters[${chapterId}]=${JSON.stringify(state?.chapters?.[chapterId])}`);
       
-      // [DIAG-FILE] 记录每个章节的 wordBudget
-      const diagEntry = {
+      this.eventBus?.emit({
+        type: 'diag.wordbudget',
         chapterId,
         wordBudget,
-        wordBudgetType: typeof wordBudget,
-        hasMin: wordBudget ? 'min' in wordBudget : false,
-        hasMax: wordBudget ? 'max' in wordBudget : false,
-      };
-      try {
-        const { readFileSync: rf } = await import('node:fs');
-        const existingDiag = JSON.parse(rf(diagPath, 'utf-8'));
-        existingDiag.entries = existingDiag.entries || [];
-        existingDiag.entries.push(diagEntry);
-        writeFileSync(diagPath, JSON.stringify(existingDiag, null, 2), 'utf-8');
-      } catch (e) {
-        // ignore
-      }
+        source: 'dispatcher.dispatchWriters',
+        timestamp: new Date().toISOString(),
+      });
       
       task.prompt = this.taskExecutor.generateWriterPrompt(task, kitContent, round, wordBudget);
       sequence++;

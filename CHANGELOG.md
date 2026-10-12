@@ -24,6 +24,14 @@ All notable changes to this project will be documented in this file.
   - 新增测试 `tests/logging/event-emission.test.ts`（12 个测试用例）
 
 ### Changed
+- **Issue #55: DIAG 日志整合到 EventBus (LOG-4)** — 统一日志查询入口
+  - `src/dispatcher/index.ts`: 移除直接写入 `diag-wordbudget.json`，改为通过 EventBus emit `diag.wordbudget` 事件
+  - `src/writing/task-executor.ts`: 移除直接写入 `diag-task-executor.json`，改为通过 EventBus emit `diag.taskexecutor` 事件
+  - `src/logging/types.ts`: 新增 `DiagWordBudgetEvent` 和 `DiagTaskExecutorEvent` 类型定义
+  - `src/logging/logger.ts`: 新增 DIAG 事件格式化方法
+  - `src/index.ts`: 传递 EventBus 到 Dispatcher 和 TaskExecutor
+  - `specs/module-contracts.md`: 新增 LOG-4 不变量
+  - 新增 `tests/logging/diag-integration.test.ts` 回归测试
 - **Issue #54: 日志从全量重写改为 JSONL 增量追加** — 消除 O(n²) I/O
   - `src/logging/index.ts`: `flushLog()` → `appendLog()`，每个事件追加一行 JSONL
   - 移除 `logEntries` 内存缓存（不再需要）
