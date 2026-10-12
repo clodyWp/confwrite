@@ -1,7 +1,8 @@
 # Bug: Reviewer Prompt 中 minChapterChars 配置值与 wordBudget 不一致
 
-**状态**: 🔴 待修复  
+**状态**: ✅ 已修复（v0.21.2）  
 **发现时间**: 2026-01-09  
+**修复时间**: 2026-10-10  
 **影响范围**: Reviewer Prompt 生成, 配置系统  
 **严重程度**: P0 - 阻塞
 

@@ -3,6 +3,7 @@
 **状态**: 🔴 待修复  
 **发现时间**: 2026-01-09  
 **影响范围**: outline 命令  
+**GitHub Issue**: [#34](https://github.com/clodyWp/confwrite/issues/34)  
 
 ## 问题描述
 

@@ -3,7 +3,8 @@
 **状态**: 🔴 待修复  
 **发现时间**: 2026-01-09  
 **影响范围**: Phase 1 → Phase 2 状态转换  
-**严重程度**: P1 - 严重
+**严重程度**: P1 - 严重  
+**GitHub Issue**: [#33](https://github.com/clodyWp/confwrite/issues/33)
 
 ## 问题描述
 

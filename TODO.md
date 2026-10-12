@@ -1,17 +1,31 @@
 # 待办与交接（ConfWrite）
 
-> 最后更新：2026-10-09（LMERP2V2 200章完成 + 对抗性审查修正）
+> 最后更新：2026-10-11（字数控制系列修复完成 + DIAG 日志）
 > 当前分支：`master`
-> 版本：**v0.18.2**
-> 测试：**155 个测试文件**
+> 版本：**v0.21.2**
+> 测试：**1231 通过（155 文件）**
 > 本文档只记「现在在哪 / 下一步做什么」
 
 ---
 
 ## 1. 一句话现状
 
-**「沿用现有 15 章产物 → 图表准确 → 导出完整 Word」已端到端走通，
-而且是自动化流程自己走完的（不是我手工调代码生成的）。**
+**字数控制从 3.5x 超限改善到目标范围内（v0.21.2），建立了三层防御机制。**
+
+```
+v6:  平均 17,500 字/章，100% 超限，总字数 175,000（目标 50,000）
+v8:  平均  4,800 字/章，0% 超限，总字数 48,000（目标 50,000）
+```
+
+**核心修复**：
+- wordBudget 正确传递到 Writer/Reviewer prompt（PR #14, #16, #18, #22, #23）
+- DIAG 日志追踪 wordBudget 传递（PR #32）
+- 修复 Pi 加载错误扩展路径问题
+
+**图表与导出**（v0.18.x）：
+- 图表从「全部单色、29 张一张没进文档」修到「5 层配色、29/29 全部内嵌」
+- 导出从「pandoc 直接报错」修到「`output/final.docx` = 1,470,199 B，29 张图 + TOC」
+- 共修 22 个 bug，新增 57 个测试
 
 ```
 Phase 5 → 6     14:07:53   29 张图（分层配色）+ 组装 → 停在人工确认点
@@ -139,9 +153,12 @@ final.docx 结构
 | T1：素材包改进（大纲作为信息枢纽） | v0.14.0 | ✅ `kit-generator.ts` 注入需求要点 + `requirement-mapper.ts` |
 | T2 预防层：Writer prompt 字数硬性上限 | v0.15.0 | ✅ `task-executor.ts:66-75` 标记为"硬性要求" |
 | T3 fallback 通用参考资料 | v0.16.0 | ✅ `chapter-mapper.ts:145-170` 按通用分类查找 |
-| 篇幅下限 `MIN_CHAPTER_CHARS = 8000` | — | ✅ `task-executor.ts:43` |
+| **字数控制三层防御** | v0.20.0 - v0.21.2 | ✅ **PR #14, #16, #18, #22, #23, #32** |
+| **wordBudget 传递** | dispatcher + task-executor | ✅ `dispatcher/index.ts` + `task-executor.ts` |
+| **OutputValidator 字数验证** | 上限 + 下限 + verdict 一致性 | ✅ `output-validator.ts` |
+| **DIAG 日志** | wordBudget 追踪 | ✅ `logs/diag-wordbudget.json` + `logs/diag-task-executor.json` |
+| 篇幅下限 `MIN_CHAPTER_CHARS = 5000` | v0.21.2 | ✅ `config/loader.ts:85`（从 8000 改为 5000） |
 | turn 预算阈值 = 40 | — | ✅ `config/loader.ts:85` + `state/schema.ts:235` |
-| `feat/responsibility-separation` 已合入 | writer 不自查字数 | ✅ 已是祖先，可安全删除分支 |
 
 #### 4.2a Phase 4 收敛性 bug 修复详情
 
@@ -158,14 +175,14 @@ final.docx 结构
 
 | # | 优先级 | 任务 | 说明 | 涉及文件 |
 |---|--------|------|------|----------|
-| **D1** | 🔴 P1 | **T2 字数上限防御（检测层 + 兜底层）** | 预防层 ✅（prompt 标记"硬性上限"），但**检测层 ❌**（Writer 完成后无字数上限后处理）、**兜底层 ❌**（`output-validator.ts` 只查下限，无上限检查） | `src/writing/output-validator.ts`、`src/writing/task-executor.ts` |
-| **D2** | 🟡 P2 | **T3 fallback 按章节类型分配** | 通用参考资料 ✅，但所有 fallback 章节获得**完全相同**的资料。需根据章节类型（功能/技术/管理）分配不同通用资料 | `src/organize/chapter-mapper.ts:145-170` |
-| **D3** | 🟡 P2 | **图表方案 B：知识库作为一等输入** | `pipeline.ts` 不加载 `knowledge/diagrams/`。配色硬编码 `DEFAULT_LAYER_PALETTE`，布局选择无动态化。方案 A 已完成，B 留好接口 | `src/diagrams/pipeline.ts`、`src/diagrams/style.ts` |
+| **D1** | 🟡 P2 | **字数控制检测层完善** | 预防层 ✅，兜底层 ✅（OutputValidator 字数验证），但**检测层 ❌**（Writer 完成后无轻量级后处理）。`checkWordCount()` 是死代码（无调用方）。当前主要问题是 60% 章节低于下限（需调整字数预算策略） | `src/writing/task-executor.ts` |
+| **D2** | 🟡 P2 | **T3 fallback 按章节类型分配** | 通用参考资料 ✅，但所有 fallback 章节获得**完全相同**的资料。`getUniversalReferenceFiles(index)` 只接收 index，不接收 chapter.type，需根据章节类型（功能/技术/管理）分配不同通用资料 | `src/organize/chapter-mapper.ts:149-172` |
+| ~~D3~~ | ~~🟡 P2~~ | ~~图表方案 B：知识库作为一等输入~~ | ✅ **已修复**（v0.19.0）。`pipeline.ts` 已加载 `knowledge/diagrams/`，配色优先级链 `JSON > 知识库 > 默认值`，布局约束动态加载 | — |
 | **D4** | 🔵 P3 | **T4 领域知识精准匹配** | `kit-generator.ts:244` 仍有 `k.includes(lower.slice(0, 2))` 宽松匹配（只取前 2 字符，几乎匹配任何内容）。`baseline-extractor.ts` 指标提取质量差（key 截断到 20 字符） | `src/organize/kit-generator.ts:244`、`src/organize/baseline-extractor.ts` |
 | **D5** | 🔵 P3 | **LLM 语义规划大纲端到端测试** | 代码已实现（Word/PDF → mammoth/pdf-parse 转换 → LLMPlanner 语义规划 → 生成大纲），有单元测试，但**缺少端到端测试** | `src/outline/generator.ts:338-380`、`src/organize/converter.ts:175-250`、`src/outline/llm-planner.ts` |
-| **D6** | 🔵 P3 | **篇幅下限 / turn 预算校准** | 篇幅下限 8000 实测合理（产出 12K-18K）；turn 预算 40 接近历史最大 34，ch002/ch011 fixer 触发过 41 次。待新数据决定是否调整 | `task-executor.ts:43`、`config/loader.ts:85` |
+| **D6** | 🔵 P3 | **篇幅下限 / turn 预算校准** | 篇幅下限 5000（v0.21.2 从 8000 改为 5000），实测 60% 章节低于下限。需调整字数预算策略（降低下限或提高目标） | `config/loader.ts:85`、`task-executor.ts:43` |
 | **D7** | ⚪ P4 | **结构稳定性验证** | 节数 37→6 波动，根因（循环压缩）已消除，但无新端到端运行数据验证 | 待新数据 |
-| **D8** | ⚪ P4 | **清理冗余代码** | `content-validator.ts` 的 `paragraphLengthValid` / `shortParagraphs` 字段永远为 `true`/`[]`（dead field）；`types.ts:31` 的 `'rate_limited'` 枚举值无使用 | `src/writing/content-validator.ts`、`src/scheduler/types.ts:31` |
+| **D8** | ⚪ P4 | **清理冗余代码** | `content-validator.ts` 的 `paragraphLengthValid` / `shortParagraphs` 字段永远为 `true`/`[]`（dead field）；`types.ts:31` 的 `'rate_limited'` 枚举值无使用；`checkWordCount()` 是死代码（无调用方） | `src/writing/content-validator.ts`、`src/scheduler/types.ts:31`、`src/writing/task-executor.ts:756-775` |
 
 ---
 
@@ -468,15 +485,26 @@ npm run build     # ← 必须，dist/ 不被 git 跟踪
 
 **一句话总结**：Writer 不知道要写什么功能（缺需求），只看到一堆领域知识（素材包污染），于是拼命写（字数膨胀），还没有人阻止（缺字数控制）。
 
-### 10.1 字数超标问题（待修复）
+### 10.1 字数超标问题（✅ 已修复 v0.20.0 - v0.21.2）
 
-| 指标 | 数值 |
-|------|------|
-| 目标字数 | 1,000,000 字 |
-| 实际字数 | ~3,130,000 字（组装后） |
-| 超标倍数 | **3.13 倍** |
-| 平均每章 | 17,801 字符 |
-| wordBudget.max | 8,000 字符 |
+| 指标 | v6（修复前） | v8（修复后） | 目标 |
+|------|------------|------------|------|
+| 平均每章字数 | 17,500 字符 | 4,800 字符 | 5,200-7,800 |
+| 超限章节比例 | 100% | 0% | 0% |
+| 低于下限比例 | 0% | 60% | < 20% |
+| 总字数 | ~175,000 | ~48,000 | 50,000 |
+
+**修复措施**：
+- ✅ PR #14: wordBudget 传递给 Writer/Reviewer prompt
+- ✅ PR #16: OutlineParser 解析字数预算，chapter-syncer 同步元数据
+- ✅ PR #18: wordBudget 配置化，prompt 强调目标字数
+- ✅ PR #22: 统一字数配置，消除 minChapterChars 与 wordBudget 矛盾
+- ✅ PR #23: OutputValidator 增加独立字数验证和 verdict 一致性检查
+- ✅ PR #32: DIAG 日志追踪 wordBudget 传递，修复扩展路径问题
+
+**遗留问题**：
+- ⚠️ 60% 章节低于字数下限（需调整字数预算策略）
+- 详见 D1 待办项（§4.3）
 
 **根本原因（多因素叠加，非单一原因）**：
 

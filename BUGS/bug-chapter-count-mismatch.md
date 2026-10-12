@@ -3,7 +3,8 @@
 **状态**: 🔴 待修复  
 **发现时间**: 2026-01-09  
 **影响范围**: Phase 6 (组装), Phase 7 (定稿)  
-**严重程度**: P2 - 警告
+**严重程度**: P2 - 警告  
+**GitHub Issue**: [#35](https://github.com/clodyWp/confwrite/issues/35)
 
 ## 问题描述
 

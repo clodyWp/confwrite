@@ -2,7 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.21.2] - 2026-10-10
+## [0.21.2] - 2026-10-11
+### Added
+- **PR #32: DIAG 日志追踪 wordBudget 传递** — 添加文件级诊断日志，确保字数控制可追踪
+  - `dispatcher/index.ts`: 写入 `logs/diag-wordbudget.json`，记录 wordBudget 读取和传递
+  - `task-executor.ts`: 写入 `logs/diag-task-executor.json`，验证 wordBudget 到达 Writer prompt
+  - `task-executor.ts`: 新增 `projectDir` 参数，支持日志文件写入
+  - `index.ts`: 传递 `projectDir` 给 TaskExecutor 构造函数
+- 15 个单元测试覆盖字数验证和 verdict 一致性检查
+
 ### Fixed
 - **Bug #41: minChapterChars 与 wordBudget 矛盾导致字数超标 6x** — 统一字数配置，消除 prompt 自相矛盾
   - `config/loader.ts`: `minChapterChars` 默认值从 8000 改为 5000，与 `wordBudget.min` 一致
@@ -16,9 +24,14 @@ All notable changes to this project will be documented in this file.
   - `index.ts`: 从 state 读取 wordBudget 传给验证器
 - **Bug #43: E2E 测试计划配置模板格式错误** — 修正配置模板为嵌套格式
   - `scripts/E2E-TEST-PLAN.md`: 将扁平配置格式改为嵌套格式（`scheduler.maxConcurrency` 而非顶层 `maxConcurrency`）
-
-### Added
-- 15 个单元测试覆盖字数验证和 verdict 一致性检查
+- **Pi 加载错误扩展路径** — 修复 Pi 通过 `settings.json` 加载旧版本 confwrite 的问题
+  - 更新 `/home/water/confwrite/` 为最新版本
+  - 清理 `settings.json` 中的旧 tgz 引用
+  - 确保 DIAG 日志正确生成
+- **字数控制效果验证** — v8 E2E 测试证明字数控制从 3.5x 超限改善到目标范围内
+  - 平均字数从 17,500 降至 4,800 字符/章
+  - 超限章节从 100% 降至 0%
+  - 总字数从 175,000 降至 48,000（目标 50,000）
 
 ## [0.21.1] - 2026-10-10
 ### Fixed
