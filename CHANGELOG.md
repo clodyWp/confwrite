@@ -16,6 +16,10 @@ All notable changes to this project will be documented in this file.
   - `src/assemble/heading-checker.ts`: 跳过标题为 `目录` 的条目
 - **Bug #36: 跨平台路径拼接** — 使用 path.join() 替代模板字符串
   - `src/state/store.ts`: 修复 Windows/Linux 路径分隔符问题
+- **Issue #47-4: task.start 事件 round 字段硬编码为 1** — 从 state 读取 chapter.round
+  - `src/scheduler/runner.ts`: 新增 `chapterRoundLookup` 参数，替代硬编码 `round: 1`
+  - `src/index.ts`: 传入 lookup 函数从 `store.load()` 读取 chapter.round
+  - 新增 spec SM-14 和回归测试 `tests/scheduler/runner-round-event.test.ts`
 
 ### Added
 - 5 个新测试文件覆盖状态转换、章节计数、路径拼接
