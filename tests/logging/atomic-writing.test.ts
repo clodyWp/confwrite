@@ -18,7 +18,7 @@ describe('LOG-1: 日志写入必须是原子操作', () => {
     const loggingSystem = new LoggingSystem(notifyMock, {
       enabled: true,
       projectDir: testDir,
-      filename: 'test.json',
+      filename: 'test.jsonl',
     });
 
     const event: TaskStartEvent = {
@@ -33,11 +33,11 @@ describe('LOG-1: 日志写入必须是原子操作', () => {
     loggingSystem.eventBus.emit(event);
 
     // 验证：没有 .tmp 文件残留
-    const tmpPath = join(testDir, 'logs', 'test.json.tmp');
+    const tmpPath = join(testDir, 'logs', 'test.jsonl.tmp');
     expect(existsSync(tmpPath)).toBe(false);
 
     // 验证：日志文件存在且完整
-    const logPath = join(testDir, 'logs', 'test.json');
+    const logPath = join(testDir, 'logs', 'test.jsonl');
     expect(existsSync(logPath)).toBe(true);
 
     loggingSystem.dispose();
@@ -48,7 +48,7 @@ describe('LOG-1: 日志写入必须是原子操作', () => {
     const loggingSystem = new LoggingSystem(notifyMock, {
       enabled: true,
       projectDir: testDir,
-      filename: 'test.json',
+      filename: 'test.jsonl',
     });
 
     // 写入多个事件
@@ -78,16 +78,22 @@ describe('LOG-1: 日志写入必须是原子操作', () => {
     loggingSystem.dispose();
 
     // 验证：日志文件不为 0 字节
-    const logPath = join(testDir, 'logs', 'test.json');
+    const logPath = join(testDir, 'logs', 'test.jsonl');
     expect(existsSync(logPath)).toBe(true);
     const stats = statSync(logPath);
     expect(stats.size).toBeGreaterThan(0);
 
-    // 验证：日志内容是有效 JSON
+    // 验证：日志内容是有效 JSONL（每行一个 JSON）
     const content = readFileSync(logPath, 'utf-8');
-    const parsed = JSON.parse(content);
-    expect(Array.isArray(parsed)).toBe(true);
-    expect(parsed.length).toBe(2);
+    const lines = content.trim().split('\n');
+    expect(lines.length).toBe(2);
+    
+    // 每行都是有效的 JSON
+    for (const line of lines) {
+      const parsed = JSON.parse(line);
+      expect(parsed).toHaveProperty('timestamp');
+      expect(parsed).toHaveProperty('event');
+    }
   });
 
   it('并发写入安全：所有事件都被记录', () => {
@@ -95,7 +101,7 @@ describe('LOG-1: 日志写入必须是原子操作', () => {
     const loggingSystem = new LoggingSystem(notifyMock, {
       enabled: true,
       projectDir: testDir,
-      filename: 'test.json',
+      filename: 'test.jsonl',
     });
 
     // 快速 emit 多个事件
@@ -115,10 +121,10 @@ describe('LOG-1: 日志写入必须是原子操作', () => {
     loggingSystem.dispose();
 
     // 验证：所有事件都被记录
-    const logPath = join(testDir, 'logs', 'test.json');
+    const logPath = join(testDir, 'logs', 'test.jsonl');
     const content = readFileSync(logPath, 'utf-8');
-    const parsed = JSON.parse(content);
-    expect(parsed.length).toBe(eventCount);
+    const lines = content.trim().split('\n');
+    expect(lines.length).toBe(eventCount);
   });
 
   it('dispose 后日志文件完整', () => {
@@ -126,7 +132,7 @@ describe('LOG-1: 日志写入必须是原子操作', () => {
     const loggingSystem = new LoggingSystem(notifyMock, {
       enabled: true,
       projectDir: testDir,
-      filename: 'test.json',
+      filename: 'test.jsonl',
     });
 
     const startEvent: TaskStartEvent = {
@@ -151,10 +157,10 @@ describe('LOG-1: 日志写入必须是原子操作', () => {
     loggingSystem.dispose();
 
     // 验证：日志文件完整
-    const logPath = join(testDir, 'logs', 'test.json');
+    const logPath = join(testDir, 'logs', 'test.jsonl');
     const content = readFileSync(logPath, 'utf-8');
-    const parsed = JSON.parse(content);
-    expect(parsed.length).toBe(2);
+    const lines = content.trim().split('\n');
+    expect(lines.length).toBe(2);
 
     // 验证：没有临时文件
     const tmpPath = logPath + '.tmp';
