@@ -100,7 +100,7 @@ describe('Phase 4c — execute processes chapters', () => {
     rmSync(tempDir, { recursive: true, force: true });
   });
 
-  it('execute processes reject chapters: sets status=pending, round+1', async () => {
+  it('execute processes reject chapters: sets status=pending, round unchanged (SM-15)', async () => {
     const state = createState([
       makeChapter('ch001', 'reviewed', 'reject'),
     ]);
@@ -111,7 +111,8 @@ describe('Phase 4c — execute processes chapters', () => {
     await phase4c.execute(ctx);
 
     expect(state.chapters.ch001.status).toBe('pending');
-    expect(state.chapters.ch001.round).toBe(2);
+    // SM-15: 4c 不再递增 round（round 已在 orchestrator.ts updateChapterStatus 中递增）
+    expect(state.chapters.ch001.round).toBe(1);
   });
 
   it('execute counts pass/revise/reject correctly', async () => {
