@@ -1,7 +1,8 @@
 # Bug: store.ts 使用模板字符串拼接路径
 
-**状态**: 🔴 待修复  
+**状态**: ✅ 已修复（v0.22.0）  
 **发现时间**: 2026-10-12  
+**修复时间**: 2026-10-12  
 **影响范围**: 状态持久化（ProjectStore）  
 **严重程度**: P2 - 警告  
 **GitHub Issue**: [#36](https://github.com/clodyWp/confwrite/issues/36)

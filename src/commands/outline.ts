@@ -75,11 +75,10 @@ export async function outlineCommand(
   const reportContent = generateEvaluationReport(outline, evaluation);
   writeFileSync(reportPath, reportContent, 'utf-8');
 
-  // 7. 更新项目状态
+  // 7. 更新项目状态（不修改 currentPhase，由状态机的 exit condition 处理）
   const store = new ProjectStore(projectDir);
   const state = store.load();
   if (state) {
-    state.currentPhase = '3';
     state.lastUpdated = new Date().toISOString();
     
     // 更新章节信息

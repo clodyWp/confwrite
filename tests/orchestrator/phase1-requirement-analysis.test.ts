@@ -104,9 +104,9 @@ describe('Phase1RequirementAnalysis', () => {
       expect(report).toContain('需求提取报告');
     });
 
-    it('应该更新项目状态', async () => {
-      const state = createMinimalState(projectDir);
-      store.save(state);
+    it('execute() 不应该直接修改 currentPhase', async () => {
+      const initialState = store.load() ?? createMinimalState(projectDir);
+      store.save(initialState);
 
       const inputsDir = join(projectDir, 'inputs');
       mkdirSync(inputsDir, { recursive: true });
@@ -121,10 +121,9 @@ describe('Phase1RequirementAnalysis', () => {
 
       await phase1.execute();
 
-      // 验证状态已更新
-      const updatedState = store.load();
-      expect(updatedState).not.toBeNull();
-      expect(updatedState!.currentPhase).toBe('2');
+      // execute() 不应该直接修改 phase，应该由状态机的 exit condition 处理
+      const finalState = store.load();
+      expect(finalState!.currentPhase).toBe(initialState.currentPhase);
     });
 
     it('应该在缺少输入文档时抛出错误', async () => {

@@ -1,7 +1,8 @@
 # Bug: Phase 1 不生成 requirements.json
 
-**状态**: 🔴 待修复  
+**状态**: ✅ 已修复（v0.22.0）  
 **发现时间**: 2026-01-09  
+**修复时间**: 2026-10-12  
 **影响范围**: outline 命令  
 **GitHub Issue**: [#34](https://github.com/clodyWp/confwrite/issues/34)  
 

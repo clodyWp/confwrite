@@ -107,7 +107,7 @@ writingStyle: functional
       expect(existsSync(outlinePath)).toBe(true);
     });
 
-    it('应该更新项目状态到Phase 3', async () => {
+    it('execute() 不应该直接修改 currentPhase（大纲生成路径）', async () => {
       const state = createMinimalState(projectDir);
       store.save(state);
 
@@ -122,10 +122,10 @@ writingStyle: functional
 
       await phase2.execute('technical-proposal');
 
-      // 验证状态已更新
+      // execute() 不应该直接修改 phase，应该由状态机的 exit condition 处理
       const updatedState = store.load();
       expect(updatedState).not.toBeNull();
-      expect(updatedState!.currentPhase).toBe('3');
+      expect(updatedState!.currentPhase).toBe('2');
     });
 
     it('应该在大纲已存在时跳过生成', async () => {

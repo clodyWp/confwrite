@@ -164,7 +164,7 @@ writingStyle: functional
       expect(reportContent).toContain('字数预算');
     });
 
-    it('应该更新项目状态', async () => {
+    it('应该更新项目状态中的章节信息但不修改 currentPhase', async () => {
       const state = createMinimalState(projectDir);
       store.save(state);
 
@@ -182,10 +182,15 @@ writingStyle: functional
         template: 'technical-proposal',
       });
 
-      // 验证状态已更新
+      // 验证大纲文件已生成
+      const outlinePath = join(projectDir, 'outline.md');
+      expect(existsSync(outlinePath)).toBe(true);
+
+      // 验证状态中章节信息已更新，但 currentPhase 不应被直接修改
       const updatedState = store.load();
       expect(updatedState).not.toBeNull();
-      expect(updatedState!.currentPhase).toBe('3');
+      expect(updatedState!.currentPhase).toBe('2'); // 由状态机 exit condition 驱动，不应被 outline 命令直接修改
+      expect(Object.keys(updatedState!.chapters).length).toBeGreaterThan(0);
     });
 
     it('应该在缺少需求文件时抛出错误', async () => {
