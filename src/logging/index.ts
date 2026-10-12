@@ -12,7 +12,7 @@ import { StatsCollector } from './stats.js';
 import { Logger } from './logger.js';
 import type { LogEvent } from './types.js';
 import type { NotifyLevel } from '../index.js';
-import { writeFileSync, mkdirSync, existsSync } from 'node:fs';
+import { writeFileSync, mkdirSync, existsSync, renameSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 
 export type NotifyFn = (message: string, level: NotifyLevel) => void;
@@ -71,7 +71,8 @@ export class LoggingSystem {
   }
 
   /**
-   * 刷新日志到文件
+   * 刷新日志到文件（原子写入）
+   * LOG-1: 使用 temp + rename 模式防止崩溃时日志损坏
    */
   private flushLog(): void {
     if (!this.fileLogConfig?.enabled || this.logEntries.length === 0) return;
@@ -83,11 +84,23 @@ export class LoggingSystem {
 
     const filename = this.fileLogConfig.filename || 'confwrite-log.json';
     const logPath = join(logsDir, filename);
+    const tempPath = logPath + '.tmp';
 
     try {
-      writeFileSync(logPath, JSON.stringify(this.logEntries, null, 2), 'utf-8');
+      // 原子写入：先写临时文件，再 rename
+      const content = JSON.stringify(this.logEntries, null, 2);
+      writeFileSync(tempPath, content, 'utf-8');
+      renameSync(tempPath, logPath);
     } catch {
       // 静默处理文件写入错误
+      // LOG-2: 写入失败时清理临时文件
+      try {
+        if (existsSync(tempPath)) {
+          unlinkSync(tempPath);
+        }
+      } catch {
+        // 忽略清理错误
+      }
     }
   }
 
