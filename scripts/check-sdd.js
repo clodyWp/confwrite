@@ -181,7 +181,30 @@ function checkSpecTests() {
 }
 
 // 主流程
-const range = process.argv[2] || 'HEAD~1..HEAD';
+// CI 环境中检查 PR 范围内的所有 commits
+// 本地环境检查最近一次 commit
+let range = process.argv[2];
+
+if (!range) {
+  // 检查是否在 CI 环境
+  const isCI = process.env.CI === 'true' || process.env.GITHUB_ACTIONS === 'true';
+  
+  if (isCI) {
+    // GitHub Actions 中，检查 PR 的所有 commits
+    // 使用 GITHUB_BASE_REF 和 GITHUB_HEAD_REF
+    const baseRef = process.env.GITHUB_BASE_REF;
+    const headRef = process.env.GITHUB_HEAD_REF;
+    
+    if (baseRef && headRef) {
+      range = `origin/${baseRef}...HEAD`;
+    } else {
+      // 非 PR 的 push（如直接 push 到 master）
+      range = 'HEAD~1..HEAD';
+    }
+  } else {
+    range = 'HEAD~1..HEAD';
+  }
+}
 
 console.log(`🔍 SDD 合规性检查 (${range})\n`);
 console.log('='.repeat(50));
