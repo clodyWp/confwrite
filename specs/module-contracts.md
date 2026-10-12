@@ -171,6 +171,23 @@ ConfWrite 80% 的 bug 出在**模块间交互**——不是单个模块内部逻
 
 ---
 
+## 3.9 日志系统 (Logging)
+
+**输入**：
+- 运行时事件（通过 `EventBus.emit()` 发布）
+
+**输出**：
+- `logs/confwrite-log.jsonl` — JSONL 格式日志文件（每行一个 JSON 对象）
+
+**契约**：
+| ID | 规则 |
+|----|------|
+| LOG-1 | **日志写入必须是增量追加** — 使用 JSONL 格式，每个事件 `appendFileSync` 追加一行，不允许全量重写（O(n²) I/O） |
+| LOG-2 | **日志文件每行必须是合法 JSON** — 包含 `timestamp` 和 `event` 字段 |
+| LOG-3 | **日志文件扩展名为 `.jsonl`** — 默认文件名 `confwrite-log.jsonl` |
+
+---
+
 ## 4. 数据传递契约
 
 ### 4.1 wordBudget 传递链
@@ -262,3 +279,4 @@ pending → writing → written → reviewing → reviewed
 | 日期 | 变更 | 原因 |
 |------|------|------|
 | 2026-10-12 | 初始版本 | 基于 v0.22.0 代码审计，汇总所有模块间交互规范 |
+| 2026-10-13 | 新增 §3.9 日志系统契约 (LOG-1~LOG-3) | Issue #54：日志从全量重写改为 JSONL 增量追加 |

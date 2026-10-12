@@ -105,7 +105,7 @@ export async function runWriteLoop(
   const loggingSystem = new LoggingSystem(notify, {
     enabled: options?.fileLogEnabled ?? true,
     projectDir,
-    filename: 'confwrite-log.json',
+    filename: 'confwrite-log.jsonl',
   });
   
   // 合并用户配置到调度配置

@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+- **Issue #54: 日志从全量重写改为 JSONL 增量追加** — 消除 O(n²) I/O
+  - `src/logging/index.ts`: `flushLog()` → `appendLog()`，每个事件 `appendFileSync` 追加一行 JSONL
+  - 移除 `logEntries` 内存缓存（不再需要）
+  - 默认文件名从 `confwrite-log.json` 改为 `confwrite-log.jsonl`
+  - `dispose()` 不再需要最终刷新
+  - `specs/module-contracts.md`: 新增 §3.9 日志系统契约 (LOG-1~LOG-3)
+  - 新增 `tests/logging/jsonl-incremental.test.ts` (5 tests)
+
 ### Fixed
 - **Bug #47 子任务 1：移除 `phases.ts:459` 的 `&& ch.round > 1` 死代码** — 4c → 4a 退出条件不再检查 `round > 1`
   - `src/orchestrator/phases.ts`: 4c → 4a 条件改为 `ch.status === 'pending'`（不检查 `round`）

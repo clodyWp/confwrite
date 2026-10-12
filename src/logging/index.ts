@@ -12,7 +12,7 @@ import { StatsCollector } from './stats.js';
 import { Logger } from './logger.js';
 import type { LogEvent } from './types.js';
 import type { NotifyLevel } from '../index.js';
-import { writeFileSync, mkdirSync, existsSync } from 'node:fs';
+import { appendFileSync, mkdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 
 export type NotifyFn = (message: string, level: NotifyLevel) => void;
@@ -23,7 +23,7 @@ export type NotifyFn = (message: string, level: NotifyLevel) => void;
 export interface FileLogConfig {
   enabled: boolean;
   projectDir: string;
-  filename?: string;  // 默认: confwrite-log.json
+  filename?: string;  // 默认: confwrite-log.jsonl
 }
 
 /**
@@ -35,7 +35,6 @@ export class LoggingSystem {
   private notify: NotifyFn;
   private disposed = false;
   private fileLogConfig?: FileLogConfig;
-  private logEntries: Array<{ timestamp: string; event: LogEvent }> = [];
 
   constructor(notify: NotifyFn, fileLogConfig?: FileLogConfig) {
     this.notify = notify;
@@ -60,32 +59,30 @@ export class LoggingSystem {
     const result = Logger.format(event);
     this.notify(result.message, result.level);
 
-    // 记录到文件日志
-    if (this.fileLogConfig?.enabled) {
-      this.logEntries.push({
-        timestamp: new Date().toISOString(),
-        event,
-      });
-      this.flushLog();
-    }
+    // 追加日志到文件（JSONL 增量写入，LOG-1）
+    this.appendLog(event);
   }
 
   /**
-   * 刷新日志到文件
+   * 追加单条日志到 JSONL 文件（LOG-1：增量追加，不重写）
    */
-  private flushLog(): void {
-    if (!this.fileLogConfig?.enabled || this.logEntries.length === 0) return;
+  private appendLog(event: LogEvent): void {
+    if (!this.fileLogConfig?.enabled) return;
 
     const logsDir = join(this.fileLogConfig.projectDir, 'logs');
     if (!existsSync(logsDir)) {
       mkdirSync(logsDir, { recursive: true });
     }
 
-    const filename = this.fileLogConfig.filename || 'confwrite-log.json';
+    const filename = this.fileLogConfig.filename || 'confwrite-log.jsonl';
     const logPath = join(logsDir, filename);
 
     try {
-      writeFileSync(logPath, JSON.stringify(this.logEntries, null, 2), 'utf-8');
+      const entry = {
+        timestamp: new Date().toISOString(),
+        event,
+      };
+      appendFileSync(logPath, JSON.stringify(entry) + '\n', 'utf-8');
     } catch {
       // 静默处理文件写入错误
     }
@@ -150,10 +147,7 @@ export class LoggingSystem {
    */
   dispose(): void {
     this.disposed = true;
-    // 最终刷新日志
-    if (this.fileLogConfig?.enabled) {
-      this.flushLog();
-    }
+    // 日志已逐条追加，无需最终刷新
     this.eventBus.clear();
   }
 }
