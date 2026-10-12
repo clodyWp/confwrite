@@ -185,7 +185,7 @@ describe('Bug 41: maxRounds guard', () => {
   });
 
   describe('Phase 4d validate', () => {
-    it('should reject when all fixable chapters exceed maxRounds', () => {
+    it('SM-16: should mark chapters as terminal when all exceed maxRounds (not blocked)', () => {
       const state = createTestState();
       state.chapters['ch001'] = createChapter('ch001', 5, 5);
       state.chapters['ch001'].lastReviewVerdict = 'revise';
@@ -195,9 +195,11 @@ describe('Bug 41: maxRounds guard', () => {
       
       const result = phase4d.validate(ctx);
       
-      // 应该返回验证失败
-      expect(result.ok).toBe(false);
-      expect(result.error).toContain('maxRounds');
+      // SM-16: 不应返回 blocked，而应标记章节为终态
+      expect(result.ok).toBe(true);
+      // 无产物文件，应标记为 failed
+      expect(state.chapters['ch001'].status).toBe('failed');
+      expect(state.chapters['ch001'].failureReason).toBe('exceeded_max_rounds_in_4d');
     });
 
     it('should allow fix when chapters are within maxRounds', () => {

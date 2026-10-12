@@ -157,7 +157,27 @@ reviewer reject
   → 下一 tick → 4c execute → 仅设置 status = pending（不再递增 round）
 ```
 
-### 3.8 事件发射
+### 3.8 Phase 4d 死锁防护
+
+| ID | 不变量 | 违反后果（历史事故） |
+|----|--------|-------------------|
+| SM-16 | **Phase 4d 检测到 allExceeded 时必须将章节标记为终态** | 章节卡在 reviewed+revise，validate 返回 blocked 但 exit 条件不满足，死锁 (Issue #47-3) |
+
+当 phase 4d 的 validate 检测到所有待修复章节都已超过 maxRounds 时：
+
+1. **不得返回 blocked**（否则 exit 条件永远不满足，死锁）
+2. **必须将这些章节标记为终态**：
+   - 有产物（`drafts/chapters/{id}-v{round}.md` 存在）→ `completed`
+   - 无产物 → `failed`
+3. 设置 `failureReason = 'exceeded_max_rounds_in_4d'`
+4. 返回 `{ ok: true }`，让 execute 发现无待修复章节，下一 tick exit 条件满足
+
+**注意**：这是对 validate 纯函数规则的例外（§5.1）。此修改是必要的，因为：
+- exit 条件检查在 validate 之前（§4 tick 协议），无法在此处拦截
+- 如果 validate 返回 blocked，状态机无法推进
+- execute 无法处理此场景，因为 validate 已经阻止了 execute 的执行
+
+### 3.9 事件发射
 
 | ID | 不变量 | 违反后果 |
 |----|--------|-------------------|
@@ -176,7 +196,7 @@ reviewer reject
 
 这些事件用于日志记录和 E2E 测试验证。EventBus 实例通过构造函数注入到需要 emit 事件的模块。
 
-### 3.9 状态快照
+### 3.10 状态快照
 
 | ID | 不变量 | 违反后果 |
 |----|--------|-------------------|
@@ -349,7 +369,11 @@ Phase 4c `execute()` 返回的 `params` 字段定义如下：
 |------|------|------|
 | 2026-10-12 | 初始版本 | 基于 v0.22.0 代码审计，记录所有已发现的行为规范 |
 | 2026-10-12 | Phase 5 出口条件补充 P5-5 重试说明 | 图表生成失败时自动重试一次，重试仍失败才计入 failed |
+<<<<<<< HEAD
+| 2026-10-12 | 新增 SM-16: Phase 4d allExceeded 死锁防护 | Issue #47-3: validate 返回 blocked 但 exit 不满足导致死锁 |
+=======
 | 2026-10-13 | 新增 SM-14：4c → 4a 退出条件不依赖 `round` | 移除 `&& ch.round > 1` 死代码，补充原始 Bug 3 症状与回归测试要求 |
 | 2026-10-13 | 新增 SM-15：Reject 时 round 只递增一次 | 修复 Issue #47-2 双重递增 bug |
 | 2026-10-14 | 新增 SM-17：关键状态变化必须 emit 事件 | Issue #53：11 个事件类型从未 emit |
 | 2026-10-14 | 新增 SM-18：Phase transition 时必须保存状态快照 | Issue #57：无执行历史，断网恢复困难 |
+>>>>>>> master
