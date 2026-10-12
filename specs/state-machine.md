@@ -110,7 +110,16 @@
 | SM-9 | **`execute()` 中对 state 的修改必须同步回 `ctx.state`** | organizeMaterials 写入磁盘后，状态机用内存 state 覆盖保存，同步被回滚 (Bug #31) |
 | SM-10 | **`advance()` 必须在 save 之前调用 `onEnter`** | 顺序颠倒时残件清理不生效 |
 
-### 3.4 waitPoint
+### 3.4 事件数据
+
+| ID | 不变量 | 违反后果（历史事故） |
+|----|--------|-------------------|
+| SM-14 | **task.start 事件的 round 字段必须从 chapter.round 读取，不能硬编码** | 日志中所有任务的 round 始终为 1，无法区分重试轮次 |
+
+当 task 有 chapterId 时，从 state.chapters[chapterId].round 获取。
+当 task 无 chapterId 时，round 为 0。
+
+### 3.5 waitPoint
 
 | ID | 不变量 | 违反后果（历史事故） |
 |----|--------|-------------------|
@@ -118,18 +127,37 @@
 | SM-12 | **`timing='entry'` 的 waitPoint 在跳转时立即暂停** | 不暂停则用户看不到确认提示 |
 | SM-13 | **`timing='after-execute'` 的 waitPoint 在 execute 后设置** | 设置太早则用户审阅不存在的文件 (Bug #10) |
 
-### 3.5 Phase 4c → 4a 退出条件
+### 3.6 Phase 4c → 4a 退出条件
 
 > **版本**: 1.1 (2026-10-13) — 补充 4c → 4a 不依赖 `round` 的不变量
 
 | ID | 不变量 | 说明 |
 |----|--------|------|
-| SM-14 | **4c → 4a 的退出条件只检查 `ch.status === 'pending'`，不检查 `round > 1`** | 所有设置 `pending` 的路径都会同时递增 `round`，因此 `pending` 必然 `round > 1`。原始 Bug 3 实测得 5 章卡在 `pending(round=1)` 是因为任务执行失败掉回 `pending` 时未递增 `round`——该路径已通过 Bug 51 修复（fixer 成功后 `round += 1`）与 orchestrator.ts reject 路径（`round += 1`）统一。当前代码 `pending` 必满足 `round > 1`，故 `&& ch.round > 1` 是死代码，移除后语义不变。 |
+| SM-14b | **4c → 4a 的退出条件只检查 `ch.status === 'pending'`，不检查 `round > 1`** | 所有设置 `pending` 的路径都会同时递增 `round`，因此 `pending` 必然 `round > 1`。原始 Bug 3 实测得 5 章卡在 `pending(round=1)` 是因为任务执行失败掉回 `pending` 时未递增 `round`——该路径已通过 Bug 51 修复（fixer 成功后 `round += 1`）与 orchestrator.ts reject 路径（`round += 1`）统一。当前代码 `pending` 必满足 `round > 1`，故 `&& ch.round > 1` 是死代码，移除后语义不变。 |
 
 **原始症状（Bug 3）**：5 章卡在 `pending` 且 `round=1`，永远不再被处理，最终导致 4c 死锁。
 修复后：4c → 4a 只要存在 `pending` 章节即触发，无论 `round` 值；并辅以单章轮次上限（`maxRounds` 守护，见 §6.3）防止无限循环。
 
 **测试要求**：必须覆盖「`pending` 章节 `round=1` 仍应触发 4c → 4a」的场景（回归原始 Bug 3 症状）。
+
+### 3.7 Round 递增
+
+| ID | 不变量 | 违反后果（历史事故） |
+|----|--------|-------------------|
+| SM-15 | **Reject 时 round 只递增一次** | 一次 reject 事件导致 round 从 1 跳到 3（应只到 2），章节更快触达 maxRounds，减少实际修复机会 (Issue #47-2) |
+
+当 reviewer 判 reject 时，round 只递增一次。
+递增发生在 `orchestrator.ts` 的 `updateChapterStatus()` 中（reviewer case 的 reject 分支）。
+`phases.ts` 的 4c execute 不再递增 round（避免双重递增）。
+
+数据流：
+```
+reviewer reject
+  → orchestrator.ts updateChapterStatus() → round += 1, status = pending
+  → 下一 tick → 4c execute → 仅设置 status = pending（不再递增 round）
+```
+
+---
 
 ## 4. Tick 循环协议
 
@@ -272,4 +300,8 @@ Phase 4c `execute()` 返回的 `params` 字段定义如下：
 |------|------|------|
 | 2026-10-12 | 初始版本 | 基于 v0.22.0 代码审计，记录所有已发现的行为规范 |
 | 2026-10-12 | Phase 5 出口条件补充 P5-5 重试说明 | 图表生成失败时自动重试一次，重试仍失败才计入 failed |
+<<<<<<< HEAD
 | 2026-10-13 | 新增 SM-14：4c → 4a 退出条件不依赖 `round` | 移除 `&& ch.round > 1` 死代码，补充原始 Bug 3 症状与回归测试要求 |
+=======
+| 2026-10-12 | 新增 SM-15：Reject 时 round 只递增一次 | 修复 Issue #47-2 双重递增 bug |
+>>>>>>> origin/master

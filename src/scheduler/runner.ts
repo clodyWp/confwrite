@@ -43,6 +43,7 @@ export class SchedulerRunner {
   private maxConsecutiveRateLimits = 7; // 连续 429 次数上限（阶段1: 2次 + 阶段2: 5次）
   private circuitBroken = false; // run 级熔断标志
   private eventBus?: EventBus;
+  private chapterRoundLookup?: (chapterId: string) => number;
 
   constructor(
     scheduler: SubagentScheduler,
@@ -53,6 +54,7 @@ export class SchedulerRunner {
     rateLimitDelayMs = 60000,
     maxTaskRetries = 1,
     eventBus?: EventBus,
+    chapterRoundLookup?: (chapterId: string) => number,
   ) {
     this.scheduler = scheduler;
     this.executor = executor;
@@ -61,6 +63,7 @@ export class SchedulerRunner {
     this.rateLimitDelayMs = rateLimitDelayMs;
     this.maxTaskRetries = maxTaskRetries;
     this.eventBus = eventBus;
+    this.chapterRoundLookup = chapterRoundLookup;
   }
 
   /**
@@ -147,7 +150,7 @@ export class SchedulerRunner {
         taskId: task.id,
         taskType: task.type as 'writer' | 'reviewer' | 'fixer',
         chapterId: task.chapterId || '',
-        round: 1, // TODO: get from task
+        round: task.chapterId && this.chapterRoundLookup ? this.chapterRoundLookup(task.chapterId) : 0,
         concurrency: {
           current: this.scheduler.getStats().running,
           max: this.maxConcurrency,

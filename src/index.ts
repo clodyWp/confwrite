@@ -130,6 +130,7 @@ export async function runWriteLoop(
     config.rateLimitDelayMs,
     schedulerConfig.maxTaskRetries,
     loggingSystem.eventBus, // 传递 EventBus
+    (chapterId) => store.load()?.chapters[chapterId]?.round ?? 0, // SM-14: 从 state 读取 chapter.round
   );
   const taskExecutor = new TaskExecutor(userConfig, projectDir);
   const writingOrchestrator = new WritingOrchestrator();

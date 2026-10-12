@@ -14,6 +14,10 @@ All notable changes to this project will be documented in this file.
 ## [0.22.0] - 2026-10-12
 
 ### Fixed
+- **Issue #47-2: Reject 时 round 双重递增** — 移除 phases.ts 4c execute 中的多余 round 递增
+  - `src/orchestrator/phases.ts`: 4c execute 不再递增 reject 章节的 round（round 已在 orchestrator.ts updateChapterStatus 中递增）
+  - 新增 spec SM-15：Reject 时 round 只递增一次
+  - 新增回归测试 `tests/orchestrator/phase4c-double-increment.test.ts`
 - **Bug #33: Phase 1 状态转换绕过状态机** — 移除 phase1.ts 中的直接状态修改
   - `src/orchestrator/phase1.ts`: 删除 `state.currentPhase = '2'` 直接赋值
   - 状态转换现在由状态机 exit condition 正确驱动
@@ -25,6 +29,10 @@ All notable changes to this project will be documented in this file.
   - `src/assemble/heading-checker.ts`: 跳过标题为 `目录` 的条目
 - **Bug #36: 跨平台路径拼接** — 使用 path.join() 替代模板字符串
   - `src/state/store.ts`: 修复 Windows/Linux 路径分隔符问题
+- **Issue #47-4: task.start 事件 round 字段硬编码为 1** — 从 state 读取 chapter.round
+  - `src/scheduler/runner.ts`: 新增 `chapterRoundLookup` 参数，替代硬编码 `round: 1`
+  - `src/index.ts`: 传入 lookup 函数从 `store.load()` 读取 chapter.round
+  - 新增 spec SM-14 和回归测试 `tests/scheduler/runner-round-event.test.ts`
 
 ### Added
 - 5 个新测试文件覆盖状态转换、章节计数、路径拼接

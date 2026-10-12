@@ -1406,6 +1406,40 @@ Phase 1 提取错误需求（项目说明）
 
 ---
 
+### 🟡 Bug 38 (Issue #47-4) — task.start 事件 round 字段硬编码为 1
+
+**症状**：日志中所有 task.start 事件的 `round` 字段始终为 1，无法区分重试轮次。
+
+**根因**：`src/scheduler/runner.ts:150` 中 `round: 1, // TODO: get from task` 硬编码。`SubagentTask` schema 没有 `round` 字段，`round` 属于 `ChapterState`。
+
+**修法**：
+1. 新增 `chapterRoundLookup` 参数到 `SchedulerRunner` 构造函数
+2. 在 `src/index.ts` 传入 lookup 函数从 `store.load()` 读取 `chapter.round`
+3. 新增 spec SM-14 和回归测试
+
+**状态**：✅ 已修复
+
+---
+
+### 🟡 Bug 39 (Issue #47-2) — Reject 时 round 双重递增
+
+**症状**：一次 reviewer reject 导致章节 round 从 1 跳到 3（应该只到 2），章节更快触达 maxRounds，减少实际修复机会。
+
+**根因**：round 在两处被递增：
+1. `src/writing/orchestrator.ts:211` — `updateChapterStatus()` 的 reviewer reject 分支：`chapter.round += 1`
+2. `src/orchestrator/phases.ts:427` — 4c execute 的 reject 分支：`ch.round = round + 1`
+
+两处代码对同一次 reject 事件都递增了 round，导致双重递增。
+
+**修法**：
+1. 移除 `phases.ts` 4c execute 中的 `ch.round = round + 1`（round 已在 orchestrator.ts 递增）
+2. 新增 spec SM-15：Reject 时 round 只递增一次
+3. 新增回归测试 `tests/orchestrator/phase4c-double-increment.test.ts`
+
+**状态**：✅ 已修复
+
+---
+
 ## 2. 修法优先级与执行情况
 
 ### 2.1 已在 `fix/diagram-and-export` 分支完成（22 个）
