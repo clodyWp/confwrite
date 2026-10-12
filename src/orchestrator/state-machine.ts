@@ -60,6 +60,7 @@ export class StateMachine {
   private store: ProjectStore;
   private projectDir: string;
   private eventBus?: EventBus;
+  private checkpointCounter = 0; // SM-18: 确保同一毫秒内多次 transition 不覆盖
 
   constructor(projectDir: string, eventBus?: EventBus) {
     this.projectDir = projectDir;
@@ -266,6 +267,7 @@ export class StateMachine {
         mkdirSync(checkpointDir, { recursive: true });
       }
 
+      this.checkpointCounter++;
       const timestamp = Date.now();
       const snapshot = {
         timestamp: new Date().toISOString(),
@@ -275,7 +277,8 @@ export class StateMachine {
         tasks: state.tasks ? [...state.tasks] : [],
       };
 
-      const snapshotPath = join(checkpointDir, `checkpoint-${timestamp}.json`);
+      // 使用 counter 确保同一毫秒内多次 transition 不覆盖
+      const snapshotPath = join(checkpointDir, `checkpoint-${timestamp}-${this.checkpointCounter}.json`);
       writeFileSync(snapshotPath, JSON.stringify(snapshot, null, 2), 'utf-8');
     } catch {
       // SM-18: 快照保存失败不影响主流程

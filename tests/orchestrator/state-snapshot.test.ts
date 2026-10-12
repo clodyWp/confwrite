@@ -72,7 +72,7 @@ describe('SM-18: Phase transition 时必须保存状态快照', () => {
 
     const files = readdirSync(checkpointDir);
     expect(files.length).toBeGreaterThan(0);
-    expect(files[0]).toMatch(/^checkpoint-\d+\.json$/);
+    expect(files[0]).toMatch(/^checkpoint-\d+-\d+\.json$/);
   });
 
   it('快照文件包含 timestamp/from/to/chapters/tasks', async () => {
