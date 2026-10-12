@@ -24,6 +24,11 @@ All notable changes to this project will be documented in this file.
   - 新增测试 `tests/logging/event-emission.test.ts`（12 个测试用例）
 
 ### Fixed
+- **Issue #56: 日志写入原子化，防止崩溃时日志丢失** — `flushLog()` 使用 temp + rename 模式
+  - `src/logging/index.ts`: 日志先写入 `.tmp` 临时文件，再 `renameSync` 到目标路径
+  - 写入失败时自动清理临时文件（LOG-2）
+  - 新增 spec LOG-1~3（`specs/module-contracts.md` §7）
+  - 新增 `tests/logging/atomic-writing.test.ts` 回归测试
 - **Bug #47 子任务 1：移除 `phases.ts:459` 的 `&& ch.round > 1` 死代码** — 4c → 4a 退出条件不再检查 `round > 1`
   - `src/orchestrator/phases.ts`: 4c → 4a 条件改为 `ch.status === 'pending'`（不检查 `round`）
   - 原因：所有设置 `pending` 的路径（phases.ts 4c reject、orchestrator.ts reject、Bug 51 fixer）都会递增 `round`，`pending` 必然 `round > 1`，原条件恒为 true
