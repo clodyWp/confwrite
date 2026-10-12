@@ -220,6 +220,26 @@ outline.md (字数预算)
 
 **不变量**：链中任何一环丢失 wordBudget = 字数控制失效。
 
+### 6.3 Phase 4c 决策结果语义
+
+Phase 4c `execute()` 返回的 `params` 字段定义如下：
+
+| 字段 | 类型 | 语义 | 计数条件 |
+|------|------|------|----------|
+| `pass` | number | 审阅通过的章节数 | `status='reviewed'` 且 `verdict='accept'` 或无 verdict |
+| `revise` | number | 需要修复的章节数 | `status='reviewed'` 且 `verdict='revise'` 且 `round < maxRounds` |
+| `reject` | number | 需要重写的章节数 | `status='reviewed'` 且 `verdict='reject'` |
+| `exceeded` | number | 超过 maxRounds 强制完成的章节数 | `status='reviewed'` 且 `round >= maxRounds` |
+
+**不变量**：
+- `pass` 只计入审阅通过的章节，**不计入**强制完成的章节
+- `exceeded` 独立计数，不与 `pass/revise/reject` 重叠
+- 每个章节只计入一个类别
+
+**设计原则**：
+- `pass/revise/reject` 反映审阅结果
+- `exceeded` 反映兜底机制触发，与审阅结果无关
+
 ---
 
 ## 7. 错误处理

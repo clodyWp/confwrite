@@ -126,7 +126,7 @@ describe('Phase 4c — execute processes chapters', () => {
 
     const result = await phase4c.execute(ctx);
 
-    expect(result.params).toEqual({ pass: 1, revise: 1, reject: 1, forced: 0 });
+    expect(result.params).toEqual({ pass: 1, revise: 1, reject: 1, exceeded: 0 });
   });
 
   it('execute leaves revise chapters as reviewed (for 4d to handle)', async () => {

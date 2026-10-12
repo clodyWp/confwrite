@@ -138,7 +138,34 @@ describe('Bug 41: maxRounds guard', () => {
       // 应该被强制完成
       expect(state.chapters['ch001'].status).toBe('completed');
       expect(state.chapters['ch001'].failureReason).toBe('exceeded_max_rounds');
-      expect(result.params?.forced).toBe(1);
+      // exceeded 独立计数，不计入 pass/revise/reject
+      expect(result.params?.exceeded).toBe(1);
+      expect(result.params?.pass).toBe(0);
+      expect(result.params?.revise).toBe(0);
+      expect(result.params?.reject).toBe(0);
+    });
+
+    it('SM-14: mixed chapters - pass, revise, reject, exceeded counted separately', async () => {
+      const state = createTestState();
+      state.chapters['ch001'] = createChapter('ch001', 2, 5);
+      state.chapters['ch001'].lastReviewVerdict = 'accept';  // pass
+      state.chapters['ch002'] = createChapter('ch002', 2, 5);
+      state.chapters['ch002'].lastReviewVerdict = 'revise';  // revise (round < maxRounds)
+      state.chapters['ch003'] = createChapter('ch003', 2, 5);
+      state.chapters['ch003'].lastReviewVerdict = 'reject';  // reject
+      state.chapters['ch004'] = createChapter('ch004', 5, 5);
+      state.chapters['ch004'].lastReviewVerdict = 'revise';  // exceeded (round >= maxRounds)
+      
+      const phase4c = phases.get('4c')!;
+      const ctx = { state, projectDir: tempDir };
+
+      const result = await phase4c.execute(ctx);
+
+      // 每个类别独立计数
+      expect(result.params?.pass).toBe(1);
+      expect(result.params?.revise).toBe(1);
+      expect(result.params?.reject).toBe(1);
+      expect(result.params?.exceeded).toBe(1);
     });
 
     it('should not force complete chapters within maxRounds', async () => {
