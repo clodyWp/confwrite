@@ -47,27 +47,40 @@ e2e-regression/
 
 ## 验证脚本使用
 
+所有验证脚本支持两种模式：
+- **本地模式**: 直接指定项目目录
+- **远程模式**: 使用 `--host` 和 `--dir` 参数通过 SSH 在远端执行
+
 ### 运行所有验证
 
 ```bash
+# 本地模式
 bash e2e-regression/validators/run-all.sh <project-dir>
+
+# 远程模式（推荐）
+bash e2e-regression/validators/run-all.sh --host <user@host> --dir <project-dir>
 ```
 
 ### 单独运行验证
 
 ```bash
 # 完整性检查
-bash e2e-regression/validators/integrity-check.sh <project-dir>
+bash e2e-regression/validators/integrity-check.sh --host water@8.160.160.85 --dir /home/water/proj/c4/projects/LMERP2V2-v9
 
 # Phase 流程验证
-bash e2e-regression/validators/phase-flow.sh <project-dir>/logs/confwrite-log.jsonl
+bash e2e-regression/validators/phase-flow.sh --host water@8.160.160.85 --dir /home/water/proj/c4/projects/LMERP2V2-v9
 
 # 字数验证
-bash e2e-regression/validators/word-count.sh <project-dir>
+bash e2e-regression/validators/word-count.sh --host water@8.160.160.85 --dir /home/water/proj/c4/projects/LMERP2V2-v9
 
 # 章节类型验证
-bash e2e-regression/validators/chapter-types.sh <project-dir>
+bash e2e-regression/validators/chapter-types.sh --host water@8.160.160.85 --dir /home/water/proj/c4/projects/LMERP2V2-v9
 ```
+
+### 参数说明
+
+- `--host <user@host>`: 远程主机地址（如 `water@8.160.160.85`）
+- `--dir <project-dir>`: 远端项目目录路径（如 `/home/water/proj/c4/projects/LMERP2V2-v9`）
 
 ## Bug 模式数据库
 

@@ -4,16 +4,39 @@
 
 set -e
 
-PROJECT_DIR="${1:-.}"
+# 参数解析
+HOST=""
+PROJECT_DIR=""
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --host)
+            HOST="$2"
+            shift 2
+            ;;
+        --dir)
+            PROJECT_DIR="$2"
+            shift 2
+            ;;
+        *)
+            PROJECT_DIR="$1"
+            shift
+            ;;
+    esac
+done
+
 VALIDATORS_DIR="$(dirname "$0")"
 
-echo "🚀 Running all validators for: $PROJECT_DIR"
+if [ -n "$HOST" ]; then
+    echo "🚀 Running all validators (remote: $HOST) for: $PROJECT_DIR"
+else
+    echo "🚀 Running all validators for: $PROJECT_DIR"
+fi
 echo ""
 
 TOTAL=0
 PASSED=0
 FAILED=0
-WARNINGS=0
 
 run_validator() {
     local name="$1"
@@ -24,14 +47,27 @@ run_validator() {
     echo "▶ Running: $name"
     echo ""
     
-    if bash "$VALIDATORS_DIR/$script" "$PROJECT_DIR"; then
-        PASSED=$((PASSED + 1))
-        echo ""
-        echo "✅ $name: PASSED"
+    # 构建命令参数
+    if [ -n "$HOST" ]; then
+        if bash "$VALIDATORS_DIR/$script" --host "$HOST" --dir "$PROJECT_DIR"; then
+            PASSED=$((PASSED + 1))
+            echo ""
+            echo "✅ $name: PASSED"
+        else
+            FAILED=$((FAILED + 1))
+            echo ""
+            echo "❌ $name: FAILED"
+        fi
     else
-        FAILED=$((FAILED + 1))
-        echo ""
-        echo "❌ $name: FAILED"
+        if bash "$VALIDATORS_DIR/$script" --dir "$PROJECT_DIR"; then
+            PASSED=$((PASSED + 1))
+            echo ""
+            echo "✅ $name: PASSED"
+        else
+            FAILED=$((FAILED + 1))
+            echo ""
+            echo "❌ $name: FAILED"
+        fi
     fi
     echo ""
 }

@@ -396,45 +396,61 @@ done
 **Phase Flow Validator** (`validators/phase-flow.sh`):
 
 ```bash
-#!/bin/bash
-# Verify phase transitions follow expected order
+# 本地运行
+bash validators/phase-flow.sh <project-dir>
 
-LOG_FILE="$1"
-EXPECTED_ORDER=("0a" "0b" "1" "2" "3" "4a" "4b" "4c" "4d" "5" "6" "7" "8" "done")
-
-# Extract actual transitions
-ACTUAL=$(cat "$LOG_FILE" | jq -r 'select(.event.type == "phase.transition") | .event.from, .event.to' | grep -v null | sort -u)
-
-# Verify order
-for phase in "${EXPECTED_ORDER[@]}"; do
-  if echo "$ACTUAL" | grep -q "$phase"; then
-    echo "✓ Phase $phase visited"
-  fi
-done
+# 远程运行
+bash validators/phase-flow.sh --host <user@host> --dir <project-dir>
 ```
 
 **Word Count Validator** (`validators/word-count.sh`):
 
 ```bash
-#!/bin/bash
-# Verify word counts within budget
+# 本地运行
+bash validators/word-count.sh <project-dir>
 
-PROJECT_DIR="$1"
+# 远程运行
+bash validators/word-count.sh --host <user@host> --dir <project-dir>
+```
 
-for chapter in $(ls "$PROJECT_DIR/drafts/chapters/"*.md); do
-  chapter_id=$(basename "$chapter" | sed 's/-v[0-9]*\.md//')
-  actual=$(wc -m < "$chapter")
-  budget=$(cat "$PROJECT_DIR/project-state.json" | jq -r ".chapters.\"$chapter_id\".wordBudget")
-  
-  min=$(echo "$budget" | jq '.min')
-  max=$(echo "$budget" | jq '.max')
-  
-  if [ "$actual" -lt "$min" ] || [ "$actual" -gt "$max" ]; then
-    echo "⚠ $chapter_id: $actual chars (expected $min-$max)"
-  else
-    echo "✓ $chapter_id: $actual chars"
-  fi
-done
+**Chapter Types Validator** (`validators/chapter-types.sh`):
+
+```bash
+# 本地运行
+bash validators/chapter-types.sh <project-dir>
+
+# 远程运行
+bash validators/chapter-types.sh --host <user@host> --dir <project-dir>
+```
+
+**Integrity Check** (`validators/integrity-check.sh`):
+
+```bash
+# 本地运行
+bash validators/integrity-check.sh <project-dir>
+
+# 远程运行
+bash validators/integrity-check.sh --host <user@host> --dir <project-dir>
+```
+
+**Run All Validators** (`validators/run-all.sh`):
+
+```bash
+# 本地运行
+bash validators/run-all.sh <project-dir>
+
+# 远程运行（推荐）
+bash validators/run-all.sh --host <user@host> --dir <project-dir>
+```
+
+**参数说明**:
+- `--host <user@host>`: 远程主机地址（如 `water@8.160.160.85`）
+- `--dir <project-dir>`: 远端项目目录路径（如 `/home/water/proj/c4/projects/LMERP2V2-v9`）
+
+**示例**:
+```bash
+# 对远端 LMERP2V2-v9 项目运行所有验证
+bash e2e-regression/validators/run-all.sh --host water@8.160.160.85 --dir /home/water/proj/c4/projects/LMERP2V2-v9
 ```
 
 ---
