@@ -2,7 +2,16 @@
   "version": "v0.24.0",
   "commit": "962f09c",
   "timestamp": "2026-10-13T05:00:00Z",
-  "verifiedPRs": ["#63", "#65", "#66"],
   "projectDir": "/home/water/proj/c4/projects/e2e-v24",
-  "notes": "Initial state - created after v0.24.0 E2E test"
+  "issuesFound": [
+    {
+      "id": "WORD-COUNT-001",
+      "category": "validation",
+      "description": "所有章节超出字数上限 39%-84%",
+      "severity": "high",
+      "status": "fixed",
+      "fixPR": "#68"
+    }
+  ],
+  "notes": "v0.24.0 E2E 测试完成，发现字数控制问题"
 }
