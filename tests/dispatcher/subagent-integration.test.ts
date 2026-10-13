@@ -96,7 +96,7 @@ describe('Dispatcher — subagent integration', () => {
       expect(state.chapters.ch001.status).toBe('written');
     });
 
-    it('processTask marks task failed and sets chapter to reviewed', async () => {
+    it('processTask marks task failed and sets chapter to pending (retry)', async () => {
       await dispatcher.dispatch('spawn_writers', {
         chapters: ['ch001'],
         projectDir: TEST_DIR,
@@ -111,8 +111,9 @@ describe('Dispatcher — subagent integration', () => {
       expect(failedTask?.status).toBe('failed');
 
       const state = store.load()!;
-      // 失败次数 < 5 时，设置为 reviewed，让 fixer 在下一轮修复
-      expect(state.chapters.ch001.status).toBe('reviewed');
+      // Bug 1 修复：execution_failed + 无输出时设置为 pending（重试 writer）
+      // 而不是 reviewed（reviewed 只应该在 Phase 4b 之后出现，SM-19）
+      expect(state.chapters.ch001.status).toBe('pending');
       expect(state.chapters.ch001.consecutiveFailures).toBe(1);
     });
 

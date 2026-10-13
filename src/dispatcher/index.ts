@@ -76,8 +76,14 @@ export class Dispatcher {
     const round = (params.round as number) || 1;
     const state = this.store.load();  // 读取 state 以获取 wordBudget
     
-    // [DIAG] 诊断日志：检查 dispatcher 是否被调用
-    console.log(`[DIAG-DISPATCHER] dispatchWriters called, projectDir=${this.projectDir}, chapters=${chapters?.length}`);
+    // Bug 3 修复：通过 EventBus 发送 diag 事件，而不是 console.log
+    this.eventBus?.emit({
+      type: 'diag.dispatcher',
+      action: 'dispatchWriters',
+      chapters,
+      projectDir: this.projectDir,
+      timestamp: new Date().toISOString(),
+    });
     
     const tasks: Task[] = [];
     let sequence = 1;
@@ -98,8 +104,14 @@ export class Dispatcher {
       // 从 state 读取 wordBudget 并传递给 prompt
       const wordBudget = state?.chapters?.[chapterId]?.wordBudget;
       
-      // [DIAG] 诊断日志：检查 wordBudget 读取结果 (LOG-4: 通过 EventBus emit)
-      console.log(`[DIAG-WORD BUDGET] chapterId=${chapterId}, wordBudget=${JSON.stringify(wordBudget)}, state.chapters[${chapterId}]=${JSON.stringify(state?.chapters?.[chapterId])}`);
+      // Bug 3 修复：通过 EventBus 发送 diag 事件，而不是 console.log
+      this.eventBus?.emit({
+        type: 'diag.wordbudget',
+        chapterId,
+        wordBudget,
+        source: 'dispatcher.dispatchWriters',
+        timestamp: new Date().toISOString(),
+      });
       
       this.eventBus?.emit({
         type: 'diag.wordbudget',
@@ -156,8 +168,15 @@ export class Dispatcher {
       };
       // 从 state 读取 wordBudget 并传递给 prompt
       const wordBudget = state?.chapters?.[chapterId]?.wordBudget;
-      // [DIAG] 诊断日志：检查 wordBudget 是否正确传递
-      console.log(`[DIAG-REVIEW] chapter=${chapterId} wordBudget=${JSON.stringify(wordBudget)} statePhase=${state?.currentPhase} chapterKeys=${Object.keys(state?.chapters || {}).join(',')}`);
+      // Bug 3 修复：通过 EventBus 发送 diag 事件，而不是 console.log
+      this.eventBus?.emit({
+        type: 'diag.review',
+        chapterId,
+        wordBudget,
+        statePhase: state?.currentPhase,
+        chapterKeys: Object.keys(state?.chapters || {}).join(','),
+        timestamp: new Date().toISOString(),
+      });
       task.prompt = this.taskExecutor.generateReviewerPrompt(task, draftContent, baseline, round, knowledgeContent, this.projectDir, wordBudget);
       sequence++;
       tasks.push(task);

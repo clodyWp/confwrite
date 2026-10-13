@@ -1,0 +1,150 @@
+{
+  "version": "1.0",
+  "lastUpdated": "2026-10-13",
+  "patterns": [
+    {
+      "id": "SM-001",
+      "category": "state-machine",
+      "severity": "critical",
+      "symptom": "Phase 4a exits with reviewed status, skipping review phase",
+      "description": "Writer validation_failed sets status=reviewed instead of written, causing Phase 4b to be skipped",
+      "rootCause": "updateChapterStatus() in orchestrator.ts sets status='reviewed' on validation_failed",
+      "detection": {
+        "logPattern": "chapter.status.*pending → reviewed",
+        "stateCheck": "chapters with status='reviewed' but no review files",
+        "command": "cat project-state.json | jq '.chapters | to_entries | map(select(.value.status == \"reviewed\")) | length'"
+      },
+      "fix": "Set status='written' on validation_failed, update Phase 4a exit condition to exclude 'reviewed'",
+      "relatedIssues": ["#63"],
+      "tests": ["tests/writing/validation-failed-status.test.ts"],
+      "status": "fixed"
+    },
+    {
+      "id": "SM-002",
+      "category": "state-machine",
+      "severity": "high",
+      "symptom": "Phase 4d deadlocks when all chapters exceed maxRounds",
+      "description": "Phase 4d validate returns blocked but exit condition never satisfied",
+      "rootCause": "allExceeded detection returns blocked instead of marking chapters as terminal",
+      "detection": {
+        "logPattern": "phase 4d.*blocked",
+        "stateCheck": "all chapters reviewed+revise with round >= maxRounds",
+        "command": "cat project-state.json | jq '.chapters | to_entries | map(select(.value.status == \"reviewed\" and .value.round >= 5)) | length'"
+      },
+      "fix": "Mark chapters as completed/failed when allExceeded detected",
+      "relatedIssues": ["#47"],
+      "tests": ["tests/orchestrator/phase4d-maxrounds-deadlock.test.ts"],
+      "status": "fixed"
+    },
+    {
+      "id": "TS-001",
+      "category": "task-scheduling",
+      "severity": "high",
+      "symptom": "Fixer tasks not spawned for all chapters needing fixes",
+      "description": "Phase 4d only spawns fixers for subset of chapters",
+      "rootCause": "generateFixTasks() logic error or maxConcurrency limit",
+      "detection": {
+        "logPattern": "task.start.*fix-",
+        "stateCheck": "chapters with status='reviewed' and verdict='revise' but no fixer task",
+        "command": "cat project-state.json | jq '.chapters | to_entries | map(select(.value.status == \"reviewed\" and .value.lastReviewVerdict == \"revise\")) | map(.key)'"
+      },
+      "fix": "Ensure generateFixTasks() iterates all chapters with reviewed+revise status",
+      "relatedIssues": [],
+      "tests": [],
+      "status": "investigating"
+    },
+    {
+      "id": "TS-002",
+      "category": "task-scheduling",
+      "severity": "medium",
+      "symptom": "Round incremented twice on reject",
+      "description": "Round counter jumps by 2 instead of 1 when reviewer rejects",
+      "rootCause": "Both orchestrator.ts and phases.ts increment round on reject",
+      "detection": {
+        "logPattern": "chapter.status.*round.*increment",
+        "stateCheck": "chapter round jumps from 1 to 3",
+        "command": "cat logs/confwrite-log.jsonl | jq 'select(.event.type == \"chapter.status\") | .event'"
+      },
+      "fix": "Remove round increment from phases.ts, keep only in orchestrator.ts",
+      "relatedIssues": ["#47"],
+      "tests": ["tests/orchestrator/round-increment.test.ts"],
+      "status": "fixed"
+    },
+    {
+      "id": "LOG-001",
+      "category": "logging",
+      "severity": "medium",
+      "symptom": "DIAG logs flooding TUI, hiding subagent status",
+      "description": "console.log DIAG messages output to TUI instead of only to log files",
+      "rootCause": "LoggingSystem.handleEvent() outputs all events including diag.* to TUI",
+      "detection": {
+        "logPattern": "DIAG-",
+        "stateCheck": "TUI shows DIAG messages instead of subagent status",
+        "command": "grep -r 'DIAG-' logs/subagent-*.log | head -10"
+      },
+      "fix": "Filter diag.* events in handleEvent(), only write to log files not TUI",
+      "relatedIssues": ["#65"],
+      "tests": ["tests/logging/diag-filter.test.ts"],
+      "status": "fixed"
+    },
+    {
+      "id": "LOG-002",
+      "category": "logging",
+      "severity": "low",
+      "symptom": "11 event types never emitted",
+      "description": "Critical events defined in types but never emitted by code",
+      "rootCause": "EventBus.emit() calls missing in key locations",
+      "detection": {
+        "logPattern": "event.type",
+        "stateCheck": "missing events in JSONL log",
+        "command": "cat logs/confwrite-log.jsonl | jq -r '.event.type' | sort | uniq -c"
+      },
+      "fix": "Add emit() calls for all defined event types",
+      "relatedIssues": ["#53"],
+      "tests": ["tests/logging/event-emission.test.ts"],
+      "status": "fixed"
+    },
+    {
+      "id": "VAL-001",
+      "category": "validation",
+      "severity": "high",
+      "symptom": "Word count consistently exceeds budget",
+      "description": "All chapters fail validation due to word count > max",
+      "rootCause": "LLM cannot accurately control word count, budget too strict",
+      "detection": {
+        "logPattern": "validation_failed.*word.*count",
+        "stateCheck": "chapters with consecutiveFailures > 0",
+        "command": "cat project-state.json | jq '.chapters | to_entries | map(select(.value.consecutiveFailures > 0)) | length'"
+      },
+      "fix": "Adjust word budget tolerance or improve prompt guidance",
+      "relatedIssues": [],
+      "tests": [],
+      "status": "open"
+    }
+  ],
+  "categories": {
+    "state-machine": {
+      "description": "State machine logic errors, phase transitions, deadlocks",
+      "count": 2
+    },
+    "task-scheduling": {
+      "description": "Task creation, execution, round management",
+      "count": 2
+    },
+    "logging": {
+      "description": "Log output, event emission, TUI display",
+      "count": 2
+    },
+    "validation": {
+      "description": "Word count, format, content validation",
+      "count": 1
+    }
+  },
+  "detectionCommands": {
+    "stateStuck": "tail -100 logs/confwrite-log.jsonl | jq -r 'select(.event.type == \"phase.transition\") | .event.to' | tail -1",
+    "invalidTransition": "cat logs/confwrite-log.jsonl | jq -r 'select(.event.type == \"chapter.status\") | \"\\(.event.chapterId) | \\(.event.from) → \\(.event.to)\"' | grep -E 'pending → completed|written → pending'",
+    "missingTasks": "cat project-state.json | jq -r '.chapters | to_entries | map(select(.value.status == \"reviewed\" and .value.lastReviewVerdict == \"revise\")) | map(.key)'",
+    "taskTimeout": "for log in logs/subagent-*.log; do last_turn=$(grep 'Turn #' $log | tail -1 | grep -oP 'Turn #\\K[0-9]+'); if [ $last_turn -gt 50 ]; then echo \"TIMEOUT: $log\"; fi; done",
+    "validationFailures": "cat logs/confwrite-log.jsonl | jq -r 'select(.event.type == \"task.fail\" and .event.failureType == \"validation_failed\") | \"\\(.event.taskId) | \\(.event.chapterId)\"'"
+  }
+}

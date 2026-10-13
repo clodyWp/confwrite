@@ -1,0 +1,78 @@
+{
+  "name": "full",
+  "description": "Full test dataset with 10+ chapters covering all content types with diagrams",
+  "version": "1.0",
+  "chapterCount": 10,
+  "estimatedDuration": "120-180 minutes",
+  "chapters": [
+    {
+      "id": "ch001",
+      "type": "functional",
+      "title": "Project Objectives",
+      "wordBudget": { "min": 5200, "max": 7800 }
+    },
+    {
+      "id": "ch002",
+      "type": "functional",
+      "title": "Implementation Requirements",
+      "wordBudget": { "min": 5200, "max": 7800 }
+    },
+    {
+      "id": "ch003",
+      "type": "technical",
+      "title": "Technical Specifications Part 1",
+      "wordBudget": { "min": 5200, "max": 7800 }
+    },
+    {
+      "id": "ch004",
+      "type": "technical",
+      "title": "Technical Specifications Part 2",
+      "wordBudget": { "min": 5200, "max": 7800 }
+    },
+    {
+      "id": "ch005",
+      "type": "requirements",
+      "title": "Requirements Analysis",
+      "wordBudget": { "min": 5200, "max": 7800 }
+    },
+    {
+      "id": "ch006",
+      "type": "implementation",
+      "title": "Implementation Plan",
+      "wordBudget": { "min": 5200, "max": 7800 }
+    },
+    {
+      "id": "ch007",
+      "type": "implementation",
+      "title": "System Integration",
+      "wordBudget": { "min": 5200, "max": 7800 }
+    },
+    {
+      "id": "ch008",
+      "type": "testing",
+      "title": "Testing Procedures",
+      "wordBudget": { "min": 5200, "max": 7800 }
+    },
+    {
+      "id": "ch009",
+      "type": "deployment",
+      "title": "Deployment Strategy",
+      "wordBudget": { "min": 5200, "max": 7800 }
+    },
+    {
+      "id": "ch010",
+      "type": "deployment",
+      "title": "Operations & Maintenance",
+      "wordBudget": { "min": 5200, "max": 7800 }
+    }
+  ],
+  "coverage": {
+    "chapterTypes": ["functional", "technical", "requirements", "implementation", "testing", "deployment"],
+    "complexity": "high",
+    "diagrams": true,
+    "tables": true,
+    "crossReferences": true
+  },
+  "useCase": "Full regression test for stress testing and comprehensive validation",
+  "source": "Extracted from LMERP2V2-v9 project (full dataset)"
+}

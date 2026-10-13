@@ -359,7 +359,8 @@ export const phase4a: PhaseDefinition = {
       condition: (ctx) => {
         const chapters = Object.values(ctx.state.chapters);
         return chapters.length > 0 && chapters.every(
-          ch => ['written', 'reviewed', 'completed', 'failed', 'skipped'].includes(ch.status),
+          // Bug 1 修复：移除 'reviewed'（SM-19：reviewed 只应该在 Phase 4b 之后出现）
+          ch => ['written', 'completed', 'failed', 'skipped'].includes(ch.status),
         );
       },
     },

@@ -394,8 +394,14 @@ diagram-end -->
     const requirementsList = baseline.requirements.map(r => `- ${r}`).join('\n');
 
     // 字数预算检查部分（Bug M 修复 + T2 三层防御）
-    // [DIAG] 诊断日志：检查 wordBudget 是否传入
-    console.log(`[DIAG-PROMPT] type=reviewer chapter=${task.chapterId} wordBudget=${JSON.stringify(wordBudget)}`);
+    // Bug 3 修复：通过 EventBus 发送 diag 事件，而不是 console.log
+    this.eventBus?.emit({
+      type: 'diag.prompt',
+      taskType: 'reviewer',
+      chapterId: task.chapterId!,
+      wordBudget,
+      timestamp: new Date().toISOString(),
+    });
     const wordBudgetSection = wordBudget ? `
 
 ### 7. 字数预算检查（硬性要求）
