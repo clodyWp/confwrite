@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **Issue #74: Round 文件名一致性** — 统一使用 chapter.round 创建 task ID 和查找文件
+  - `src/dispatcher/index.ts`: dispatchReviewers 和 dispatchFixers 使用 chapter.round
+  - 新增测试 `tests/dispatcher/round-consistency.test.ts`（3 个测试用例）
+- **Issue #75 & #76: 字数控制 prompt 改进** — Writer 和 Reviewer prompt 改进
+  - `src/writing/task-executor.ts`: Writer prompt 添加字数控制策略（6 种压缩方法）
+  - `src/writing/task-executor.ts`: Reviewer prompt 强制字数超标时必须返回 revise
+  - 新增测试 `tests/writing/word-count-prompt-improvements.test.ts`（7 个测试用例）
 - **Issue #57: Phase transition 时保存状态快照** — 每次 phase transition 时在 `logs/checkpoints/` 保存快照，支持断网恢复和执行历史回溯
   - `src/orchestrator/state-machine.ts`: advance() 调用前保存快照（`saveCheckpoint()`），包含 timestamp/from/to/chapters/tasks
   - 快照文件名格式：`checkpoint-{timestamp}.json`
