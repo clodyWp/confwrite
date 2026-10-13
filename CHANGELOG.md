@@ -2,9 +2,30 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.25.0] - 2026-10-13
+
+### Added
+- **Issue #67: E2E testing skill and validators** — 端到端测试框架
+  - 新增 `.agents/skills/e2e-testing/SKILL.md` — E2E 测试流程指南
+  - 新增 `e2e-regression/validators/` — 验证脚本（phase-flow, word-count, chapter-types, integrity-check）
+  - 新增 `e2e-regression/datasets/` — 测试数据集配置（minimal, standard, full）
+  - 新增 `e2e-regression/bug-patterns.json` — 已知 bug 模式数据库
+
+### Fixed
+- **Issue #69: Reviewer/Fixer prompt 字数控制策略改进** — 审阅者和修复者 prompt 改进
+  - Reviewer prompt 添加字数上限检查
+  - Fixer prompt 添加压缩策略指导
+
 ## [Unreleased]
 
 ### Added
+- **Issue #74: Round 文件名一致性** — 统一使用 chapter.round 创建 task ID 和查找文件
+  - `src/dispatcher/index.ts`: dispatchReviewers 和 dispatchFixers 使用 chapter.round
+  - 新增测试 `tests/dispatcher/round-consistency.test.ts`（3 个测试用例）
+- **Issue #75 & #76: 字数控制 prompt 改进** — Writer 和 Reviewer prompt 改进
+  - `src/writing/task-executor.ts`: Writer prompt 添加字数控制策略（6 种压缩方法）
+  - `src/writing/task-executor.ts`: Reviewer prompt 强制字数超标时必须返回 revise
+  - 新增测试 `tests/writing/word-count-prompt-improvements.test.ts`（7 个测试用例）
 - **Issue #57: Phase transition 时保存状态快照** — 每次 phase transition 时在 `logs/checkpoints/` 保存快照，支持断网恢复和执行历史回溯
   - `src/orchestrator/state-machine.ts`: advance() 调用前保存快照（`saveCheckpoint()`），包含 timestamp/from/to/chapters/tasks
   - 快照文件名格式：`checkpoint-{timestamp}.json`
