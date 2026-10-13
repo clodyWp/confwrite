@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.25.0] - 2026-10-13
+
+### Added
+- **Issue #67: E2E testing skill and validators** — 端到端测试框架
+  - 新增 `.agents/skills/e2e-testing/SKILL.md` — E2E 测试流程指南
+  - 新增 `e2e-regression/validators/` — 验证脚本（phase-flow, word-count, chapter-types, integrity-check）
+  - 新增 `e2e-regression/datasets/` — 测试数据集配置（minimal, standard, full）
+  - 新增 `e2e-regression/bug-patterns.json` — 已知 bug 模式数据库
+
+### Fixed
+- **Issue #69: Reviewer/Fixer prompt 字数控制策略改进** — 审阅者和修复者 prompt 改进
+  - Reviewer prompt 添加字数上限检查
+  - Fixer prompt 添加压缩策略指导
+
 ## [Unreleased]
 
 ### Added
