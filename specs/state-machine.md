@@ -68,7 +68,7 @@
 | 2 | 3 | `outline.md` 存在，但素材未整理或素材包不匹配大纲 |
 | 2 | 4a | `outline.md` 存在，素材已整理，且素材包与大纲逐章对应 |
 | 3 | 4a | 素材已整理，且素材包与大纲逐章对应 |
-| 4a | 4b | 所有章节状态 ∈ {written, reviewed, completed, failed, skipped} |
+| 4a | 4b | 所有章节状态 ∈ {written, completed, failed, skipped}（不包含 reviewed，SM-19） |
 | 4b | 4c | 无章节处于 written/reviewing，且有章节已审阅 |
 | 4c | 4d | 有章节 verdict=revise |
 | 4c | 4a | 有章节被 reject 需重写（存在 `pending` 章节即触发，不检查 `round`） |
@@ -226,6 +226,50 @@ reviewer reject
 - 快照保存失败不应影响主流程（try-catch 包裹）
 - 快照保存是轻量级的，只包含关键字段
 
+### 3.11 reviewed 状态语义
+
+| ID | 不变量 | 违反后果 |
+|----|--------|-------------------|
+| SM-19 | **`reviewed` 状态只应该在 Phase 4b（审阅）之后出现** | Writer validation_failed 时错误设置 reviewed，导致审阅阶段被跳过，Fixer 无审阅报告可参考 (E2E v9) |
+
+**状态语义定义**：
+
+| 状态 | 语义 | 出现时机 |
+|------|------|----------|
+| `pending` | 待写作 | 初始状态，或 reviewer reject 后需重写 |
+| `written` | 已写作，待审阅 | Writer 任务完成（无论验证是否通过） |
+| `reviewed` | 已审阅，待决策 | Reviewer 任务完成后 |
+| `completed` | 已完成 | 审阅通过，或修复后验证通过 |
+| `failed` | 失败 | 超过 maxRounds 或连续失败 |
+
+**Phase 4a 出口条件**：
+
+```typescript
+// ❌ 错误（包含 reviewed）
+ch => ['written', 'reviewed', 'completed', 'failed', 'skipped'].includes(ch.status)
+
+// ✅ 正确（不包含 reviewed）
+ch => ['written', 'completed', 'failed', 'skipped'].includes(ch.status)
+```
+
+**Writer 失败时的状态设置**：
+
+```typescript
+// validation_failed（有输出但验证失败）
+chapter.status = 'written';  // ✅ 让 reviewer 评估
+
+// execution_failed + 有输出
+chapter.status = 'completed';  // ✅ 降级接受
+
+// execution_failed + 无输出
+chapter.status = 'pending';  // ✅ 重试 writer
+
+// 连续失败 5 次
+chapter.status = 'failed';  // ✅ 彻底失败
+```
+
+**测试要求**：必须覆盖「Writer validation_failed 时状态为 written，不是 reviewed」的场景。
+
 ---
 
 ## 4. Tick 循环协议
@@ -371,9 +415,8 @@ Phase 4c `execute()` 返回的 `params` 字段定义如下：
 | 2026-10-12 | Phase 5 出口条件补充 P5-5 重试说明 | 图表生成失败时自动重试一次，重试仍失败才计入 failed |
 <<<<<<< HEAD
 | 2026-10-12 | 新增 SM-16: Phase 4d allExceeded 死锁防护 | Issue #47-3: validate 返回 blocked 但 exit 不满足导致死锁 |
-=======
-| 2026-10-13 | 新增 SM-14：4c → 4a 退出条件不依赖 `round` | 移除 `&& ch.round > 1` 死代码，补充原始 Bug 3 症状与回归测试要求 |
+| 2026-10-13 | 新增 SM-14b：4c → 4a 退出条件不依赖 `round` | 移除 `&& ch.round > 1` 死代码，补充原始 Bug 3 症状与回归测试要求 |
 | 2026-10-13 | 新增 SM-15：Reject 时 round 只递增一次 | 修复 Issue #47-2 双重递增 bug |
 | 2026-10-14 | 新增 SM-17：关键状态变化必须 emit 事件 | Issue #53：11 个事件类型从未 emit |
 | 2026-10-14 | 新增 SM-18：Phase transition 时必须保存状态快照 | Issue #57：无执行历史，断网恢复困难 |
->>>>>>> master
+| 2026-10-14 | 新增 SM-19：`reviewed` 状态只应该在 Phase 4b 之后出现 | E2E v9: writer validation_failed 错误设置 reviewed 导致审阅被跳过 |

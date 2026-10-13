@@ -156,13 +156,14 @@ export class WritingOrchestrator {
           return;
         }
         
-        // 验证失败：进入修复循环，不降级接受
+        // Bug 1 修复：validation_failed 时设置为 written，让 reviewer 评估
+        // 而不是 reviewed（reviewed 只应该在 Phase 4b 之后出现，SM-19）
         if (chapter.consecutiveFailures >= 5) {
           chapter.status = 'failed';
           chapter.failureReason = 'validation_failed_persistently';
         } else {
-          chapter.status = 'reviewed';
-          chapter.lastReviewVerdict = 'revise';
+          chapter.status = 'written';  // 修复：从 'reviewed' 改为 'written'
+          // 不设置 lastReviewVerdict，因为还没有经过审阅
         }
         this.emitChapterEvents(task.chapterId, oldStatus, chapter, projectDir);
         return;
@@ -186,9 +187,9 @@ export class WritingOrchestrator {
         chapter.status = 'failed';
         chapter.failureReason = 'no_output';
       } else {
-        // 其他失败：保留产出，由 fixer 在下一轮修复
-        chapter.status = 'reviewed';
-        chapter.lastReviewVerdict = 'revise';
+        // Bug 1 修复：无输出时设置为 pending（重试 writer）
+        // 而不是 reviewed（reviewed 只应该在 Phase 4b 之后出现，SM-19）
+        chapter.status = 'pending';  // 修复：从 'reviewed' 改为 'pending'
       }
       this.emitChapterEvents(task.chapterId, oldStatus, chapter, projectDir);
       return;
