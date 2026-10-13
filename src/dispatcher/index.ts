@@ -137,8 +137,7 @@ export class Dispatcher {
 
   private async dispatchReviewers(params: Record<string, unknown>): Promise<DispatchResult> {
     const chapters = params.chapters as string[];
-    const round = params.round as number;
-    const state = this.store.load();  // 读取 state 以获取 wordBudget
+    const state = this.store.load();  // 读取 state 以获取 wordBudget 和 chapter.round
     const tasks: Task[] = [];
     let sequence = 1;
 
@@ -146,8 +145,12 @@ export class Dispatcher {
     const knowledgeLoader = new KnowledgeLoader(this.projectDir);
 
     for (const chapterId of chapters) {
-      // 读取版本化草稿文件: ch001-v${round}.md
-      const draftContent = this.readChapterDraft(chapterId, round);
+      // Issue #74 修复：使用每个章节自己的 round，而不是全局 state.round
+      // 确保 task ID 和文件查找使用相同的 round 变量
+      const chapterRound = state?.chapters?.[chapterId]?.round || 1;
+      
+      // 读取版本化草稿文件: ch001-v${chapterRound}.md
+      const draftContent = this.readChapterDraft(chapterId, chapterRound);
       const baseline = this.extractBaseline();
       
       // 从素材包提取相关分类，加载知识库内容
@@ -156,7 +159,7 @@ export class Dispatcher {
       const knowledgeContent = knowledgeLoader.generateReviewerInjection(categories);
       
       const task: Task = {
-        id: `review-${chapterId}-r${round}`,
+        id: `review-${chapterId}-r${chapterRound}`,  // Issue #74: 使用 chapter.round
         type: 'reviewer',
         chapterId,
         priority: sequence,
@@ -177,7 +180,7 @@ export class Dispatcher {
         chapterKeys: Object.keys(state?.chapters || {}).join(','),
         timestamp: new Date().toISOString(),
       });
-      task.prompt = this.taskExecutor.generateReviewerPrompt(task, draftContent, baseline, round, knowledgeContent, this.projectDir, wordBudget);
+      task.prompt = this.taskExecutor.generateReviewerPrompt(task, draftContent, baseline, chapterRound, knowledgeContent, this.projectDir, wordBudget);
       sequence++;
       tasks.push(task);
       this.scheduler.submit(task);
@@ -187,13 +190,12 @@ export class Dispatcher {
       action: 'spawn_reviewers',
       tasksCreated: tasks.length,
       tasks,
-      message: `已创建 ${tasks.length} 个审阅任务 (round ${round})`,
+      message: `已创建 ${tasks.length} 个审阅任务`,
     };
   }
 
   private async dispatchFixers(params: Record<string, unknown>): Promise<DispatchResult> {
     const chapters = params.chapters as string[];
-    const round = params.round as number;
     const tasks: Task[] = [];
     let sequence = 1;
 
@@ -201,14 +203,18 @@ export class Dispatcher {
     const state = this.store.load();
 
     for (const chapterId of chapters) {
-      // 读取当前版本草稿: ch001-v${round}.md
-      const draftContent = this.readChapterDraft(chapterId, round);
-      // 读取当前版本审阅报告: ch001-r${round}.json
-      const reviewContent = this.readReviewReport(chapterId, round);
+      // Issue #74 修复：使用每个章节自己的 round，而不是全局 state.round
+      // 确保 task ID 和文件查找使用相同的 round 变量
+      const chapterRound = state?.chapters?.[chapterId]?.round || 1;
+      
+      // 读取当前版本草稿: ch001-v${chapterRound}.md
+      const draftContent = this.readChapterDraft(chapterId, chapterRound);
+      // 读取当前版本审阅报告: ch001-r${chapterRound}.json
+      const reviewContent = this.readReviewReport(chapterId, chapterRound);
       // Bug 41 修复：读取 wordBudget
       const wordBudget = state?.chapters?.[chapterId]?.wordBudget;
       const task: Task = {
-        id: `fix-${chapterId}-r${round}`,
+        id: `fix-${chapterId}-r${chapterRound}`,  // Issue #74: 使用 chapter.round
         type: 'fixer',
         chapterId,
         priority: sequence,
@@ -218,8 +224,8 @@ export class Dispatcher {
         prompt: '',
         dependencies: [],
       };
-      // Fixer 输出新版本: ch001-v${round+1}.md
-      task.prompt = this.taskExecutor.generateFixPrompt(task, draftContent, reviewContent, round, wordBudget);
+      // Fixer 输出新版本: ch001-v${chapterRound+1}.md
+      task.prompt = this.taskExecutor.generateFixPrompt(task, draftContent, reviewContent, chapterRound, wordBudget);
       sequence++;
       tasks.push(task);
       this.scheduler.submit(task);
@@ -229,7 +235,7 @@ export class Dispatcher {
       action: 'spawn_fixers',
       tasksCreated: tasks.length,
       tasks,
-      message: `已创建 ${tasks.length} 个修复任务 (round ${round} → ${round + 1})`,
+      message: `已创建 ${tasks.length} 个修复任务`,
     };
   }
 
