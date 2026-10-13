@@ -68,7 +68,7 @@ describe('职责分离 × ch 级篇幅', () => {
       const p = executor.generateReviewerPrompt(baseTask, '# 正文', baseline);
       // Bug 41 修复：默认 minChapterChars 改为 5000
       expect(p).toContain('5000 字');
-      expect(p).toContain('不按');
+      expect(p).toMatch(/按整节合计|不按/); // Issue #68: 新措辞"按整节合计判断"
     });
 
     it('fixer 的篇幅要求是整节合计', () => {

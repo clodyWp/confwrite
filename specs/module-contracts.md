@@ -217,6 +217,9 @@ outline.md
 | WB-3 | Writer/Fixer prompt 必须包含 wordBudget |
 | WB-4 | OutputValidator 必须独立验证字数（不盲信 LLM verdict） |
 | WB-5 | wordBudget 配置统一（minChapterChars ≤ wordBudget.min < wordBudget.max） |
+| WB-6 | Reviewer 必须同时检查字数上限和下限（不足下限或超过上限都判 revise） |
+| WB-7 | Reviewer 超标时必须给出压缩指令（指明需要精简多少字，指导 Fixer 如何压缩） |
+| WB-8 | Fixer 必须支持精简策略（在不改变语义的前提下压缩篇幅） |
 
 ### 4.2 章节状态流转
 
