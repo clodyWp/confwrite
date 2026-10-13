@@ -65,23 +65,28 @@ bash e2e-regression/scripts/get-pending-prs.sh
 
 ### -1.3 Define Verification Goals
 
-Based on the pending PRs, define what needs to be verified:
+Based on the pending PRs and previous issues, define what needs to be verified:
 
 ```markdown
 ## 本次 E2E 验证目标
 
-### PR #68: 字数控制策略改进
-- **改动**: Reviewer/Fixer prompt 增加字数范围检查和精简策略
-- **验证点**:
-  - Reviewer 是否正确检查字数上限
-  - Fixer 是否能有效精简内容
-  - 字数超标章节是否能通过修复循环
+### 待验证的 PR（自上次 E2E 以来）
 
-### PR #69: E2E skill 增加验证范围追踪
-- **改动**: 增加验证范围追踪机制
-- **验证点**:
-  - 追踪文件是否正确更新
-  - 待验证 PR 列表是否正确获取
+| PR | Title | Change | Verification Method |
+|----|-------|--------|--------------------|
+| #68 | 字数控制策略改进 | Reviewer/Fixer prompt | 检查字数是否在上限范围内 |
+| #69 | E2E skill 增加验证范围追踪 | Tracking mechanism | 追踪文件是否正确更新 |
+
+### 已知问题回归检查
+
+| Issue ID | Description | Status in Last E2E | Check Method |
+|----------|-------------|-------------------|--------------|
+| WORD-COUNT-001 | 所有章节超出字数上限 39%-84% | Fixed in #68 | 检查最终字数是否在预算范围内 |
+
+### 验证成功标准
+- [ ] 所有待验证 PR 的改动被测试覆盖
+- [ ] 已知问题没有复现
+- [ ] 完整流程正常完成
 ```
 
 ### -1.4 Verification Scope Checklist
@@ -715,11 +720,21 @@ cat <project-dir>/logs/confwrite-log.jsonl | jq -r 'select(.event.type == "valid
 
 ```bash
 # Update last-e2e-state.json with current test results
+# Format: <version> <commit> <project-dir> [issues-json]
+
+# Example: No new issues found
 bash e2e-regression/scripts/update-e2e-state.sh \
   v0.25.0 \
   $(git rev-parse HEAD) \
   <project-dir> \
-  "#68" "#69"
+  '[]'
+
+# Example: New issues found
+bash e2e-regression/scripts/update-e2e-state.sh \
+  v0.25.0 \
+  $(git rev-parse HEAD) \
+  <project-dir> \
+  '[{"id":"NEW-001","category":"validation","description":"新问题描述","severity":"medium","status":"open"}]'
 ```
 
 **Output**:
@@ -727,7 +742,7 @@ bash e2e-regression/scripts/update-e2e-state.sh \
 已更新追踪文件: e2e-regression/last-e2e-state.json
   版本: v0.25.0
   Commit: abc123def456
-  已验证 PR: #68 #69
+  发现问题: 0
 ```
 
 ### 6.4 Generate Test Report
@@ -756,16 +771,27 @@ Create `E2E-TEST-REPORT-<version>.md` with:
 - **Version**: <last-version>
 - **Commit**: <last-commit>
 - **Timestamp**: <last-timestamp>
+- **Days Since Last E2E**: <days>
 
-### Pending PRs Verified
+### Pending PRs (Since Last E2E)
 
 | PR | Title | Change | Verification Method | Status |
 |----|-------|--------|--------------------|--------|
-| #68 | 字数控制策略改进 | Reviewer/Fixer prompt | Word count checked, fixer invoked | ✅ Verified |
+| #68 | 字数控制策略改进 | Reviewer/Fixer prompt | Word count checked | ✅ Verified |
 | #69 | 验证范围追踪 | Tracking mechanism | State file updated | ✅ Verified |
 
-### Unverified PRs
-- None (all pending PRs verified)
+**Total Pending PRs**: <count>
+**Verified**: <count> | **Unverified**: <count>
+
+### Known Issues Regression Check
+
+| Issue ID | Description | Status in Last E2E | Current Status | Notes |
+|----------|-------------|-------------------|----------------|-------|
+| WORD-COUNT-001 | 所有章节超出字数上限 39%-84% | Fixed in #68 | ✅ Not Regressed | 字数在预算范围内 |
+
+**Regression Summary**:
+- **Issues Checked**: <count>
+- **Regressed**: <count> | **Not Regressed**: <count>
 
 ## Phase Transitions
 
