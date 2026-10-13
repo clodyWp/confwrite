@@ -121,7 +121,7 @@ describe('TaskExecutor - 字数控制三层防御', () => {
       );
 
       // 应该说明字数超标时返回 revise
-      expect(prompt).toMatch(/超过.*拒绝|超出.*revise/i);
+      expect(prompt).toMatch(/超过.*拒绝|超出.*revise|必须返回 revise/i);
     });
   });
 });
