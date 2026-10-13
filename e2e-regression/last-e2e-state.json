@@ -1,17 +1,33 @@
 {
-  "version": "v0.24.0",
-  "commit": "962f09c",
-  "timestamp": "2026-10-13T05:00:00Z",
-  "projectDir": "/home/water/proj/c4/projects/e2e-v24",
+  "version": "v0.26.0",
+  "commit": "3117233",
+  "timestamp": "2026-10-13T23:30:00Z",
+  "projectDir": "/home/water/proj/c4/projects/e2e-v26",
   "issuesFound": [
     {
-      "id": "WORD-COUNT-001",
+      "id": "WORD-COUNT-002",
       "category": "validation",
-      "description": "所有章节超出字数上限 39%-84%",
+      "description": "Writer 字数控制仍然失败，所有 7 章节超标 5%-71%",
       "severity": "high",
-      "status": "fixed",
-      "fixPR": "#68"
+      "status": "open",
+      "issueNumber": 79
+    },
+    {
+      "id": "REVIEW-VERDICT-002",
+      "category": "validation",
+      "description": "Reviewer verdict 矛盾：检测到字数超标但 verdict 为 accept",
+      "severity": "medium",
+      "status": "open",
+      "issueNumber": 80
+    },
+    {
+      "id": "PHASE-4B-STUCK-001",
+      "category": "state-machine",
+      "description": "Phase 4b 无法退出当所有章节 failed",
+      "severity": "high",
+      "status": "open",
+      "issueNumber": 81
     }
   ],
-  "notes": "v0.24.0 E2E 测试完成，发现字数控制问题"
+  "notes": "v0.26.0 E2E 测试失败：字数控制问题未解决，Phase 4b 卡住"
 }
