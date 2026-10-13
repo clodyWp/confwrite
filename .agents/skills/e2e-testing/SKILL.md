@@ -23,6 +23,76 @@ A discipline for running end-to-end tests on ConfWrite projects. This skill cove
 
 ---
 
+## Phase -1: Determine Verification Scope
+
+**Purpose**: Identify which PRs need to be verified in this E2E test.
+
+### -1.1 Read Last E2E State
+
+```bash
+# Read tracking file
+cat e2e-regression/last-e2e-state.json
+```
+
+**Expected content**:
+```json
+{
+  "version": "v0.24.0",
+  "commit": "962f09c",
+  "timestamp": "2026-10-13T05:00:00Z",
+  "verifiedPRs": ["#63", "#65", "#66"],
+  "projectDir": "/home/water/proj/c4/projects/e2e-v24"
+}
+```
+
+### -1.2 Get Pending PRs
+
+```bash
+# Get PRs merged since last E2E test
+bash e2e-regression/scripts/get-pending-prs.sh
+```
+
+**Output example**:
+```
+上次 E2E 测试: v0.24.0 (962f09c) @ 2026-10-13T05:00:00Z
+
+待验证 PR 数量: 2
+[
+  {"number": 68, "title": "字数控制策略改进", "mergedAt": "2026-10-13T07:47:36Z"},
+  {"number": 69, "title": "E2E skill 增加验证范围追踪", "mergedAt": "2026-10-13T08:00:00Z"}
+]
+```
+
+### -1.3 Define Verification Goals
+
+Based on the pending PRs, define what needs to be verified:
+
+```markdown
+## 本次 E2E 验证目标
+
+### PR #68: 字数控制策略改进
+- **改动**: Reviewer/Fixer prompt 增加字数范围检查和精简策略
+- **验证点**:
+  - Reviewer 是否正确检查字数上限
+  - Fixer 是否能有效精简内容
+  - 字数超标章节是否能通过修复循环
+
+### PR #69: E2E skill 增加验证范围追踪
+- **改动**: 增加验证范围追踪机制
+- **验证点**:
+  - 追踪文件是否正确更新
+  - 待验证 PR 列表是否正确获取
+```
+
+### -1.4 Verification Scope Checklist
+
+- [ ] Last E2E state file exists and is readable
+- [ ] Pending PRs list generated
+- [ ] Verification goals defined for each PR
+- [ ] Test dataset selected (covers PR changes)
+
+---
+
 ## Phase 0: Test Integrity Verification
 
 **CRITICAL**: Before starting any E2E test, verify that the remote pi is NOT analyzing ConfWrite source code. If it does, the test is invalid because pi may "work around" bugs instead of triggering them.
@@ -618,7 +688,49 @@ gh issue create \
 - [ ] No bash commands explored ConfWrite internals
 - [ ] Test results are trustworthy
 
-### 6.2 Generate Test Report
+### 6.2 Verify PR Coverage
+
+**Check if all pending PRs have been verified**:
+
+```bash
+# Get verification goals from Phase -1
+# Compare with actual test results
+
+# Example: Check if PR #68 changes were exercised
+cat <project-dir>/logs/confwrite-log.jsonl | jq -r 'select(.event.type == "task.review") | .event.chapterId' | wc -l
+# If > 0, reviewer was invoked (PR #68 changes exercised)
+
+# Check if word count validation was triggered
+cat <project-dir>/logs/confwrite-log.jsonl | jq -r 'select(.event.type == "validation.wordbudget") | .event.chapterId' | wc -l
+```
+
+**PR Verification Matrix**:
+
+| PR | Change | Verification Method | Status |
+|----|--------|--------------------|--------|
+| #68 | 字数控制策略 | Reviewer invoked, word budget checked | ✅ Verified |
+| #69 | 验证范围追踪 | Tracking file updated | ✅ Verified |
+
+### 6.3 Update Tracking File
+
+```bash
+# Update last-e2e-state.json with current test results
+bash e2e-regression/scripts/update-e2e-state.sh \
+  v0.25.0 \
+  $(git rev-parse HEAD) \
+  <project-dir> \
+  "#68" "#69"
+```
+
+**Output**:
+```
+已更新追踪文件: e2e-regression/last-e2e-state.json
+  版本: v0.25.0
+  Commit: abc123def456
+  已验证 PR: #68 #69
+```
+
+### 6.4 Generate Test Report
 
 Create `E2E-TEST-REPORT-<version>.md` with:
 
@@ -637,6 +749,23 @@ Create `E2E-TEST-REPORT-<version>.md` with:
 - **Chapters**: <count>
 - **Final Word Count**: <count>
 - **Integrity**: ✅ Verified / ❌ Compromised
+
+## Verification Scope
+
+### Last E2E State
+- **Version**: <last-version>
+- **Commit**: <last-commit>
+- **Timestamp**: <last-timestamp>
+
+### Pending PRs Verified
+
+| PR | Title | Change | Verification Method | Status |
+|----|-------|--------|--------------------|--------|
+| #68 | 字数控制策略改进 | Reviewer/Fixer prompt | Word count checked, fixer invoked | ✅ Verified |
+| #69 | 验证范围追踪 | Tracking mechanism | State file updated | ✅ Verified |
+
+### Unverified PRs
+- None (all pending PRs verified)
 
 ## Phase Transitions
 
