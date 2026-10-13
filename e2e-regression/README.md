@@ -110,11 +110,21 @@ bash e2e-regression/scripts/get-pending-prs.sh
 
 ```bash
 # 测试完成后更新追踪文件
+# 格式: <version> <commit> <project-dir> [issues-json]
+
+# 示例: 没有发现新问题
 bash e2e-regression/scripts/update-e2e-state.sh \
   v0.25.0 \
   $(git rev-parse HEAD) \
   /home/water/proj/c4/projects/e2e-v25 \
-  "#68" "#69"
+  '[]'
+
+# 示例: 发现新问题
+bash e2e-regression/scripts/update-e2e-state.sh \
+  v0.25.0 \
+  $(git rev-parse HEAD) \
+  /home/water/proj/c4/projects/e2e-v25 \
+  '[{"id":"NEW-001","category":"validation","description":"新问题","severity":"medium","status":"open"}]'
 ```
 
 **输出**:
@@ -122,7 +132,7 @@ bash e2e-regression/scripts/update-e2e-state.sh \
 已更新追踪文件: e2e-regression/last-e2e-state.json
   版本: v0.25.0
   Commit: abc123def456
-  已验证 PR: #68 #69
+  发现问题: 0
 ```
 
 ## Bug 模式数据库
@@ -165,8 +175,17 @@ bash e2e-regression/scripts/update-e2e-state.sh \
   "version": "v0.24.0",
   "commit": "962f09c",
   "timestamp": "2026-10-13T05:00:00Z",
-  "verifiedPRs": ["#63", "#65", "#66"],
-  "projectDir": "/home/water/proj/c4/projects/e2e-v24"
+  "projectDir": "/home/water/proj/c4/projects/e2e-v24",
+  "issuesFound": [
+    {
+      "id": "WORD-COUNT-001",
+      "category": "validation",
+      "description": "所有章节超出字数上限 39%-84%",
+      "severity": "high",
+      "status": "fixed",
+      "fixPR": "#68"
+    }
+  ]
 }
 ```
 
@@ -175,14 +194,24 @@ bash e2e-regression/scripts/update-e2e-state.sh \
 - **version**: ConfWrite 版本号
 - **commit**: Git commit hash
 - **timestamp**: 测试完成时间（ISO 8601 格式）
-- **verifiedPRs**: 本次测试已验证的 PR 列表
 - **projectDir**: 测试项目目录
+- **issuesFound**: 本次测试发现的问题列表
+  - **id**: 问题唯一标识
+  - **category**: 问题分类（validation/state-machine/logging 等）
+  - **description**: 问题描述
+  - **severity**: 严重程度（critical/high/medium/low）
+  - **status**: 状态（open/fixed/investigating）
+  - **fixPR**: 修复该问题的 PR（如已修复）
 
 ### 工作流
 
-1. **Phase -1**: 读取 `last-e2e-state.json`，获取待验证 PR 列表
+1. **Phase -1**: 读取 `last-e2e-state.json`
+   - 获取待验证 PR 列表（自上次 timestamp 以来）
+   - 获取已知问题列表（用于回归检查）
 2. **Phase 1-5**: 执行 E2E 测试
-3. **Phase 6**: 更新 `last-e2e-state.json`，记录本次验证结果
+3. **Phase 6**: 更新 `last-e2e-state.json`
+   - 记录本次发现的问题
+   - 标记已修复的问题
 
 ## 使用流程
 
