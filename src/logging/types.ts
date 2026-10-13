@@ -242,6 +242,49 @@ export interface DiagTaskExecutorEvent {
 }
 
 /**
+ * DIAG Dispatcher 事件
+ * 
+ * 替代原先 console.log 输出的 DIAG-DISPATCHER 日志，
+ * 通过 EventBus 统一传递诊断信息。
+ */
+export interface DiagDispatcherEvent {
+  type: 'diag.dispatcher';
+  action: string;
+  chapters?: string[];
+  projectDir?: string;
+  timestamp: string;
+}
+
+/**
+ * DIAG Prompt 事件
+ * 
+ * 替代原先 console.log 输出的 DIAG-PROMPT 日志，
+ * 通过 EventBus 统一传递诊断信息。
+ */
+export interface DiagPromptEvent {
+  type: 'diag.prompt';
+  taskType: string;
+  chapterId: string;
+  wordBudget?: { min: number; max: number };
+  timestamp: string;
+}
+
+/**
+ * DIAG Review 事件
+ * 
+ * 替代原先 console.log 输出的 DIAG-REVIEW 日志，
+ * 通过 EventBus 统一传递诊断信息。
+ */
+export interface DiagReviewEvent {
+  type: 'diag.review';
+  chapterId: string;
+  wordBudget?: { min: number; max: number };
+  statePhase?: string;
+  chapterKeys?: string;
+  timestamp: string;
+}
+
+/**
  * 所有事件的联合类型
  */
 export type LogEvent =
@@ -261,7 +304,10 @@ export type LogEvent =
   | ChapterFailedEvent
   | RoundExceededEvent
   | DiagWordBudgetEvent
-  | DiagTaskExecutorEvent;
+  | DiagTaskExecutorEvent
+  | DiagDispatcherEvent
+  | DiagPromptEvent
+  | DiagReviewEvent;
 
 /**
  * 事件类型字符串

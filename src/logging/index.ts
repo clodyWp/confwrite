@@ -55,9 +55,13 @@ export class LoggingSystem {
     // 更新统计
     this.updateStats(event);
 
-    // 格式化并输出
-    const result = Logger.format(event);
-    this.notify(result.message, result.level);
+    // Bug 3 修复：diag 事件不输出到 TUI，只写入日志文件
+    const isDiagEvent = event.type.startsWith('diag.');
+    if (!isDiagEvent) {
+      // 格式化并输出
+      const result = Logger.format(event);
+      this.notify(result.message, result.level);
+    }
 
     // 追加日志到文件（JSONL 增量写入 + 原子写入，LOG-1）
     this.appendLog(event);
