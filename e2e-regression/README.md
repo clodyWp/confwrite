@@ -16,9 +16,13 @@ e2e-regression/
 │   ├── chapter-types.sh  # 验证章节类型覆盖
 │   ├── integrity-check.sh # 检测源码分析行为
 │   └── run-all.sh        # 运行所有验证
+├── scripts/              # 辅助脚本
+│   ├── get-pending-prs.sh    # 获取待验证 PR 列表
+│   └── update-e2e-state.sh   # 更新 E2E 状态追踪
 ├── baselines/            # 基线数据
 │   └── lmerp-v9/        # LMERP2V2-v9 提取数据
 ├── bug-patterns.json     # Bug 模式数据库
+├── last-e2e-state.json   # E2E 状态追踪文件
 └── README.md            # 本文件
 ```
 
@@ -82,6 +86,45 @@ bash e2e-regression/validators/chapter-types.sh --host water@8.160.160.85 --dir 
 - `--host <user@host>`: 远程主机地址（如 `water@8.160.160.85`）
 - `--dir <project-dir>`: 远端项目目录路径（如 `/home/water/proj/c4/projects/LMERP2V2-v9`）
 
+## 辅助脚本
+
+### 获取待验证 PR 列表
+
+```bash
+# 获取自上次 E2E 测试以来合并的 PR
+bash e2e-regression/scripts/get-pending-prs.sh
+```
+
+**输出示例**:
+```
+上次 E2E 测试: v0.24.0 (962f09c) @ 2026-10-13T05:00:00Z
+
+待验证 PR 数量: 2
+[
+  {"number": 68, "title": "字数控制策略改进", "mergedAt": "2026-10-13T07:47:36Z"},
+  {"number": 69, "title": "E2E skill 增加验证范围追踪", "mergedAt": "2026-10-13T08:00:00Z"}
+]
+```
+
+### 更新 E2E 状态追踪
+
+```bash
+# 测试完成后更新追踪文件
+bash e2e-regression/scripts/update-e2e-state.sh \
+  v0.25.0 \
+  $(git rev-parse HEAD) \
+  /home/water/proj/c4/projects/e2e-v25 \
+  "#68" "#69"
+```
+
+**输出**:
+```
+已更新追踪文件: e2e-regression/last-e2e-state.json
+  版本: v0.25.0
+  Commit: abc123def456
+  已验证 PR: #68 #69
+```
+
 ## Bug 模式数据库
 
 `bug-patterns.json` 包含已知的 bug 模式和检测方法。
@@ -110,6 +153,36 @@ bash e2e-regression/validators/chapter-types.sh --host water@8.160.160.85 --dir 
 - **task-scheduling**: 任务调度问题
 - **logging**: 日志相关 bug
 - **validation**: 验证相关 bug
+
+## E2E 状态追踪
+
+`last-e2e-state.json` 记录上次 E2E 测试的状态，用于确定本次测试的验证范围。
+
+### 结构
+
+```json
+{
+  "version": "v0.24.0",
+  "commit": "962f09c",
+  "timestamp": "2026-10-13T05:00:00Z",
+  "verifiedPRs": ["#63", "#65", "#66"],
+  "projectDir": "/home/water/proj/c4/projects/e2e-v24"
+}
+```
+
+### 字段说明
+
+- **version**: ConfWrite 版本号
+- **commit**: Git commit hash
+- **timestamp**: 测试完成时间（ISO 8601 格式）
+- **verifiedPRs**: 本次测试已验证的 PR 列表
+- **projectDir**: 测试项目目录
+
+### 工作流
+
+1. **Phase -1**: 读取 `last-e2e-state.json`，获取待验证 PR 列表
+2. **Phase 1-5**: 执行 E2E 测试
+3. **Phase 6**: 更新 `last-e2e-state.json`，记录本次验证结果
 
 ## 使用流程
 
