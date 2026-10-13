@@ -183,6 +183,7 @@ final.docx 结构
 | **D6** | 🔵 P3 | **篇幅下限 / turn 预算校准** | 篇幅下限 5000（v0.21.2 从 8000 改为 5000），实测 60% 章节低于下限。需调整字数预算策略（降低下限或提高目标） | `config/loader.ts:85`、`task-executor.ts:43` |
 | **D7** | ⚪ P4 | **结构稳定性验证** | 节数 37→6 波动，根因（循环压缩）已消除，但无新端到端运行数据验证 | 待新数据 |
 | **D8** | ⚪ P4 | **清理冗余代码** | `content-validator.ts` 的 `paragraphLengthValid` / `shortParagraphs` 字段永远为 `true`/`[]`（dead field）；`types.ts:31` 的 `'rate_limited'` 枚举值无使用；`checkWordCount()` 是死代码（无调用方） | `src/writing/content-validator.ts`、`src/scheduler/types.ts:31`、`src/writing/task-executor.ts:756-775` |
+| **D9** | 🔵 P3 | **TUI 实时显示 subagent 行为** | 远端 TUI 当前只显示 subagent 状态（🚀 Writer/🔧 Fixer），需要在状态上方一行实时显示 subagent 当前正在执行的工具调用（如 `bash: wc -m`、`write: ch005-v2.md`）。类似现有 TUI 显示，但排版更紧凑，便于远程监控时快速了解进度 | `src/logging/`、TUI 相关模块 |
 
 ---
 
