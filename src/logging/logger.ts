@@ -39,6 +39,12 @@ export class Logger {
         return Logger.formatDiagWordBudget(event);
       case 'diag.taskexecutor':
         return Logger.formatDiagTaskExecutor(event);
+      case 'diag.dispatcher':
+        return Logger.formatDiagDispatcher(event);
+      case 'diag.prompt':
+        return Logger.formatDiagPrompt(event);
+      case 'diag.review':
+        return Logger.formatDiagReview(event);
       default:
         return { message: JSON.stringify(event), level: 'info' };
     }
@@ -191,6 +197,33 @@ export class Logger {
   private static formatDiagTaskExecutor(event: Extract<LogEvent, { type: 'diag.taskexecutor' }>): FormatResult {
     const budget = event.wordBudget ? `${event.wordBudget.min}-${event.wordBudget.max}` : 'none';
     const message = `[DIAG] taskExecutor: ${event.chapterId} prompt=${event.promptLength}chars budget=${budget}`;
+    return { message, level: 'info' };
+  }
+
+  /**
+   * 格式化 DIAG Dispatcher 事件
+   */
+  private static formatDiagDispatcher(event: Extract<LogEvent, { type: 'diag.dispatcher' }>): FormatResult {
+    const chapters = event.chapters ? event.chapters.length : 0;
+    const message = `[DIAG] dispatcher: ${event.action} chapters=${chapters}`;
+    return { message, level: 'info' };
+  }
+
+  /**
+   * 格式化 DIAG Prompt 事件
+   */
+  private static formatDiagPrompt(event: Extract<LogEvent, { type: 'diag.prompt' }>): FormatResult {
+    const budget = event.wordBudget ? `${event.wordBudget.min}-${event.wordBudget.max}` : 'none';
+    const message = `[DIAG] prompt: ${event.taskType} ${event.chapterId} budget=${budget}`;
+    return { message, level: 'info' };
+  }
+
+  /**
+   * 格式化 DIAG Review 事件
+   */
+  private static formatDiagReview(event: Extract<LogEvent, { type: 'diag.review' }>): FormatResult {
+    const budget = event.wordBudget ? `${event.wordBudget.min}-${event.wordBudget.max}` : 'none';
+    const message = `[DIAG] review: ${event.chapterId} phase=${event.statePhase} budget=${budget}`;
     return { message, level: 'info' };
   }
 
