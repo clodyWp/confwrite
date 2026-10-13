@@ -1,0 +1,58 @@
+{
+  "name": "standard",
+  "description": "Standard test dataset with 7 chapters covering mixed content types",
+  "version": "1.0",
+  "chapterCount": 7,
+  "estimatedDuration": "60-90 minutes",
+  "chapters": [
+    {
+      "id": "ch001",
+      "type": "functional",
+      "title": "Project Objectives",
+      "wordBudget": { "min": 5200, "max": 7800 }
+    },
+    {
+      "id": "ch002",
+      "type": "functional",
+      "title": "Implementation Requirements",
+      "wordBudget": { "min": 5200, "max": 7800 }
+    },
+    {
+      "id": "ch003",
+      "type": "technical",
+      "title": "Technical Specifications",
+      "wordBudget": { "min": 5200, "max": 7800 }
+    },
+    {
+      "id": "ch004",
+      "type": "requirements",
+      "title": "Requirements Analysis",
+      "wordBudget": { "min": 5200, "max": 7800 }
+    },
+    {
+      "id": "ch005",
+      "type": "implementation",
+      "title": "Implementation Plan",
+      "wordBudget": { "min": 5200, "max": 7800 }
+    },
+    {
+      "id": "ch006",
+      "type": "testing",
+      "title": "Testing Procedures",
+      "wordBudget": { "min": 5200, "max": 7800 }
+    },
+    {
+      "id": "ch007",
+      "type": "deployment",
+      "title": "Deployment Strategy",
+      "wordBudget": { "min": 5200, "max": 7800 }
+    }
+  ],
+  "coverage": {
+    "chapterTypes": ["functional", "technical", "requirements", "implementation", "testing", "deployment"],
+    "complexity": "medium",
+    "diagrams": true
+  },
+  "useCase": "Standard regression test for comprehensive workflow validation",
+  "source": "Extracted from LMERP2V2-v9 project"
+}

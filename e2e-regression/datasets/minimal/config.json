@@ -1,0 +1,34 @@
+{
+  "name": "minimal",
+  "description": "Minimal test dataset with 3 chapters covering basic types",
+  "version": "1.0",
+  "chapterCount": 3,
+  "estimatedDuration": "30-45 minutes",
+  "chapters": [
+    {
+      "id": "ch001",
+      "type": "functional",
+      "title": "System Overview",
+      "wordBudget": { "min": 3000, "max": 5000 }
+    },
+    {
+      "id": "ch002",
+      "type": "technical",
+      "title": "Technical Architecture",
+      "wordBudget": { "min": 3000, "max": 5000 }
+    },
+    {
+      "id": "ch003",
+      "type": "requirements",
+      "title": "Requirements Analysis",
+      "wordBudget": { "min": 3000, "max": 5000 }
+    }
+  ],
+  "coverage": {
+    "chapterTypes": ["functional", "technical", "requirements"],
+    "complexity": "low",
+    "diagrams": false
+  },
+  "useCase": "Quick smoke test for basic workflow validation",
+  "source": "Synthetic dataset based on LMERP structure"
+}
