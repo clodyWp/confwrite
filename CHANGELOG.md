@@ -56,6 +56,22 @@ All notable changes to this project will be documented in this file.
   - 新增 `tests/orchestrator/phase4c-pending-orphan.test.ts` 回归原始 Bug 3 症状（`pending(round=1)` 触发 4c → 4a）
   - `specs/state-machine.md`: 新增不变量 SM-14
 
+## [0.24.0] - 2026-10-13
+
+### Added
+- **E2E Testing Skill** — 完整的端到端测试流程
+  - `.agents/skills/e2e-testing/SKILL.md`: 7 阶段测试流程（完整性验证 → 环境准备 → 实时监控 → 工作流 → 回归数据 → Bug 分类 → 验证报告）
+  - `e2e-regression/validators/`: 5 个验证脚本（phase-flow、word-count、chapter-types、integrity-check、run-all）
+  - 所有脚本支持本地模式和远程模式（`--host` + `--dir`）
+  - `e2e-regression/datasets/`: 3 个回归数据集配置（minimal/standard/full）
+  - `e2e-regression/bug-patterns.json`: Bug 模式数据库（7 个已知模式）
+
+### Fixed
+- **E2E v24 验证**: Bug #63 和 Bug #65 修复在远程 E2E 测试中验证通过
+  - 7 章全部正确经过 `written` 状态，审阅阶段没有被跳过
+  - DIAG 日志不再 flooding TUI
+  - 测试完整性检查通过（无源码访问）
+
 ## [0.23.0] - 2026-10-13
 
 ### Fixed
