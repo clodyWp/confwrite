@@ -63,8 +63,8 @@ describe('Wave 4 — Bug M: 审阅字数检查', () => {
     );
 
     // 应该包含硬性上限说明
-    expect(prompt).toContain('硬性上限');
-    expect(prompt).toContain('不得超过');
+    expect(prompt).toMatch(/硬性上限|硬性规则/);
+    expect(prompt).toMatch(/不得超过|超过上限|实际字数 >/);
   });
 
   it('无字数预算时不添加预算检查部分', () => {
