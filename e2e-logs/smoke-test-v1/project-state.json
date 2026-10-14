@@ -1,0 +1,152 @@
+{
+  "version": 1,
+  "project": "smoke-test",
+  "projectDir": "/home/water/proj/c4/projects/smoke-test",
+  "createdAt": "2026-10-14T12:57:56.428Z",
+  "lastUpdated": "2026-10-14T13:57:08.008Z",
+  "currentPhase": "6",
+  "status": "assembling",
+  "chapters": {
+    "ch001": {
+      "id": "ch001",
+      "title": "出库管理",
+      "status": "completed",
+      "version": 0,
+      "round": 4,
+      "attempt": 0,
+      "consecutiveFailures": 0,
+      "maxRounds": 5,
+      "type": "functional",
+      "wordBudget": {
+        "min": 5200,
+        "max": 7800
+      },
+      "importance": 3,
+      "description": "本节涵盖「出库管理」相关内容。",
+      "lastReviewVerdict": "accept"
+    },
+    "ch002": {
+      "id": "ch002",
+      "title": "功能需求",
+      "status": "completed",
+      "version": 0,
+      "round": 4,
+      "attempt": 0,
+      "consecutiveFailures": 0,
+      "maxRounds": 5,
+      "type": "functional",
+      "wordBudget": {
+        "min": 5200,
+        "max": 7800
+      },
+      "importance": 3,
+      "description": "本节涵盖「入库管理」相关内容。 本节涵盖「库存管理」相关内容。",
+      "lastReviewVerdict": "accept"
+    },
+    "ch003": {
+      "id": "ch003",
+      "title": "智能仓储管理系统需求说明书",
+      "status": "completed",
+      "version": 0,
+      "round": 5,
+      "attempt": 0,
+      "consecutiveFailures": 0,
+      "maxRounds": 5,
+      "type": "functional",
+      "wordBudget": {
+        "min": 5200,
+        "max": 7800
+      },
+      "importance": 3,
+      "description": "本节涵盖「非功能需求」相关内容。 本节涵盖「技术约束」相关内容。 本节涵盖「项目概述」相关内容。 本节涵盖「验收标准」相关内容。",
+      "lastReviewVerdict": "revise",
+      "failureReason": "exceeded_max_rounds"
+    }
+  },
+  "round": 1,
+  "scheduler": {
+    "tokens": 10,
+    "paused": false
+  },
+  "tasks": [],
+  "executionLog": [
+    {
+      "time": "2026-10-14T13:02:01.913Z",
+      "phase": "1",
+      "action": "Phase 0b → 1"
+    },
+    {
+      "time": "2026-10-14T13:02:01.915Z",
+      "phase": "2",
+      "action": "Phase 1 → 2"
+    },
+    {
+      "time": "2026-10-14T13:09:59.286Z",
+      "phase": "3",
+      "action": "Phase 2 → 3"
+    },
+    {
+      "time": "2026-10-14T13:09:59.308Z",
+      "phase": "4a",
+      "action": "Phase 3 → 4a"
+    },
+    {
+      "time": "2026-10-14T13:19:06.930Z",
+      "phase": "4b",
+      "action": "Phase 4a → 4b"
+    },
+    {
+      "time": "2026-10-14T13:27:47.432Z",
+      "phase": "4c",
+      "action": "Phase 4b → 4c"
+    },
+    {
+      "time": "2026-10-14T13:27:47.433Z",
+      "phase": "4d",
+      "action": "Phase 4c → 4d"
+    },
+    {
+      "time": "2026-10-14T13:35:30.197Z",
+      "phase": "4b",
+      "action": "Phase 4d → 4b"
+    },
+    {
+      "time": "2026-10-14T13:54:15.725Z",
+      "phase": "4c",
+      "action": "Phase 4b → 4c"
+    },
+    {
+      "time": "2026-10-14T13:54:15.726Z",
+      "phase": "4d",
+      "action": "Phase 4c → 4d"
+    },
+    {
+      "time": "2026-10-14T13:57:07.329Z",
+      "phase": "4b",
+      "action": "Phase 4d → 4b"
+    },
+    {
+      "time": "2026-10-14T13:57:07.330Z",
+      "phase": "4c",
+      "action": "Phase 4b → 4c"
+    },
+    {
+      "time": "2026-10-14T13:57:07.331Z",
+      "phase": "5",
+      "action": "Phase 4c → 5"
+    },
+    {
+      "time": "2026-10-14T13:57:07.998Z",
+      "phase": "6",
+      "action": "Phase 5 → 6"
+    }
+  ],
+  "escalatedToHuman": false,
+  "totalChapters": 3,
+  "waitPoint": {
+    "phase": "6",
+    "reason": "初稿组装完成，需要用户审阅确认",
+    "instructions": "请审阅 assembly/merged-v1.md 初稿。确认无误后再次运行 /confwrite:write 继续定稿。",
+    "createdAt": "2026-10-14T13:57:08.008Z"
+  }
+}
