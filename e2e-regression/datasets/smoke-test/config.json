@@ -1,0 +1,92 @@
+{
+  "name": "smoke-test",
+  "description": "轻量级烟雾测试数据集，用于快速验证基本工作流",
+  "version": "1.0",
+  "created": "2026-10-14",
+  
+  "inputs": {
+    "requirements": "inputs/requirements.docx",
+    "description": "Word 格式需求文档（测试 docx 转换功能）"
+  },
+  
+  "referenceMaterial": {
+    "count": 3,
+    "files": [
+      {
+        "path": "reference_material/01_系统概述.md",
+        "chapter": "ch001",
+        "type": "overview",
+        "description": "系统概述、目标、范围、架构概览"
+      },
+      {
+        "path": "reference_material/02_功能需求详细说明.md",
+        "chapter": "ch002",
+        "type": "functional",
+        "description": "入库、库存、出库模块详细功能需求"
+      },
+      {
+        "path": "reference_material/03_技术架构设计.md",
+        "chapter": "ch003",
+        "type": "technical",
+        "description": "系统架构、数据库设计、API 设计、部署架构"
+      }
+    ]
+  },
+  
+  "outline": {
+    "template": "technical-proposal",
+    "totalWords": 15000,
+    "chapters": [
+      {
+        "id": "ch001",
+        "type": "overview",
+        "title": "系统概述",
+        "wordBudget": { "min": 3000, "max": 5000 }
+      },
+      {
+        "id": "ch002",
+        "type": "functional",
+        "title": "功能需求",
+        "wordBudget": { "min": 3000, "max": 5000 }
+      },
+      {
+        "id": "ch003",
+        "type": "technical",
+        "title": "技术架构",
+        "wordBudget": { "min": 3000, "max": 5000 }
+      }
+    ]
+  },
+  
+  "expectedDuration": {
+    "organize": "1-2 minutes",
+    "outline": "2-3 minutes",
+    "write": "15-20 minutes",
+    "total": "20-25 minutes"
+  },
+  
+  "coverage": {
+    "features": [
+      "docx 转换（inputs/requirements.docx）",
+      "markdown 素材整理（3 个文件）",
+      "大纲生成（3 章）",
+      "写作流程（3 章）",
+      "审阅/修复循环",
+      "图表生成",
+      "组装导出"
+    ],
+    "chapterTypes": ["overview", "functional", "technical"],
+    "complexity": "low"
+  },
+  
+  "useCase": "快速烟雾测试，验证 ConfWrite 基本工作流是否正常",
+  
+  "usage": {
+    "step1": "将数据集复制到远程机器",
+    "step2": "cd /path/to/dataset/smoke-test",
+    "step3": "/confwrite:init smoke-test",
+    "step4": "/confwrite:organize smoke-test",
+    "step5": "/confwrite:write smoke-test",
+    "note": "inputs/requirements.docx 会自动转换为 markdown"
+  }
+}

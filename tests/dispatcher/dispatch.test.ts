@@ -301,7 +301,7 @@ describe('Dispatcher', () => {
         projectDir: TEST_DIR,
       });
 
-      expect(result.tasks[0].prompt).toContain('字数预算');
+      expect(result.tasks[0].prompt).toContain('字数检查结果');
       expect(result.tasks[0].prompt).toContain('5000');
       expect(result.tasks[0].prompt).toContain('8000');
     });

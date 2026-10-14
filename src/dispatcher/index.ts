@@ -22,6 +22,7 @@ import type { WritingOrchestrator } from '../writing/orchestrator.js';
 import type { EventBus } from '../logging/event-bus.js';
 import { KnowledgeLoader } from '../knowledge/loader.js';
 import { validateChapterKits } from '../organize/kit-validator.js';
+import { OutputValidator } from '../writing/output-validator.js'; // SM-WC-3: 用于计算字数结果
 
 export interface DispatchResult {
   action: string;
@@ -171,16 +172,27 @@ export class Dispatcher {
       };
       // 从 state 读取 wordBudget 并传递给 prompt
       const wordBudget = state?.chapters?.[chapterId]?.wordBudget;
+      
+      // SM-WC-3: 计算程序测量的字数结果，传递给 Reviewer
+      let wordCountResult: { actual: number; level: string; status: string } | undefined;
+      if (wordBudget && draftContent) {
+        const actual = draftContent.length; // SM-WC-9: 使用 content.length
+        const level = OutputValidator.classifyOverage(actual, wordBudget.max);
+        const status = OutputValidator.classifyWordCount(actual, wordBudget.min, wordBudget.max);
+        wordCountResult = { actual, level, status };
+      }
+      
       // Bug 3 修复：通过 EventBus 发送 diag 事件，而不是 console.log
       this.eventBus?.emit({
         type: 'diag.review',
         chapterId,
         wordBudget,
+        wordCountResult, // SM-WC-3: 记录程序测量结果
         statePhase: state?.currentPhase,
         chapterKeys: Object.keys(state?.chapters || {}).join(','),
         timestamp: new Date().toISOString(),
       });
-      task.prompt = this.taskExecutor.generateReviewerPrompt(task, draftContent, baseline, chapterRound, knowledgeContent, this.projectDir, wordBudget);
+      task.prompt = this.taskExecutor.generateReviewerPrompt(task, draftContent, baseline, chapterRound, knowledgeContent, this.projectDir, wordBudget, wordCountResult);
       sequence++;
       tasks.push(task);
       this.scheduler.submit(task);
