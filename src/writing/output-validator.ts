@@ -264,19 +264,46 @@ export class OutputValidator {
       }
     }
 
-    // 6. Bug 42 修复：verdict 一致性检查
+    // 6. Bug 42 修复 + E2E v26 增强：verdict 一致性检查
     // 如果 issues 中提到字数问题但 verdict 是 accept，标记为验证失败
-    if (parsed.verdict === 'accept' && Array.isArray(parsed.issues)) {
-      const wordCountIssues = parsed.issues.filter((i: any) => 
-        /字数|超标|超出|上限|过多|over.*limit|exceed|too (long|much)/i.test(i.description || i.issue || '')
-      );
-      if (wordCountIssues.length > 0) {
+    // 或者如果独立字数验证发现超标但 verdict 是 accept，也标记为验证失败
+    if (parsed.verdict === 'accept') {
+      // 检查 issues 中是否有字数相关问题
+      let hasWordCountIssueInReport = false;
+      if (Array.isArray(parsed.issues)) {
+        const wordCountIssues = parsed.issues.filter((i: any) => 
+          /字数|超标|超出|上限|过多|over.*limit|exceed|too (long|much)/i.test(i.description || i.issue || '')
+        );
+        hasWordCountIssueInReport = wordCountIssues.length > 0;
+      }
+      
+      // 检查独立字数验证是否发现超标
+      let hasWordCountOverLimit = false;
+      if (wordBudget) {
+        const draftPath = join(this.projectDir, 'drafts', 'chapters', `${chapterId}-v${round}.md`);
+        if (existsSync(draftPath)) {
+          try {
+            const content = readFileSync(draftPath, 'utf-8');
+            const charCount = content.length;
+            hasWordCountOverLimit = charCount > wordBudget.max || charCount < wordBudget.min;
+          } catch {
+            // 读取失败不影响检查
+          }
+        }
+      }
+      
+      // 如果任一检查发现问题，标记为验证失败
+      if (hasWordCountIssueInReport || hasWordCountOverLimit) {
+        const reasons = [];
+        if (hasWordCountIssueInReport) reasons.push('审阅报告中发现字数问题');
+        if (hasWordCountOverLimit) reasons.push('独立验证发现字数超标');
+        
         result.checks.push({
           name: 'verdict 一致性',
           passed: false,
-          detail: `verdict 为 accept，但审阅报告中发现 ${wordCountIssues.length} 个字数相关问题`
+          detail: `verdict 为 accept，但${reasons.join('，')}`
         });
-        result.errors.push(`verdict 矛盾: verdict 为 accept，但审阅报告中发现字数问题`);
+        result.errors.push(`verdict 矛盾: verdict 为 accept，但${reasons.join('，')}`);
       }
     }
   }
