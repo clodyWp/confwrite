@@ -27,14 +27,14 @@ const ROOT = resolve(__dirname, '..');
 function loadConfig() {
   const configPath = join(ROOT, 'scripts', 'impact-analysis-config.json');
   if (!existsSync(configPath)) {
-    console.warn('⚠️  配置文件不存在，使用默认配置');
+    console.warn('[WARN] 配置文件不存在，使用默认配置');
     return getDefaultConfig();
   }
   
   try {
     return JSON.parse(readFileSync(configPath, 'utf-8'));
   } catch (err) {
-    console.error(`❌ 配置文件格式错误: ${err.message}`);
+    console.error(`[ERROR] 配置文件格式错误: ${err.message}`);
     process.exit(1);
   }
 }
@@ -54,7 +54,7 @@ function getDefaultConfig() {
 
 /**
  * 提取模块名
- * src/assemble/assembler.ts → 'assemble'
+ * src/assemble/assembler.ts -> 'assemble'
  */
 function extractModule(filePath) {
   const parts = filePath.split('/');
@@ -63,7 +63,7 @@ function extractModule(filePath) {
 
 /**
  * 提取基础文件名
- * src/assemble/assembler.ts → 'assembler'
+ * src/assemble/assembler.ts -> 'assembler'
  */
 function extractBaseName(filePath) {
   return basename(filePath, '.ts');
