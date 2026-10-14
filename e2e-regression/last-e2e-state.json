@@ -1,33 +1,51 @@
 {
-  "version": "v0.26.0",
-  "commit": "3117233",
-  "timestamp": "2026-10-13T23:30:00Z",
-  "projectDir": "/home/water/proj/c4/projects/e2e-v26",
+  "version": "v0.28.0",
+  "commit": "1101714",
+  "timestamp": "2026-10-14T22:10:00Z",
+  "projectDir": "/home/water/proj/c4/projects/smoke-test",
+  "dataset": "smoke-test",
   "issuesFound": [
     {
-      "id": "WORD-COUNT-002",
+      "id": "TRUNCATION-001",
       "category": "validation",
-      "description": "Writer 字数控制仍然失败，所有 7 章节超标 5%-71%",
-      "severity": "high",
+      "description": "Issue #96 修复未生效：自动截断仍在工作，导致内容缺失",
+      "severity": "critical",
       "status": "open",
-      "issueNumber": 79
+      "issueNumber": 116
     },
     {
-      "id": "REVIEW-VERDICT-002",
+      "id": "WORDCOUNT-001",
       "category": "validation",
-      "description": "Reviewer verdict 矛盾：检测到字数超标但 verdict 为 accept",
+      "description": "字数统计方法不一致：Writer 用总字符数，Reviewer 用中文字数",
+      "severity": "high",
+      "status": "open",
+      "issueNumber": null
+    },
+    {
+      "id": "OUTLINE-001",
+      "category": "outline",
+      "description": "大纲生成质量差：章节标题不合理，类型全为 functional",
       "severity": "medium",
       "status": "open",
-      "issueNumber": 80
+      "issueNumber": 114
     },
     {
-      "id": "PHASE-4B-STUCK-001",
-      "category": "state-machine",
-      "description": "Phase 4b 无法退出当所有章节 failed",
-      "severity": "high",
+      "id": "DOCX-001",
+      "category": "conversion",
+      "description": "DOCX 转换时 HTML 实体未解码（&lt; 未转为 <）",
+      "severity": "medium",
       "status": "open",
-      "issueNumber": 81
+      "issueNumber": 115
     }
   ],
-  "notes": "v0.26.0 E2E 测试失败：字数控制问题未解决，Phase 4b 卡住"
+  "testResults": {
+    "totalChapters": 3,
+    "completedChapters": 3,
+    "failedChapters": 0,
+    "avgRounds": 4.3,
+    "totalDuration": "55 minutes",
+    "finalPhase": "6 (assembling)",
+    "outputFile": "assembly/merged-v1.md (74KB)"
+  },
+  "notes": "Phase 6 完成，等待用户审阅。发现 4 个问题，其中 Issue #116 为 Critical。"
 }
