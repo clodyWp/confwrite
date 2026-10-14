@@ -6,7 +6,7 @@
  * - Reviewer: 检查 JSON 存在、可解析、verdict 合法
  * - Fixer: 检查新版本文件存在、大小 > 1000 字节
  */
-import { existsSync, statSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, statSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Task } from '../scheduler/types.js';
 import type { ConfWriteConfig } from '../config/loader.js';
@@ -67,6 +67,21 @@ export interface ValidationCheck {
 
 export const MIN_CHAPTER_CHARS = 8000; // 章节最小字符数（默认值）
 
+/** 超标级别 */
+export type OverWordCountLevel = 'mild' | 'moderate' | 'severe' | 'critical';
+
+/** 字数状态 */
+export type WordCountStatus = 
+  | 'within'
+  | 'mild_over' | 'moderate_over' | 'severe_over' | 'critical_over'
+  | 'mild_under' | 'moderate_under' | 'severe_under';
+
+/** 结构完整性检查结果 */
+export interface StructuralIntegrityResult {
+  valid: boolean;
+  errors: string[];
+}
+
 export class OutputValidator {
   private projectDir: string;
   private config: ConfWriteConfig;
@@ -74,6 +89,96 @@ export class OutputValidator {
   constructor(projectDir: string, config?: ConfWriteConfig) {
     this.projectDir = projectDir;
     this.config = config ?? DEFAULT_CONFIG;
+  }
+
+  /**
+   * SM-WC-2: 分类超标级别
+   * @param actual 实际字数
+   * @param max 字数上限
+   * @returns 超标级别
+   */
+  static classifyOverage(actual: number, max: number): OverWordCountLevel {
+    if (actual <= max) return 'mild'; // 未超标
+    const ratio = (actual - max) / max;
+    if (ratio <= 0.15) return 'mild';
+    if (ratio <= 0.30) return 'moderate';
+    if (ratio <= 0.50) return 'severe';
+    return 'critical';
+  }
+
+  /**
+   * SM-WC-7: 分类字数状态（含不足）
+   * @param actual 实际字数
+   * @param min 字数下限
+   * @param max 字数上限
+   * @returns 字数状态
+   */
+  static classifyWordCount(actual: number, min: number, max: number): WordCountStatus {
+    // 检查超标
+    if (actual > max) {
+      const overRatio = (actual - max) / max;
+      if (overRatio <= 0.15) return 'mild_over';
+      if (overRatio <= 0.30) return 'moderate_over';
+      if (overRatio <= 0.50) return 'severe_over';
+      return 'critical_over';
+    }
+    // 检查不足
+    if (actual < min) {
+      const underRatio = (min - actual) / min;
+      if (underRatio <= 0.10) return 'mild_under';
+      if (underRatio <= 0.25) return 'moderate_under';
+      return 'severe_under';
+    }
+    // 在范围内
+    return 'within';
+  }
+
+  /**
+   * SM-WC-6: 检查内容结构完整性
+   * @param content Markdown 内容
+   * @returns 完整性检查结果
+   */
+  static checkStructuralIntegrity(content: string): StructuralIntegrityResult {
+    const errors: string[] = [];
+
+    // 1. 检查截断标记
+    if (/<!--.*截断.*-->|<!--.*truncat.*-->/i.test(content)) {
+      errors.push('检测到截断标记');
+    }
+
+    // 2. 检查空 section（标题下无内容或内容 < 50 字）
+    const sections = content.split(/^(?=##\s)/m);
+    for (const section of sections) {
+      if (!section.trim()) continue;
+      const match = section.match(/^##\s+(.+)$/m);
+      if (match) {
+        const title = match[1].trim();
+        const bodyContent = section.replace(/^##\s+.+$/m, '').trim();
+        if (bodyContent.length < 50) {
+          errors.push(`空 section: ${title}`);
+        }
+      }
+    }
+
+    return {
+      valid: errors.length === 0,
+      errors,
+    };
+  }
+
+  /**
+   * SM-WC-5: 检查字数是否收敛
+   * @param history 字数历史
+   * @param min 字数下限
+   * @param max 字数上限
+   * @returns 是否收敛
+   */
+  static isConverging(history: number[], min: number, max: number): boolean {
+    if (history.length < 2) return true;
+    const midpoint = (min + max) / 2;
+    const prev = Math.abs(history[history.length - 2] - midpoint);
+    const curr = Math.abs(history[history.length - 1] - midpoint);
+    return curr < prev; // 当前轮更接近目标
   }
 
   /**
@@ -148,35 +253,30 @@ export class OutputValidator {
         result.errors.push(`草稿字数不足: ${charCount} 字 < ${effectiveMin} 字`);
       }
 
-      // 3. 字数上限检查（如果提供了 wordBudget）
+      // 3. 字数上限检查（如果提供了 wordBudget）— SM-WC-1: 不截断，只记录
       if (wordBudget && wordBudget.max > 0) {
-        const upperOk = charCount <= wordBudget.max;
+        const overageLevel = OutputValidator.classifyOverage(charCount, wordBudget.max);
+        const upperOk = overageLevel === 'mild' || charCount <= wordBudget.max;
         result.checks.push({ 
           name: '字数上限', 
           passed: upperOk, 
-          detail: `${charCount} 字 (上限 ${wordBudget.max})` 
+          detail: `${charCount} 字 (上限 ${wordBudget.max}, 级别 ${overageLevel})` 
         });
         if (!upperOk) {
-          // E2E v26 修复：当字数超标超过 20% 时，尝试截断文件
-          const excessRatio = (charCount - wordBudget.max) / wordBudget.max;
-          if (excessRatio > 0.2) {
-            // 尝试在合适的位置截断
-            const truncated = this.truncateContent(content, wordBudget.max);
-            if (truncated) {
-              writeFileSync(filePath, truncated, 'utf-8');
-              result.checks.push({
-                name: '字数截断',
-                passed: true,
-                detail: `已将 ${charCount} 字截断至约 ${wordBudget.max} 字`
-              });
-              result.errors.push(`草稿字数超标 ${Math.round(excessRatio * 100)}%，已自动截断`);
-            } else {
-              result.errors.push(`草稿字数超标: ${charCount} 字 > 上限 ${wordBudget.max} 字`);
-            }
-          } else {
-            result.errors.push(`草稿字数超标: ${charCount} 字 > 上限 ${wordBudget.max} 字`);
-          }
+          // SM-WC-2: 渐进式响应，不截断
+          result.errors.push(`草稿字数超标: ${charCount} 字 > 上限 ${wordBudget.max} 字 (级别: ${overageLevel})`);
         }
+      }
+
+      // 4. 结构完整性检查 — SM-WC-6
+      const integrity = OutputValidator.checkStructuralIntegrity(content);
+      result.checks.push({
+        name: '结构完整性',
+        passed: integrity.valid,
+        detail: integrity.errors.length > 0 ? integrity.errors.join('; ') : '完整'
+      });
+      if (!integrity.valid) {
+        result.errors.push(`内容结构不完整: ${integrity.errors.join(', ')}`);
       }
 
       // 4. 可读性（防编码损坏）
@@ -369,48 +469,7 @@ export class OutputValidator {
     }
   }
 
-  /**
-   * 截断内容到指定字数上限
-   * 尝试在段落结尾处截断，避免破坏 Markdown 结构
-   */
-  private truncateContent(content: string, maxChars: number): string | null {
-    try {
-      // 如果内容本身就不超过上限，直接返回
-      if (content.length <= maxChars) {
-        return content;
-      }
 
-      // 尝试在段落结尾处截断（查找最后一个完整的段落）
-      const targetLength = Math.floor(maxChars * 0.95); // 留 5% 缓冲
-      const truncated = content.substring(0, targetLength);
-      
-      // 查找最后一个段落结尾（两个换行符）
-      const lastParagraphEnd = truncated.lastIndexOf('\n\n');
-      if (lastParagraphEnd > targetLength * 0.8) {
-        // 在段落结尾处截断
-        return truncated.substring(0, lastParagraphEnd) + '\n\n<!-- 内容已截断以符合字数要求 -->';
-      }
-      
-      // 查找最后一个句子结尾
-      const lastSentenceEnd = Math.max(
-        truncated.lastIndexOf('。'),
-        truncated.lastIndexOf('！'),
-        truncated.lastIndexOf('？'),
-        truncated.lastIndexOf('.'),
-        truncated.lastIndexOf('!'),
-        truncated.lastIndexOf('?')
-      );
-      if (lastSentenceEnd > targetLength * 0.8) {
-        // 在句子结尾处截断
-        return truncated.substring(0, lastSentenceEnd + 1) + '\n\n<!-- 内容已截断以符合字数要求 -->';
-      }
-      
-      // 无法找到合适的截断点，直接截断
-      return truncated + '\n\n<!-- 内容已截断以符合字数要求 -->';
-    } catch {
-      return null;
-    }
-  }
 
   /**
    * 生成验证失败的消息
