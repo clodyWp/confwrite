@@ -69,7 +69,7 @@
 | 2 | 4a | `outline.md` 存在，素材已整理，且素材包与大纲逐章对应 |
 | 3 | 4a | 素材已整理，且素材包与大纲逐章对应 |
 | 4a | 4b | 所有章节状态 ∈ {written, completed, failed, skipped}（不包含 reviewed，SM-19） |
-| 4b | 4c | 无章节处于 written/reviewing，且有章节已审阅 |
+| 4b | 4c | 无章节处于 written/reviewing，且（有章节已审阅 或 所有章节都处于终态） |
 | 4c | 4d | 有章节 verdict=revise |
 | 4c | 4a | 有章节被 reject 需重写（存在 `pending` 章节即触发，不检查 `round`） |
 | 4c | 5 | 所有章节 ∈ {completed, skipped, failed}，且至少一个 completed |
@@ -269,6 +269,33 @@ chapter.status = 'failed';  // ✅ 彻底失败
 ```
 
 **测试要求**：必须覆盖「Writer validation_failed 时状态为 written，不是 reviewed」的场景。
+
+### 3.12 Phase 4b 退出条件
+
+| ID | 不变量 | 违反后果 |
+|----|--------|----------|
+| SM-20 | **Phase 4b 必须在所有章节都不需要审阅时退出** | 当所有章节都 failed 时，Phase 4b 卡住无法退出 (E2E v26) |
+
+**Phase 4b 退出条件**：
+
+```typescript
+// 退出到 4c 的条件
+const needsReview = chapters.some(ch => ['written', 'reviewing'].includes(ch.status));
+const allTerminal = chapters.every(ch => ['completed', 'failed', 'skipped'].includes(ch.status));
+const hasReviewed = chapters.some(ch => ch.status === 'reviewed');
+
+// 满足以下任一条件即可退出：
+// 1. 没有章节需要审阅，且有章节已审阅（正常流程）
+// 2. 所有章节都处于终态（completed/failed/skipped）
+return !needsReview && (hasReviewed || allTerminal);
+```
+
+**原因**：
+- 当所有章节都 failed 时，没有 reviewed 状态的章节
+- 原条件要求 `hasProgress`（至少一个 completed 或 reviewed），导致无法退出
+- 新条件允许所有章节都 failed 时也能退出
+
+**测试要求**：必须覆盖「所有章节都 failed 时 Phase 4b 能正常退出」的场景。
 
 ---
 
