@@ -10,6 +10,7 @@
 import { EventBus } from './event-bus.js';
 import { StatsCollector } from './stats.js';
 import { Logger } from './logger.js';
+import { StatusLineRenderer } from './status-line.js';
 import type { LogEvent } from './types.js';
 import type { NotifyLevel } from '../index.js';
 import { appendFileSync, mkdirSync, existsSync, readFileSync, writeFileSync, renameSync, unlinkSync } from 'node:fs';
@@ -32,6 +33,7 @@ export interface FileLogConfig {
 export class LoggingSystem {
   public eventBus: EventBus;
   public stats: StatsCollector;
+  public statusLine: StatusLineRenderer;
   private notify: NotifyFn;
   private disposed = false;
   private fileLogConfig?: FileLogConfig;
@@ -40,10 +42,36 @@ export class LoggingSystem {
     this.notify = notify;
     this.eventBus = new EventBus();
     this.stats = new StatsCollector();
+    this.statusLine = new StatusLineRenderer();
     this.fileLogConfig = fileLogConfig;
 
     // 订阅所有事件
     this.eventBus.subscribe('*', (event) => this.handleEvent(event));
+
+    // 订阅任务事件更新 statusLine
+    this.eventBus.subscribe('task.start', (event) => {
+      const e = event as import('./types.js').TaskStartEvent;
+      this.statusLine.addTask({
+        taskId: e.taskId,
+        taskType: e.taskType,
+        chapterId: e.chapterId,
+        startedAt: Date.now(),
+      });
+    });
+    this.eventBus.subscribe('task.complete', (event) => {
+      const e = event as import('./types.js').TaskCompleteEvent;
+      this.statusLine.removeTask(e.taskId);
+    });
+    this.eventBus.subscribe('task.fail', (event) => {
+      const e = event as import('./types.js').TaskFailEvent;
+      if (!e.willRetry) {
+        this.statusLine.removeTask(e.taskId);
+      }
+    });
+    this.eventBus.subscribe('phase.transition', (event) => {
+      const e = event as import('./types.js').PhaseTransitionEvent;
+      this.statusLine.setPhase(e.to, e.phaseName);
+    });
   }
 
   /**
@@ -61,6 +89,9 @@ export class LoggingSystem {
       // 格式化并输出
       const result = Logger.format(event);
       this.notify(result.message, result.level);
+
+      // 更新 statusLine 的日志缓冲 (BUF-1, BUF-2)
+      this.statusLine.updateLastLog(result.message, result.level, event.type);
     }
 
     // 追加日志到文件（JSONL 增量写入 + 原子写入，LOG-1）
@@ -184,4 +215,5 @@ export class LoggingSystem {
 export { EventBus } from './event-bus.js';
 export { StatsCollector } from './stats.js';
 export { Logger } from './logger.js';
+export { StatusLineRenderer } from './status-line.js';
 export * from './types.js';
