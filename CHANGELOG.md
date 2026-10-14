@@ -2,6 +2,60 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.28.0] - 2026-10-14
+
+### Added
+- **Issue #93: Pre-commit Hook** — husky + lint-staged
+  - `.husky/pre-commit`: 运行 `npx lint-staged`（tsc --noEmit + 相关测试）
+  - `.husky/pre-push`: 运行 `node scripts/pre-push-check.js`（build + test + docs:check）
+  - 新增 `scripts/pre-commit-check.js` 和 `scripts/pre-push-check.js`
+  - 新增测试 `tests/scripts/pre-commit-check.test.ts`（7 个）和 `tests/scripts/pre-push-check.test.ts`（5 个）
+- **Issue #73: TUI 状态行改进** — 合成单行显示当前任务和最新日志
+  - 新增 `src/logging/status-line.ts` — StatusLineRenderer 类
+  - 新增测试 `tests/logging/status-line.test.ts`（26 个）和 `tests/logging/status-line-integration.test.ts`（7 个）
+- **Issue #87: Dirty Mock 测试** — 模拟真实 LLM 脏输出的系统韧性测试
+  - 新增 `src/scheduler/dirty-mock-executor.ts` — DirtyMockExecutor（6 种脏模式 + 概率/序列控制）
+  - 新增测试 `tests/scheduler/dirty-mock-executor.test.ts`（18 个）和 `tests/writing/dirty-output-resilience.test.ts`（27 个）
+- **Issue #91: LLM 解析边界测试** — E1-E4 解析条目边界测试
+  - 新增测试 `tests/writing/llm-parse-boundary.test.ts`（35 个边界测试）
+- **Issue #94: 变更影响分析工具** — 测试与模块关联标注
+  - 新增 `scripts/impact-analysis.js` — 影响分析脚本
+  - 新增 `scripts/impact-analysis-config.json` — 跨模块依赖配置
+  - 新增测试 `tests/scripts/impact-analysis.test.ts`（19 个）
+- **Issue #90: OutlineGenerator LLM 集成测试** — INV-OL-1 到 INV-OL-12
+  - 新增测试 `tests/outline/llm-integration.test.ts`（10 个）
+- **Issue #89: PiSubagentExecutor SDK 测试** — INV-PE-1 到 INV-PE-12
+  - 新增测试 `tests/scheduler/pi-executor-sdk.test.ts`（15 个）
+- **Issue #25/#26: PR Evidence 检查 + Node 22/24 支持**
+  - 新增 `scripts/check-pr-evidence.js` — PR 证据验证脚本
+  - CI 配置更新：Node 22.x + 24.x，添加 PR Evidence 检查
+  - 新增测试 `tests/scripts/check-pr-evidence.test.ts`（4 个）
+
+### Fixed
+- **Issue #96: 字数截断方案导致恶性循环** — 移除硬性截断，改为渐进式响应
+  - 删除 `truncateContent()` 方法
+  - 新增 `classifyOverage()` — 渐进式超标响应（SM-WC-2）
+  - 新增 `checkStructuralIntegrity()` — 内容完整性保护（SM-WC-6）
+  - 新增 `isConverging()` — 循环收敛守护（SM-WC-5）
+  - 新增 `classifyWordCount()` — 统一字数状态分类（SM-WC-7）
+  - 新增 spec `specs/word-count-control.md`（10 条不变量，20 个测试用例）
+  - 新增测试 `tests/writing/word-count-control.test.ts`（13 个）
+- **Hotfix: impact-analysis Node 24 兼容性** — .js → .ts 转换
+  - 将 `scripts/impact-analysis.js` 转为 `scripts/impact-analysis.ts`
+  - 移除 emoji 字符避免编码问题
+
+### Changed
+- **E2E Skill 职责分离** — 远端只执行，本地做分析
+  - 重写 `.agents/skills/e2e-testing/SKILL.md`
+  - 远端 pi 只运行 `/confwrite:*` 命令，不做分析
+  - 本地 pi 收集日志并分析
+  - 添加 herdr 命令参考
+
+### Stats
+- 测试总数：1602 passed, 28 skipped
+- 覆盖率：Statements 94.16%, Branches 87.83%, Functions 94.66%
+- CI：Node 22.x + 24.x, PR Evidence 检查
+
 ## [0.27.0] - 2026-10-14
 
 ### Added
