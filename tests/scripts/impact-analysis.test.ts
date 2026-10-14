@@ -76,7 +76,7 @@ describe('Impact Analysis (Issue #94)', () => {
     writeFileSync(join(tmpDir, 'scripts', 'impact-analysis-config.json'), JSON.stringify(config));
     
     // 动态导入脚本（使用临时目录作为 ROOT）
-    const scriptModule = await import('../../scripts/impact-analysis.js');
+    const scriptModule = await import('../../scripts/impact-analysis.ts');
     
     // 包装函数以使用临时目录
     originalRoot = scriptModule.ROOT;
