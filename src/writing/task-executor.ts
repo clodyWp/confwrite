@@ -384,6 +384,8 @@ diagram-end -->
    * 生成 Reviewer subagent 的 prompt
    * 
    * 输入版本化文件: drafts/chapters/${chapterId}-v${round}.md
+   * 
+   * SM-WC-3: 传递程序测量的字数结果给 Reviewer，避免 LLM 自行估算
    */
   generateReviewerPrompt(
     task: Task,
@@ -392,7 +394,8 @@ diagram-end -->
     round: number = 1,
     knowledgeContent: string = '',
     projectDir?: string,
-    wordBudget?: { min: number; max: number }
+    wordBudget?: { min: number; max: number },
+    wordCountResult?: { actual: number; level: string; status: string } // SM-WC-3: 程序测量的字数结果
   ): string {
     const metricsList = Object.entries(baseline.metrics)
       .map(([k, v]) => `- ${k}: ${v}`)
@@ -401,19 +404,35 @@ diagram-end -->
     const termsList = baseline.technicalTerms.join(', ');
     const requirementsList = baseline.requirements.map(r => `- ${r}`).join('\n');
 
-    // 字数预算检查部分（Bug M 修复 + T2 三层防御）
+    // SM-WC-3: 字数预算检查部分 — 使用程序测量结果，而非让 LLM 自行估算
     // Bug 3 修复：通过 EventBus 发送 diag 事件，而不是 console.log
     this.eventBus?.emit({
       type: 'diag.prompt',
       taskType: 'reviewer',
       chapterId: task.chapterId!,
       wordBudget,
+      wordCountResult, // SM-WC-3: 记录程序测量结果
       timestamp: new Date().toISOString(),
     });
+    
+    // SM-WC-3: 如果提供了程序测量结果，使用它；否则回退到让 LLM 估算
     const wordBudgetSection = wordBudget ? `
 
-### 7. 字数预算检查（硬性要求，必须严格遵守）
+### 7. 字数检查结果（程序测量，不可忽略）
 
+${wordCountResult ? `
+**实际字数**：${wordCountResult.actual} 字（程序测量，使用 content.length）
+**字数范围**：${wordBudget.min}-${wordBudget.max} 字
+**超标/不足量**：${wordCountResult.actual > wordBudget.max ? `超标 ${wordCountResult.actual - wordBudget.max} 字` : wordCountResult.actual < wordBudget.min ? `不足 ${wordBudget.min - wordCountResult.actual} 字` : '在范围内'}
+**超标级别**：${wordCountResult.level}
+
+**⚠️ 硬性规则**（基于程序测量结果）：
+- 实际字数 ${wordCountResult.actual} > 上限 ${wordBudget.max} → **必须返回 revise**，不得返回 accept
+- 实际字数 ${wordCountResult.actual} < 下限 ${wordBudget.min} → **必须返回 revise**，不得返回 accept
+- 实际字数在 ${wordBudget.min}-${wordBudget.max} 范围内 → 可以返回 accept
+
+**不要自行估算字数**，以上程序测量结果是准确的。你的任务是根据这个结果判断 verdict。
+` : `
 本章的字数预算为 **${wordBudget.min}-${wordBudget.max} 字**。
 
 **⚠️ 硬性规则**：
@@ -421,16 +440,10 @@ diagram-end -->
 - 实际字数 < ${wordBudget.min} 字 → **必须返回 revise**，不得返回 accept
 - 实际字数在 ${wordBudget.min}-${wordBudget.max} 字范围内 → 可以返回 accept
 
-**超过上限的判定**：
-- 如果字数超过上限，**verdict 必须为 revise**
-- 在 issues 中说明需要精简多少字
-- 提供压缩策略建议（删除重复、合并观点、用表格替代等）
+**注意**：字数统计使用 **content.length**（总字符数，包括中文、英文、标点、空格），不是只统计中文字数。
 
-**不足下限的判定**：
-- 如果字数不足下限，**verdict 必须为 revise**
-- 在 issues 中说明需要补充多少字
-
-请统计本章实际字数，并根据规则判断。**字数超标时 verdict 必须为 revise，这是硬性规则，不可违反**。
+请统计本章实际字数（使用 content.length 方法），并根据规则判断。**字数超标时 verdict 必须为 revise，这是硬性规则，不可违反**。
+`}
 ` : '';
 
     return `# 审阅任务

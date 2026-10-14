@@ -266,6 +266,7 @@ export interface DiagPromptEvent {
   taskType: string;
   chapterId: string;
   wordBudget?: { min: number; max: number };
+  wordCountResult?: { actual: number; level: string; status: string }; // SM-WC-3: 程序测量的字数结果
   timestamp: string;
 }
 
@@ -279,6 +280,7 @@ export interface DiagReviewEvent {
   type: 'diag.review';
   chapterId: string;
   wordBudget?: { min: number; max: number };
+  wordCountResult?: { actual: number; level: string; status: string }; // SM-WC-3: 程序测量的字数结果
   statePhase?: string;
   chapterKeys?: string;
   timestamp: string;
