@@ -1,6 +1,6 @@
 {
   "name": "confwrite",
-  "version": "0.26.0",
+  "version": "0.27.0",
   "description": "ConfWrite — 脚本驱动的长文档生成 pi package",
   "type": "module",
   "main": "dist/index.js",
@@ -12,6 +12,7 @@
     "build": "node ./node_modules/typescript/bin/tsc",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "pack": "npm pack",
     "install-pi": "bash scripts/install.sh",
     "version": "node scripts/version.js",
@@ -38,6 +39,7 @@
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
+    "@vitest/coverage-v8": "^1.6.1",
     "typescript": "^5.4.0",
     "vitest": "^1.6.0"
   },
