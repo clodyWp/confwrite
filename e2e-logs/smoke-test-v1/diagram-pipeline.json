@@ -1,0 +1,24 @@
+{
+  "at": "2026-10-14T13:57:07.996Z",
+  "total": 3,
+  "generated": 3,
+  "skipped": 0,
+  "failed": 0,
+  "unsupportedFormat": 0,
+  "retried": 0,
+  "errors": [],
+  "warnings": [
+    {
+      "diagramId": "ch001-fig2",
+      "warnings": [
+        "[GROUP_GAP_RATIO] 组间距/组内间距比不足: 1.3:1（需≥3:1）"
+      ]
+    },
+    {
+      "diagramId": "ch002-fig1",
+      "warnings": [
+        "[GROUP_GAP_RATIO] 组间距/组内间距比不足: 1.2:1（需≥3:1）"
+      ]
+    }
+  ]
+}
