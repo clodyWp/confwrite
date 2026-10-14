@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.27.0] - 2026-10-14
+
+### Added
+- **Issue #88: 测试覆盖率工具** — 添加 vitest coverage 配置
+  - 安装 `@vitest/coverage-v8@1.6.0`
+  - 配置 `vitest.config.ts` 覆盖率报告（text, html, json-summary）
+  - 添加 npm script: `npm run test:coverage`
+  - 基线覆盖率：Statements 94.16%, Branches 87.83%, Functions 94.66%, Lines 94.16%
+- **Issue #98: 可复现 Bug 测试用例** — 使用 ConfigurableMockExecutor 模拟真实 bug
+  - 创建 `src/scheduler/configurable-mock-executor.ts`
+  - 18 个可复现测试，覆盖 16 个历史 bug
+  - 测试执行时间：732ms
+
+### Fixed
+- **Issue #96: 字数截断方案导致恶性循环** — 记录问题，待后续修复
+- **Issue #80: Reviewer verdict 矛盾** — 增强检查逻辑
+- **Issue #81: Phase 4b 无法退出** — 修改退出条件
+
 ## [0.26.0] - 2026-10-14
 
 ### Added
