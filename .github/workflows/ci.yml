@@ -33,6 +33,11 @@ jobs:
       - name: Test
         run: npm test
       
+      - name: Run reproducible bug tests
+        run: |
+          npm test -- tests/reproducible-bugs.test.ts tests/reproducible-bugs-extended.test.ts tests/reproducible-bugs-concurrency.test.ts tests/reproducible-bugs-validation.test.ts
+        continue-on-error: false
+      
       - name: Check docs consistency
         run: npm run docs:check
       
