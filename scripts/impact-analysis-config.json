@@ -1,0 +1,58 @@
+{
+  "version": "1.0",
+  "mirrorMapping": {
+    "enabled": true,
+    "excludeModules": []
+  },
+  "crossModuleDependencies": {
+    "src/orchestrator/": [
+      "tests/orchestrator/",
+      "tests/writing/orchestrator.test.ts",
+      "tests/e2e/state-machine-flow.test.ts"
+    ],
+    "src/writing/orchestrator.ts": [
+      "tests/writing/orchestrator.test.ts",
+      "tests/writing/orchestrator-failure.test.ts",
+      "tests/writing/orchestrator-review-parse.test.ts",
+      "tests/e2e/phase4-convergence.test.ts"
+    ],
+    "src/state/store.ts": [
+      "tests/state/store.test.ts",
+      "tests/orchestrator/state-machine.test.ts",
+      "tests/e2e/state-machine-flow.test.ts"
+    ],
+    "src/dispatcher/index.ts": [
+      "tests/dispatcher/dispatch.test.ts",
+      "tests/writing/orchestrator.test.ts"
+    ],
+    "src/scheduler/runner.ts": [
+      "tests/scheduler/runner.test.ts",
+      "tests/scheduler/runner-events.test.ts",
+      "tests/scheduler/runner-ratelimit.test.ts",
+      "tests/scheduler/runner-circuit-breaker.test.ts"
+    ],
+    "src/writing/output-validator.ts": [
+      "tests/writing/output-validator.test.ts",
+      "tests/writing/output-validator-soft-gate.test.ts",
+      "tests/writing/output-validator-charcount.test.ts"
+    ],
+    "src/writing/task-executor.ts": [
+      "tests/writing/task-executor.test.ts",
+      "tests/writing/task-executor-budget.test.ts"
+    ]
+  },
+  "globalTests": [
+    "tests/e2e-full-flow.test.ts",
+    "tests/reproducible-bugs.test.ts",
+    "tests/reproducible-bugs-concurrency.test.ts",
+    "tests/reproducible-bugs-extended.test.ts",
+    "tests/reproducible-bugs-validation.test.ts",
+    "tests/regression-wave1-4.test.ts",
+    "tests/types-consistency.test.ts",
+    "tests/real-data-validation.test.ts"
+  ],
+  "excludePatterns": [
+    "tests/fixtures/**",
+    "tests/tmp/**"
+  ]
+}
