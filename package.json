@@ -17,7 +17,8 @@
     "install-pi": "bash scripts/install.sh",
     "version": "node scripts/version.js",
     "docs:check": "node scripts/check-docs.js",
-    "sdd:check": "node scripts/check-sdd.js"
+    "sdd:check": "node scripts/check-sdd.js",
+    "prepare": "husky"
   },
   "pi": {
     "extensions": [
@@ -40,6 +41,8 @@
   "devDependencies": {
     "@types/node": "^20.0.0",
     "@vitest/coverage-v8": "^1.6.1",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.6.0",
     "typescript": "^5.4.0",
     "vitest": "^1.6.0"
   },
@@ -52,6 +55,11 @@
     "CHANGELOG.md",
     "LICENSE"
   ],
+  "lint-staged": {
+    "*.ts": [
+      "node scripts/pre-commit-check.js"
+    ]
+  },
   "engines": {
     "node": ">=18"
   },
