@@ -6,7 +6,7 @@
  * - Reviewer: 检查 JSON 存在、可解析、verdict 合法
  * - Fixer: 检查新版本文件存在、大小 > 1000 字节
  */
-import { existsSync, statSync, readFileSync } from 'node:fs';
+import { existsSync, statSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Task } from '../scheduler/types.js';
 import type { ConfWriteConfig } from '../config/loader.js';
@@ -157,7 +157,25 @@ export class OutputValidator {
           detail: `${charCount} 字 (上限 ${wordBudget.max})` 
         });
         if (!upperOk) {
-          result.errors.push(`草稿字数超标: ${charCount} 字 > 上限 ${wordBudget.max} 字`);
+          // E2E v26 修复：当字数超标超过 20% 时，尝试截断文件
+          const excessRatio = (charCount - wordBudget.max) / wordBudget.max;
+          if (excessRatio > 0.2) {
+            // 尝试在合适的位置截断
+            const truncated = this.truncateContent(content, wordBudget.max);
+            if (truncated) {
+              writeFileSync(filePath, truncated, 'utf-8');
+              result.checks.push({
+                name: '字数截断',
+                passed: true,
+                detail: `已将 ${charCount} 字截断至约 ${wordBudget.max} 字`
+              });
+              result.errors.push(`草稿字数超标 ${Math.round(excessRatio * 100)}%，已自动截断`);
+            } else {
+              result.errors.push(`草稿字数超标: ${charCount} 字 > 上限 ${wordBudget.max} 字`);
+            }
+          } else {
+            result.errors.push(`草稿字数超标: ${charCount} 字 > 上限 ${wordBudget.max} 字`);
+          }
         }
       }
 
@@ -264,19 +282,46 @@ export class OutputValidator {
       }
     }
 
-    // 6. Bug 42 修复：verdict 一致性检查
+    // 6. Bug 42 修复 + E2E v26 增强：verdict 一致性检查
     // 如果 issues 中提到字数问题但 verdict 是 accept，标记为验证失败
-    if (parsed.verdict === 'accept' && Array.isArray(parsed.issues)) {
-      const wordCountIssues = parsed.issues.filter((i: any) => 
-        /字数|超标|超出|上限|过多|over.*limit|exceed|too (long|much)/i.test(i.description || i.issue || '')
-      );
-      if (wordCountIssues.length > 0) {
+    // 或者如果独立字数验证发现超标但 verdict 是 accept，也标记为验证失败
+    if (parsed.verdict === 'accept') {
+      // 检查 issues 中是否有字数相关问题
+      let hasWordCountIssueInReport = false;
+      if (Array.isArray(parsed.issues)) {
+        const wordCountIssues = parsed.issues.filter((i: any) => 
+          /字数|超标|超出|上限|过多|over.*limit|exceed|too (long|much)/i.test(i.description || i.issue || '')
+        );
+        hasWordCountIssueInReport = wordCountIssues.length > 0;
+      }
+      
+      // 检查独立字数验证是否发现超标
+      let hasWordCountOverLimit = false;
+      if (wordBudget) {
+        const draftPath = join(this.projectDir, 'drafts', 'chapters', `${chapterId}-v${round}.md`);
+        if (existsSync(draftPath)) {
+          try {
+            const content = readFileSync(draftPath, 'utf-8');
+            const charCount = content.length;
+            hasWordCountOverLimit = charCount > wordBudget.max || charCount < wordBudget.min;
+          } catch {
+            // 读取失败不影响检查
+          }
+        }
+      }
+      
+      // 如果任一检查发现问题，标记为验证失败
+      if (hasWordCountIssueInReport || hasWordCountOverLimit) {
+        const reasons = [];
+        if (hasWordCountIssueInReport) reasons.push('审阅报告中发现字数问题');
+        if (hasWordCountOverLimit) reasons.push('独立验证发现字数超标');
+        
         result.checks.push({
           name: 'verdict 一致性',
           passed: false,
-          detail: `verdict 为 accept，但审阅报告中发现 ${wordCountIssues.length} 个字数相关问题`
+          detail: `verdict 为 accept，但${reasons.join('，')}`
         });
-        result.errors.push(`verdict 矛盾: verdict 为 accept，但审阅报告中发现字数问题`);
+        result.errors.push(`verdict 矛盾: verdict 为 accept，但${reasons.join('，')}`);
       }
     }
   }
@@ -321,6 +366,49 @@ export class OutputValidator {
     } catch (err) {
       result.checks.push({ name: '文件可读', passed: false, detail: String(err) });
       result.errors.push(`无法读取修复后文件: ${err}`);
+    }
+  }
+
+  /**
+   * 截断内容到指定字数上限
+   * 尝试在段落结尾处截断，避免破坏 Markdown 结构
+   */
+  private truncateContent(content: string, maxChars: number): string | null {
+    try {
+      // 如果内容本身就不超过上限，直接返回
+      if (content.length <= maxChars) {
+        return content;
+      }
+
+      // 尝试在段落结尾处截断（查找最后一个完整的段落）
+      const targetLength = Math.floor(maxChars * 0.95); // 留 5% 缓冲
+      const truncated = content.substring(0, targetLength);
+      
+      // 查找最后一个段落结尾（两个换行符）
+      const lastParagraphEnd = truncated.lastIndexOf('\n\n');
+      if (lastParagraphEnd > targetLength * 0.8) {
+        // 在段落结尾处截断
+        return truncated.substring(0, lastParagraphEnd) + '\n\n<!-- 内容已截断以符合字数要求 -->';
+      }
+      
+      // 查找最后一个句子结尾
+      const lastSentenceEnd = Math.max(
+        truncated.lastIndexOf('。'),
+        truncated.lastIndexOf('！'),
+        truncated.lastIndexOf('？'),
+        truncated.lastIndexOf('.'),
+        truncated.lastIndexOf('!'),
+        truncated.lastIndexOf('?')
+      );
+      if (lastSentenceEnd > targetLength * 0.8) {
+        // 在句子结尾处截断
+        return truncated.substring(0, lastSentenceEnd + 1) + '\n\n<!-- 内容已截断以符合字数要求 -->';
+      }
+      
+      // 无法找到合适的截断点，直接截断
+      return truncated + '\n\n<!-- 内容已截断以符合字数要求 -->';
+    } catch {
+      return null;
     }
   }
 

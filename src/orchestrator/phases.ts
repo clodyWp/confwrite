@@ -394,10 +394,13 @@ export const phase4b: PhaseDefinition = {
       condition: (ctx) => {
         const chapters = Object.values(ctx.state.chapters);
         const needsReview = chapters.some(ch => ['written', 'reviewing'].includes(ch.status));
-        const hasProcessed = chapters.some(ch => ['reviewed', 'completed', 'failed', 'skipped'].includes(ch.status));
-        // 必须有至少一个章节完成或待审阅，才能推进到 4c
-        const hasProgress = chapters.some(ch => ['completed', 'reviewed'].includes(ch.status));
-        return !needsReview && hasProcessed && hasProgress;
+        // SM-20: 当所有章节都处于终态时也可以退出（E2E v26: 所有章节 failed 时无法退出）
+        const allTerminal = chapters.every(ch => ['completed', 'failed', 'skipped'].includes(ch.status));
+        const hasReviewed = chapters.some(ch => ch.status === 'reviewed');
+        // 满足以下任一条件即可退出：
+        // 1. 没有章节需要审阅，且有章节已审阅（正常流程）
+        // 2. 所有章节都处于终态（completed/failed/skipped）
+        return !needsReview && (hasReviewed || allTerminal);
       },
     },
   ],
