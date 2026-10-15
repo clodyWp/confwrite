@@ -9,16 +9,16 @@ description: "Generate 10+ chapter long documents (technical proposals, whitepap
 
 ## 命令
 
-| 命令 | 用途 |
-|------|------|
-| `/confwrite:init <slug> [material-dir]` | 初始化新项目 |
-| `/confwrite:organize` | 整理素材（扫描→转换→索引→基线→素材包→同步大纲） |
-| `/confwrite:outline <slug> <template> [words]` | 自动生成大纲（基于模板和需求） |
-| `/confwrite:write` | 启动/推进写作流程 |
-| `/confwrite:status` | 查看项目进度 |
-| `/confwrite:resume` | 恢复中断的项目 |
-| `/confwrite:compact` | 手动压缩上下文（防止长任务 429 错误） |
-| `/confwrite:export <slug> <fmt> [output-path]` | 导出文档（md / html / docx） |
+| 命令 | 用途 | 参数说明 |
+|------|------|----------|
+| `/confwrite:init <slug>` | 初始化新项目 | `slug` 必需，项目标识符 |
+| `/confwrite:organize [slug]` | 整理素材 | `slug` 可选，不传则使用当前目录 |
+| `/confwrite:outline <slug> <template> [words]` | 自动生成大纲 | `slug` 必需，`template` 可选（technical-proposal/bid-document） |
+| `/confwrite:write [slug]` | 启动/推进写作流程 | `slug` 可选，不传则使用当前目录 |
+| `/confwrite:status [slug]` | 查看项目进度 | `slug` 可选 |
+| `/confwrite:resume [slug]` | 恢复中断的项目 | `slug` 可选 |
+| `/confwrite:compact` | 手动压缩上下文 | 无参数 |
+| `/confwrite:export <slug> <fmt> [output-path]` | 导出文档 | `slug` 必需，`fmt` 为 md/html/docx |
 
 ## 流程概览
 
@@ -40,6 +40,8 @@ Phase 8:  导出           → DOCX（自动流程仅导出 DOCX；手动命令�
 
 ## 完整使用流程
 
+**重要**：所有命令都应在 workspace 目录（包含 `projects/` 子目录的目录）中执行，或提供 `slug` 参数。
+
 ```
 1. 初始化项目
    /confwrite:init my-project
@@ -55,35 +57,39 @@ Phase 8:  导出           → DOCX（自动流程仅导出 DOCX；手动命令�
    projects/my-project/inputs/
 
 3. 整理素材
-   /confwrite:organize
+   /confwrite:organize my-project
    
    → 扫描资料 → 格式转换 → 索引 → 数据基线 → 素材包
 
-4. 提取需求（自动）
-   /confwrite:write
+4. 启动写作流程（推荐）
+   /confwrite:write my-project
    
-   → Phase 1 自动从输入文档中提取需求
-   → 生成 assets/requirements.json
+   → 状态机自动推进所有阶段:
+     Phase 1: 需求分析（从 inputs/ 提取需求）
+     Phase 2: 大纲规划（生成 outline.md）
+     Phase 3: 素材准备
+     Phase 4a-4d: 写作→审阅→决策→修复（循环）
+     Phase 5: 图表处理
+     Phase 6: 组装
+     Phase 7: 定稿
+     Phase 8: 导出
 
-5. 生成大纲（自动或手动）
-   自动：Phase 2 根据模板自动生成大纲
-   手动：/confwrite:outline my-project technical-proposal [50000]
+5. 手动生成大纲（可选，替代步骤 4 的自动大纲）
+   /confwrite:outline my-project technical-proposal [50000]
    
    → 生成 outline.md
    → 生成 assets/outline-evaluation.md（评估报告）
-
-6. 确认大纲
-   编辑 outline.md，确认章节结构
    
-7. 继续写作
-   /confwrite:write
-   
-   → 状态机自动推进: Phase 3 → 4a → 4b → 4c → 4d → 5 → 6 → 7 → 8
+   注意：使用此命令后，仍需执行 /confwrite:write my-project 继续流程
 
-8. 查看进度
-   /confwrite:status
+6. 确认大纲（waitPoint）
+   状态机在 Phase 2 完成后暂停，等待用户确认大纲
+   编辑 outline.md 后，再次执行 /confwrite:write my-project 继续
 
-9. 导出文档
+7. 查看进度
+   /confwrite:status my-project
+
+8. 导出文档
    /confwrite:export my-project md
    /confwrite:export my-project html
    /confwrite:export my-project docx
