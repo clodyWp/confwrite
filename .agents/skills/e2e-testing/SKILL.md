@@ -14,11 +14,18 @@ A discipline for running end-to-end tests on ConfWrite projects. This skill cove
 - 收集日志文件
 - 分析日志、检测 bug、生成报告
 - 创建 GitHub Issue
+- **必须发送明确的命令**：使用 `/confwrite:write <slug>` 格式，不要省略 slug 参数
+- **必须及时纠正偏离**：发现远端 pi 未执行命令或选择错误操作时，立即停止并纠正
 
 **远端 pi（纯执行者）**：
 - 只运行 `/confwrite:*` 命令
 - 像人工用户一样使用插件
 - **禁止**：读取源码、分析日志、检测 bug、输出思考过程
+
+**注意**：远端 pi 是独立的实例，本地端无法直接控制它的行为。如果远端 pi 偏离预期（如直接调用 API），本地端需要：
+1. 检测到偏离
+2. 发送纠正命令（如 `请执行 /confwrite:write <slug>`）
+3. 如果纠正失败，记录问题并继续监控
 
 ---
 
@@ -158,8 +165,8 @@ herdr pane read <remote-pane-id> --source recent-unwrapped --lines 10
 **Pattern**: Use `herdr pane run` to send commands, then wait for completion.
 
 ```bash
-# 本地执行：发送命令到远端
-herdr pane run <remote-pane-id> "/confwrite:init"
+# 本地执行：发送命令到远端（<slug> 是必需参数，如项目名 smoke-test）
+herdr pane run <remote-pane-id> "/confwrite:init <slug>"
 
 # 等待命令执行完成（检测 TUI 回到 idle 状态）
 herdr wait agent-status <remote-pane-id> --status idle --timeout 120000
@@ -172,39 +179,50 @@ herdr pane read <remote-pane-id> --source recent-unwrapped --lines 50
 
 **Phase 0a: Initialization**
 ```bash
-# 本地执行
-herdr pane run <remote-pane-id> "/confwrite:init"
+# 本地执行（<slug> 是必需参数，如项目名 smoke-test）
+herdr pane run <remote-pane-id> "/confwrite:init <slug>"
 herdr wait agent-status <remote-pane-id> --status idle --timeout 120000
 herdr pane read <remote-pane-id> --source recent-unwrapped --lines 50
 ```
 
 **Phase 0b: Material Organization**
 ```bash
-# 本地执行
-herdr pane run <remote-pane-id> "/confwrite:organize"
+# 本地执行（slug 可选，不传则使用当前目录）
+herdr pane run <remote-pane-id> "/confwrite:organize [slug]"
 herdr wait agent-status <remote-pane-id> --status idle --timeout 300000
 herdr pane read <remote-pane-id> --source recent-unwrapped --lines 50
 ```
 
 **Phase 1-2: Requirements + Outline**
 ```bash
-# 本地执行（outline 是 waitPoint，需要用户确认）
-herdr pane run <remote-pane-id> "/confwrite:outline"
+# 本地执行（需要 slug + template，targetWords 可选；outline 是 waitPoint，需要用户确认）
+herdr pane run <remote-pane-id> "/confwrite:outline <slug> <template> [targetWords]"
 herdr wait agent-status <remote-pane-id> --status idle --timeout 300000
 herdr pane read <remote-pane-id> --source recent-unwrapped --lines 50
 ```
 
+**模板选项**: `technical-proposal`, `bid-document`
+
 **Phase 4: Writing Cycle**
 ```bash
-# 本地执行（这是最耗时的阶段）
-herdr pane run <remote-pane-id> "/confwrite:write"
+# 本地执行（slug 可选；这是最耗时的阶段）
+herdr pane run <remote-pane-id> "/confwrite:write [slug]"
 # 不要等待完成，进入监控循环（Phase 2）
 ```
 
 ### 1.3 Monitor Progress (Local)
 
-**Polling Pattern**: Every 60 seconds, check remote state.
+**Recommended Pattern**: Use `herdr wait agent-status` instead of polling.
 
+```bash
+# 本地执行：等待远端完成（最长等待 1 小时）
+herdr wait agent-status <remote-pane-id> --status idle --timeout 3600000
+
+# 读取执行结果
+herdr pane read <remote-pane-id> --source recent-unwrapped --lines 50
+```
+
+**Alternative Polling Pattern** (if wait is not available):
 ```bash
 # 本地执行：定期检查远端状态
 while true; do
@@ -230,8 +248,14 @@ Some phases require user confirmation (waitPoints). When remote pi stops and sho
 herdr pane read <remote-pane-id> --source recent-unwrapped --lines 50
 
 # 如果看到 "Press Enter to continue" 或类似提示
-herdr pane run <remote-pane-id> ""  # 发送空行（Enter）
+# 注意：pane run 发送文本和 Enter 一起，空字符串会发送 Enter
+herdr pane run <remote-pane-id> ""
 ```
+
+**注意**：如果远端 pi 没有响应，可以尝试：
+1. 重新发送 `/confwrite:write <slug>` 命令
+2. 检查远端 pi 是否卡在 waitPoint
+3. 记录问题并继续监控
 
 ### 1.5 Execution Checklist
 
@@ -241,6 +265,30 @@ herdr pane run <remote-pane-id> ""  # 发送空行（Enter）
 - [ ] Phase 4: writing cycle completed
 - [ ] Phase 5-6: assembly completed (waitPoint confirmed)
 - [ ] Phase 7-8: export completed (if requested)
+
+### 1.6 监控与纠正（本地端职责）
+
+**本地端必须持续监控远端 pi 的行为**：
+
+1. **命令执行监控**：
+   - 每次发送命令后，检查远端 pi 是否执行了正确的命令
+   - 如果远端 pi 没有执行命令，立即重新发送
+   - 如果远端 pi 执行了错误的命令，尝试发送纠正命令
+
+2. **偏离检测与纠正**：
+   - 检查远端 pi 是否直接调用了 API（如 `runWriteLoop`）
+   - 检查远端 pi 是否手动实现了写作逻辑（如直接写章节文件）
+   - 如果发现偏离，尝试发送纠正命令：`请执行 /confwrite:write <slug>`
+   - **注意**：远端 pi 可能不响应纠正命令，此时应记录问题并继续监控
+
+3. **waitPoint 处理**：
+   - 当状态机在 waitPoint 暂停时，本地端应发送 `/confwrite:write <slug>` 继续
+   - 如果远端 pi 没有响应，可以尝试发送空行或重新发送命令
+
+**关键原则**：
+- 远端 pi 是独立的实例，本地端无法直接控制它的行为
+- 本地端的职责是监控、检测偏离、尝试纠正
+- 如果纠正失败，记录问题并继续测试，不要中断整个流程
 
 ---
 
@@ -308,8 +356,10 @@ cat ./e2e-logs/project-state.json | jq '{
   chapters: (.chapters | to_entries | map({
     id: .key,
     status: .value.status,
-    wordCount: .value.wordCount,
-    round: .value.round
+    round: .value.round,
+    consecutiveFailures: .value.consecutiveFailures,
+    wordBudget: .value.wordBudget,
+    type: .value.type
   }))
 }'
 ```
@@ -337,10 +387,16 @@ cat ./e2e-logs/confwrite-log.jsonl | jq -r '
 ### 3.4 Detect Word Count Issues
 
 ```bash
-# 本地执行：检查字数超标
+# 本地执行：检查字数诊断信息（事件类型为 diag.wordbudget）
 cat ./e2e-logs/confwrite-log.jsonl | jq -r '
-  select(.event.type == "validation.wordbudget") |
-  "\(.event.chapterId) | actual: \(.event.actual) | max: \(.event.max) | ratio: \(.event.actual / .event.max * 100)%"
+  select(.event.type == "diag.wordbudget") |
+  "\(.event.chapterId) | budget: \(.event.wordBudget) | source: \(.event.source)"
+' | sort
+
+# 也可通过 project-state.json 检查最终字数状态和失败次数
+cat ./e2e-logs/project-state.json | jq -r '
+  .chapters | to_entries[] |
+  "\(.key) | round: \(.value.round) | failures: \(.value.consecutiveFailures) | budget: \(.value.wordBudget)"
 '
 ```
 
@@ -350,7 +406,7 @@ cat ./e2e-logs/confwrite-log.jsonl | jq -r '
 # 本地执行：检查任务失败
 cat ./e2e-logs/confwrite-log.jsonl | jq -r '
   select(.event.type == "task.fail") |
-  "\(.event.taskId) | \(.event.chapterId) | \(.event.failureType) | \(.event.message)"
+  "\(.event.taskId) | \(.event.taskType) | \(.event.chapterId) | \(.event.error) | retry: \(.event.willRetry)"
 '
 ```
 
@@ -358,12 +414,18 @@ cat ./e2e-logs/confwrite-log.jsonl | jq -r '
 
 ```bash
 # 本地执行：检查待验证 PR 的改动是否被测试
-# 例如：PR #68 (字数控制) - 检查是否有 reviewer 任务
+# 例如：PR #68 (字数控制) - 检查是否有 reviewer 任务完成
 cat ./e2e-logs/confwrite-log.jsonl | jq -r '
-  select(.event.type == "task.review") |
+  select(.event.type == "task.complete" and .event.taskType == "reviewer") |
   .event.chapterId
 ' | wc -l
 # 如果 > 0，说明 reviewer 被调用，PR #68 的改动被测试
+
+# 也可检查所有已完成任务的类型分布
+cat ./e2e-logs/confwrite-log.jsonl | jq -r '
+  select(.event.type == "task.complete") |
+  "\(.event.taskType) | \(.event.chapterId)"
+' | sort
 ```
 
 ### 3.7 Analysis Checklist

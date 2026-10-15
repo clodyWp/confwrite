@@ -1,51 +1,74 @@
 {
   "version": "v0.28.0",
-  "commit": "1101714",
-  "timestamp": "2026-10-14T22:10:00Z",
-  "projectDir": "/home/water/proj/c4/projects/smoke-test",
-  "dataset": "smoke-test",
+  "commit": "717b9c7",
+  "timestamp": "2026-10-14T23:50:00Z",
+  "projectDir": "/home/water/proj/c4/projects/e2e-v2",
+  "dataset": "LMERP2V2-v10",
   "issuesFound": [
     {
-      "id": "TRUNCATION-001",
-      "category": "validation",
-      "description": "Issue #96 修复未生效：自动截断仍在工作，导致内容缺失",
-      "severity": "critical",
+      "id": "WRITE-CMD-001",
+      "category": "usage",
+      "description": "/confwrite:write 命令需要项目 slug 参数或在项目目录中运行，否则找不到状态文件",
+      "severity": "medium",
       "status": "open",
-      "issueNumber": 116
+      "issueNumber": 119,
+      "notes": "不是代码 bug，是使用问题。远端 pi (qwen3.7-plus) 未正确使用命令导致写作流程未触发"
     },
     {
-      "id": "WORDCOUNT-001",
-      "category": "validation",
-      "description": "字数统计方法不一致：Writer 用总字符数，Reviewer 用中文字数",
+      "id": "PHASE1-SKIP-001",
+      "category": "workflow",
+      "description": "Phase 1 需求分析被跳过，远端 pi 直接调用 /confwrite:outline",
       "severity": "high",
       "status": "open",
-      "issueNumber": null
+      "issueNumber": 120,
+      "notes": "SKILL.md 文档不够清晰，导致远端 pi 选择了错误的命令"
+    },
+    {
+      "id": "MANUAL-IMPL-001",
+      "category": "testing",
+      "description": "远端 pi 选择手动实现而非使用状态机",
+      "severity": "high",
+      "status": "open",
+      "issueNumber": 121,
+      "notes": "远端 pi 在命令失败后选择手动完成任务，导致核心功能未被测试"
     },
     {
       "id": "OUTLINE-001",
       "category": "outline",
       "description": "大纲生成质量差：章节标题不合理，类型全为 functional",
       "severity": "medium",
-      "status": "open",
-      "issueNumber": 114
+      "status": "improved",
+      "issueNumber": 114,
+      "notes": "本次测试中大纲质量有改善，12章使用正确的类型分布"
     },
     {
       "id": "DOCX-001",
       "category": "conversion",
-      "description": "DOCX 转换时 HTML 实体未解码（&lt; 未转为 <）",
+      "description": "DOCX 转换时 HTML 实体未解码（< 未转为 <）",
       "severity": "medium",
       "status": "open",
-      "issueNumber": 115
+      "issueNumber": 115,
+      "notes": "本次未验证"
     }
   ],
   "testResults": {
-    "totalChapters": 3,
-    "completedChapters": 3,
+    "totalChapters": 12,
+    "completedChapters": 12,
     "failedChapters": 0,
-    "avgRounds": 4.3,
-    "totalDuration": "55 minutes",
-    "finalPhase": "6 (assembling)",
-    "outputFile": "assembly/merged-v1.md (74KB)"
+    "avgRounds": 1,
+    "totalDuration": "25 minutes",
+    "finalPhase": "done",
+    "outputFile": "output/final.docx (76KB, 57284 chars)",
+    "notes": "写作流程由远端 pi 手动完成，未经过 ConfWrite 状态机的 write-review-fix 循环"
   },
-  "notes": "Phase 6 完成，等待用户审阅。发现 4 个问题，其中 Issue #116 为 Critical。"
+  "verifiedPRs": [],
+  "pendingVerification": [
+    {
+      "pr": "#118",
+      "title": "fix: 实现 SM-WC-3 解决字数统计不一致问题",
+      "status": "blocked",
+      "reason": "写作流程未触发，无法验证 reviewer/fixer 的字数统计逻辑"
+    }
+  ],
+  "notes": "E2E 测试 v2 完成。发现 3 个新问题（#119, #120, #121），核心问题是远端 pi 未正确使用命令导致状态机未执行。需要重新测试以验证 PR #118 的修复。"
 }

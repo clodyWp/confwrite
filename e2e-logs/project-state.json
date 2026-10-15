@@ -1,0 +1,223 @@
+{
+  "version": 1,
+  "project": "e2e-v2",
+  "projectDir": "projects/e2e-v2",
+  "createdAt": "2026-10-14T15:09:15.000Z",
+  "lastUpdated": "2026-10-14T15:29:56.561Z",
+  "currentPhase": "done",
+  "status": "done",
+  "chapters": {
+    "ch001": {
+      "id": "ch001",
+      "title": "项目概述与需求分析",
+      "status": "completed",
+      "version": 1,
+      "round": 1,
+      "attempt": 1,
+      "consecutiveFailures": 0,
+      "maxRounds": 5,
+      "type": "overview",
+      "wordBudget": {
+        "min": 5000,
+        "max": 8000
+      },
+      "importance": 3,
+      "description": "介绍项目背景、目标与范围"
+    },
+    "ch002": {
+      "id": "ch002",
+      "title": "系统需求规格说明",
+      "status": "completed",
+      "version": 1,
+      "round": 1,
+      "attempt": 1,
+      "consecutiveFailures": 0,
+      "maxRounds": 5,
+      "type": "requirements",
+      "wordBudget": {
+        "min": 5200,
+        "max": 7800
+      },
+      "importance": 4,
+      "description": "详细列出系统功能需求与非功能需求"
+    },
+    "ch003": {
+      "id": "ch003",
+      "title": "系统架构设计",
+      "status": "completed",
+      "version": 1,
+      "round": 1,
+      "attempt": 1,
+      "consecutiveFailures": 0,
+      "maxRounds": 5,
+      "type": "architecture",
+      "wordBudget": {
+        "min": 5200,
+        "max": 7800
+      },
+      "importance": 5,
+      "description": "描述系统整体架构设计"
+    },
+    "ch004": {
+      "id": "ch004",
+      "title": "生产制造与MBOM管理",
+      "status": "completed",
+      "version": 1,
+      "round": 1,
+      "attempt": 1,
+      "consecutiveFailures": 0,
+      "maxRounds": 5,
+      "type": "functional",
+      "wordBudget": {
+        "min": 5200,
+        "max": 7800
+      },
+      "importance": 5,
+      "description": "详细描述航空发动机离散制造的核心功能"
+    },
+    "ch005": {
+      "id": "ch005",
+      "title": "供应链与物流管理",
+      "status": "completed",
+      "version": 1,
+      "round": 1,
+      "attempt": 1,
+      "consecutiveFailures": 0,
+      "maxRounds": 5,
+      "type": "functional",
+      "wordBudget": {
+        "min": 5200,
+        "max": 7800
+      },
+      "importance": 4,
+      "description": "详细描述采购与仓储物流管理"
+    },
+    "ch006": {
+      "id": "ch006",
+      "title": "财经与资产管理",
+      "status": "completed",
+      "version": 1,
+      "round": 1,
+      "attempt": 1,
+      "consecutiveFailures": 0,
+      "maxRounds": 5,
+      "type": "functional",
+      "wordBudget": {
+        "min": 5200,
+        "max": 7800
+      },
+      "importance": 4,
+      "description": "详细描述财经管理和资产设备管理"
+    },
+    "ch007": {
+      "id": "ch007",
+      "title": "数据治理与流程引擎",
+      "status": "completed",
+      "version": 1,
+      "round": 1,
+      "attempt": 1,
+      "consecutiveFailures": 0,
+      "maxRounds": 5,
+      "type": "functional",
+      "wordBudget": {
+        "min": 5200,
+        "max": 7800
+      },
+      "importance": 5,
+      "description": "详细描述数据治理与流程引擎"
+    },
+    "ch008": {
+      "id": "ch008",
+      "title": "AI应用与智能化管理",
+      "status": "completed",
+      "version": 1,
+      "round": 1,
+      "attempt": 1,
+      "consecutiveFailures": 0,
+      "maxRounds": 5,
+      "type": "functional",
+      "wordBudget": {
+        "min": 5200,
+        "max": 7800
+      },
+      "importance": 4,
+      "description": "详细描述AI在ERP中的应用"
+    },
+    "ch009": {
+      "id": "ch009",
+      "title": "安全保密与电子档案",
+      "status": "completed",
+      "version": 1,
+      "round": 1,
+      "attempt": 1,
+      "consecutiveFailures": 0,
+      "maxRounds": 5,
+      "type": "functional",
+      "wordBudget": {
+        "min": 5200,
+        "max": 7800
+      },
+      "importance": 4,
+      "description": "详细描述涉密信息系统安全与电子档案管理"
+    },
+    "ch010": {
+      "id": "ch010",
+      "title": "项目实施与运维保障",
+      "status": "completed",
+      "version": 1,
+      "round": 1,
+      "attempt": 1,
+      "consecutiveFailures": 0,
+      "maxRounds": 5,
+      "type": "implementation",
+      "wordBudget": {
+        "min": 5200,
+        "max": 7800
+      },
+      "importance": 4,
+      "description": "描述ERP实施方法论与项目管理策略"
+    },
+    "ch011": {
+      "id": "ch011",
+      "title": "行业特性与最佳实践",
+      "status": "completed",
+      "version": 1,
+      "round": 1,
+      "attempt": 1,
+      "consecutiveFailures": 0,
+      "maxRounds": 5,
+      "type": "support",
+      "wordBudget": {
+        "min": 5200,
+        "max": 7800
+      },
+      "importance": 3,
+      "description": "总结航空发动机制造行业ERP特性"
+    },
+    "ch012": {
+      "id": "ch012",
+      "title": "附录",
+      "status": "completed",
+      "version": 1,
+      "round": 1,
+      "attempt": 1,
+      "consecutiveFailures": 0,
+      "maxRounds": 5,
+      "type": "appendix",
+      "wordBudget": {
+        "min": 3000,
+        "max": 8000
+      },
+      "importance": 2,
+      "description": "术语表、参考文献列表"
+    }
+  },
+  "round": 1,
+  "scheduler": {
+    "tokens": 10,
+    "paused": false
+  },
+  "tasks": [],
+  "executionLog": [],
+  "escalatedToHuman": false
+}
