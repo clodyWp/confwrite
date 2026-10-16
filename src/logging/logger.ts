@@ -56,7 +56,8 @@ export class Logger {
   private static formatTaskStart(event: Extract<LogEvent, { type: 'task.start' }>): FormatResult {
     const taskTypeLabel = this.getTaskTypeLabel(event.taskType);
     const emoji = this.getTaskTypeEmoji(event.taskType);
-    const message = `${emoji} [${taskTypeLabel}] 开始写作 ${event.chapterId} (并发 ${event.concurrency.current}/${event.concurrency.max})`;
+    const action = this.getTaskTypeAction(event.taskType);
+    const message = `${emoji} [${taskTypeLabel}] ${action} ${event.chapterId} (并发 ${event.concurrency.current}/${event.concurrency.max})`;
     return { message, level: 'info' };
   }
 
@@ -248,6 +249,18 @@ export class Logger {
       case 'reviewer': return '📝';
       case 'fixer': return '🔧';
       default: return '⚙️';
+    }
+  }
+
+  /**
+   * 获取任务类型动作词 (Issue #144: INV-TUI-9)
+   */
+  private static getTaskTypeAction(taskType: string): string {
+    switch (taskType) {
+      case 'writer': return '开始写作';
+      case 'reviewer': return '开始审阅';
+      case 'fixer': return '开始修复';
+      default: return '开始处理';
     }
   }
 

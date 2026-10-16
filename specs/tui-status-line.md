@@ -125,6 +125,16 @@ TUI 状态行是 ConfWrite 运行时向用户展示**当前进度**的唯一紧�
 
 **验证**：`Logger.format()` 的输出不受 `StatusLineRenderer` 影响。
 
+### INV-TUI-9: 任务开始消息必须区分任务类型
+
+`Logger.formatTaskStart()` 生成的消息必须根据 `taskType` 使用不同的动作词：
+- `writer` → "开始写作"
+- `reviewer` → "开始审阅"
+- `fixer` → "开始修复"
+- 其他类型 → "开始处理"（默认）
+
+**验证**：单元测试覆盖所有任务类型，消息中包含正确的动作词。
+
 ---
 
 ## 4. 日志缓冲规则
