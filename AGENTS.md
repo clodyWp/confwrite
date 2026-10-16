@@ -111,6 +111,53 @@ import { Foo } from './bar';
 - 修改数据流时，列出生产者和消费者，并验证旧状态/缺省值/用户编辑等边界。
 - 多个 agent 并行时先划定文件与职责；同一业务链路由一个负责人集成，避免并发修改后只跑各自的局部测试。
 
+### 3.9 PR 工作流：先开 PR 再迭代
+
+**核心原则**：PR 应该在开始工作时立即创建，而不是等全部完成后才开。这样可以保持工作透明，早期获得反馈，避免方向错误导致大量返工。
+
+**标准流程**：
+
+1. **创建分支后立即开 Draft PR**
+   - 使用 `gh pr create --draft` 创建 Draft PR
+   - PR 标题标注 `[WIP]` 或 `[Draft]`
+   - PR 描述说明当前进度和计划
+
+2. **每个 SDD 阶段分别 commit 并 push**
+   - Spec 阶段：`git commit -m "docs: add spec for <feature>"`
+   - 测试阶段：`git commit -m "test: add failing tests for <feature>"`
+   - 实现阶段：`git commit -m "feat: implement <feature>"`
+   - 每个 commit 都 push 到远程，保持 PR 可见
+
+3. **在 PR 上迭代**
+   - reviewer 可以在过程中看到 diff 和进展
+   - 根据反馈及时调整方向
+   - 避免"黑箱开发"——全部做完才能 review
+
+4. **完成后标记 ready for review**
+   - 所有测试通过
+   - 文档已更新
+   - 使用 `gh pr ready` 标记为 ready
+   - 移除 `[WIP]` 标记
+
+5. **合并**
+   - CI 全部通过
+   - 至少一个 reviewer approve
+   - 使用 `gh pr merge --squash` 合并（保持主分支历史清晰）
+
+**反模式**：
+- ❌ 本地完成全部工作（spec → 测试 → 实现 → 验证）→ 一次性 commit → push → 开 PR
+- ❌ 过程中不可见，完成后才能 review
+- ❌ 如果方向错误，返工量大
+
+**正确模式**：
+- ✅ 创建分支 → 立即开 Draft PR → 每个阶段分别 commit 并 push → reviewer 实时可见 → 完成后标记 ready → 合并
+- ✅ 早期反馈，及时调整
+- ✅ 透明度高，协作顺畅
+
+**例外情况**：
+- 纯文档修改（typo、格式调整）可以一次性 commit
+- 紧急 hotfix 可以先本地验证再开 PR，但仍应尽快开 PR 保持可见
+
 ## 4. 架构速查
 
 详细架构设计见 `DESIGN.md`。此处仅提供快速导航：
