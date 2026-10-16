@@ -44,6 +44,58 @@ npm test         # vitest run
 
 **`dist/` 不被 git 跟踪。** 切分支后不 build 会静默跑旧代码——这是真实事故。
 
+### 3.1.1 Commit Message 格式（强制）
+
+**所有 commit 必须使用 Conventional Commits 格式**，husky + commitlint 会自动检查：
+
+```
+<type>: <description>
+
+# 示例
+feat: add diagram export
+fix: resolve phase 4b deadlock
+docs: update README
+chore: update dependencies
+```
+
+**Type 类型**：
+- `feat` — 新功能 → 自动升 MINOR
+- `fix` — Bug 修复 → 自动升 PATCH
+- `docs` — 文档变更
+- `style` — 代码格式（不影响逻辑）
+- `refactor` — 重构
+- `perf` — 性能优化
+- `test` — 测试相关
+- `build` — 构建系统/外部依赖
+- `ci` — CI 配置
+- `chore` — 其他杂务
+- `revert` — 回滚
+
+**Breaking Change**：在 type 后加 `!` 或在 footer 写 `BREAKING CHANGE:` → 自动升 MAJOR
+
+### 3.1.2 版本号自动管理
+
+**版本号由 commit 历史自动决定，不需要手动改 `package.json`。**
+
+发布流程：
+```bash
+npm run release
+```
+
+一条命令自动完成：
+1. `npm test`（验证测试通过）
+2. 扫描 commit 历史 → 算出版本号
+3. 自动生成 changelog（分类：Features / Bug Fixes / Docs / Tests...）
+4. 修改 `package.json` 版本号
+5. `npm run build`（重新编译）
+6. Git commit + tag + push
+7. 创建 GitHub Release
+
+**预览模式**（不实际发布）：
+```bash
+npx release-it --dry-run
+```
+
 ### 3.2 ESM 导入路径
 
 所有相对导入必须带 `.js` 后缀：
@@ -117,29 +169,33 @@ import { Foo } from './bar';
 
 **标准流程**：
 
-1. **创建分支后立即开 Draft PR**
+1. **创建 Issue**（除非是 trivial 改动）
+   - 使用 `gh issue create` 描述问题/需求
+   - 后续 commit 和 PR 关联此 Issue
+
+2. **创建分支后立即开 Draft PR**
    - 使用 `gh pr create --draft` 创建 Draft PR
    - PR 标题标注 `[WIP]` 或 `[Draft]`
-   - PR 描述说明当前进度和计划
+   - PR 描述关联 Issue（`Closes #xxx`）并说明当前进度和计划
 
-2. **每个 SDD 阶段分别 commit 并 push**
+3. **每个 SDD 阶段分别 commit 并 push**
    - Spec 阶段：`git commit -m "docs: add spec for <feature>"`
    - 测试阶段：`git commit -m "test: add failing tests for <feature>"`
    - 实现阶段：`git commit -m "feat: implement <feature>"`
    - 每个 commit 都 push 到远程，保持 PR 可见
 
-3. **在 PR 上迭代**
+4. **在 PR 上迭代**
    - reviewer 可以在过程中看到 diff 和进展
    - 根据反馈及时调整方向
    - 避免"黑箱开发"——全部做完才能 review
 
-4. **完成后标记 ready for review**
+5. **完成后标记 ready for review**
    - 所有测试通过
    - 文档已更新
    - 使用 `gh pr ready` 标记为 ready
    - 移除 `[WIP]` 标记
 
-5. **合并**
+6. **合并**
    - CI 全部通过
    - 至少一个 reviewer approve
    - 使用 `gh pr merge --squash` 合并（保持主分支历史清晰）
@@ -150,7 +206,7 @@ import { Foo } from './bar';
 - ❌ 如果方向错误，返工量大
 
 **正确模式**：
-- ✅ 创建分支 → 立即开 Draft PR → 每个阶段分别 commit 并 push → reviewer 实时可见 → 完成后标记 ready → 合并
+- ✅ 创建 Issue → 创建分支 → 立即开 Draft PR → 每个阶段分别 commit 并 push → reviewer 实时可见 → 完成后标记 ready → 合并
 - ✅ 早期反馈，及时调整
 - ✅ 透明度高，协作顺畅
 
@@ -207,6 +263,8 @@ src/index.ts (Extension 入口)
 | Bug 记录 | BUGS.md |
 | 版本变更 | CHANGELOG.md |
 | 命令注册 | SKILL.md |
+| Commit 格式 | §3.1.1 |
+| 发布流程 | §3.1.2 |
 
 ## 7. 维护本指南
 
