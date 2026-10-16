@@ -257,13 +257,13 @@ ssh <remote-host> 'cat <project-dir>/project-state.json | jq ".chapters | to_ent
 ssh <remote-host> 'ls -la <project-dir>/drafts/chapters/'
 
 # 检查审阅结果
-ssh <remote-host> 'ls -la <project-dir>/drafts/reviews/ 2>/dev/null || echo "No reviews yet"'
+ssh <remote-host> 'ls -la <project-dir>/review/ 2>/dev/null || echo "No reviews yet"'
 
 # 检查字数统计
 ssh <remote-host> 'wc -c <project-dir>/drafts/chapters/ch00*.md'
 
 # 检查事件日志（最近 20 条）
-ssh <remote-host> 'tail -20 <project-dir>/confwrite-events.jsonl 2>/dev/null | jq -c "{type, taskId, phase}"'
+ssh <remote-host> 'tail -20 <project-dir>/logs/confwrite-log.jsonl 2>/dev/null | jq -c "{type, taskId, phase}"'
 ```
 
 **监控方式选择指南**：
