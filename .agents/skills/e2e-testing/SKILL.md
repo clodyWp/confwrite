@@ -141,11 +141,13 @@ herdr pane read <remote-pane-id> --source recent-unwrapped --lines 20
 ### 0.4 Check ConfWrite Version
 
 ```bash
-# 本地执行：检查远端 ConfWrite 版本
-herdr pane run <remote-pane-id> "cd <project-dir> && npm list confwrite"
+# 本地执行：检查远端 ConfWrite 版本（在 workspace 目录，而非 project 目录）
+herdr pane run <remote-pane-id> "cd <workspace-dir> && npm list confwrite"
 herdr wait output <remote-pane-id> --match "confwrite@" --timeout 10000
 herdr pane read <remote-pane-id> --source recent-unwrapped --lines 10
 ```
+
+**注意**：此处检查的是 workspace 级别的 confwrite 安装，不是 project 目录。Project 目录在 Phase 1.1 的 `/confwrite:init` 之后才会创建。
 
 ### 0.5 Environment Checklist
 
@@ -510,7 +512,58 @@ cat ./e2e-logs/confwrite-log.jsonl | jq -r '
 # 如果 diag.verdict 事件频繁出现，说明 LLM reviewer 的 verdict 一致性有问题
 ```
 
-### 3.10 Analysis Checklist
+### 3.10 Subagent Log Analysis
+
+**Purpose**: 分析 subagent 日志（`subagent-*.log`）检测卡死、工具调用异常等问题。
+
+#### 3.10.1 卡死检测
+
+```bash
+# 本地执行：检查 subagent 是否卡死
+# 查看最后一个 turn 的时间戳，如果距离当前时间超过 10 分钟，可能卡死
+for log in ./e2e-logs/subagent-*.log; do
+  echo "=== $(basename $log) ==="
+  tail -5 "$log" | grep -E "Turn #[0-9]+ (started|ended)" | tail -1
+done
+```
+
+#### 3.10.2 工具调用分布
+
+```bash
+# 本地执行：统计工具调用分布
+for log in ./e2e-logs/subagent-*.log; do
+  echo "=== $(basename $log) ==="
+  grep -oE "Tool #[0-9]+: (read|bash|write|edit)" "$log" | \
+    sed 's/Tool #[0-9]*: //' | \
+    sort | uniq -c | sort -rn
+done
+```
+
+#### 3.10.3 失败检测
+
+```bash
+# 本地执行：检查工具调用失败
+for log in ./e2e-logs/subagent-*.log; do
+  errors=$(grep -c "ended (error)\|ended (timeout)" "$log" 2>/dev/null || echo 0)
+  if [ "$errors" -gt 0 ]; then
+    echo "=== $(basename $log): $errors errors ==="
+    grep -B1 "ended (error)\|ended (timeout)" "$log"
+  fi
+done
+```
+
+#### 3.10.4 Turn 计数
+
+```bash
+# 本地执行：统计每个 subagent 的 turn 数量
+for log in ./e2e-logs/subagent-*.log; do
+  turns=$(grep -cE "Turn #[0-9]+ started" "$log" 2>/dev/null || echo 0)
+  echo "$(basename $log): $turns turns"
+done
+# 如果某个 subagent 的 turn 数量异常高（如 > 50），可能存在循环或低效行为
+```
+
+### 3.11 Analysis Checklist
 
 - [ ] Project state parsed
 - [ ] Phase transitions verified (no stuck phases)
@@ -522,6 +575,7 @@ cat ./e2e-logs/confwrite-log.jsonl | jq -r '
 - [ ] File version vs round consistency verified (no SM-21 violations)
 - [ ] Verdict distribution analyzed (no excessive corrections)
 - [ ] diag.verdict events reviewed (trace verdict corrections)
+- [ ] Subagent logs analyzed (no stuck agents, reasonable turn counts, no tool failures)
 
 ---
 
