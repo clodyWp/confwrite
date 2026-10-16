@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Fixed
+
+- **基线提取器表格处理** (#125): 修复表格单元格内冒号被误解析为分隔符的问题
+  - 新增 `isTableRow()` 方法检测表格行（排除分隔行）
+  - 新增 `extractTableCellContent()` 方法使用 pipe 位置直接定位单元格
+  - 表格行内的冒号不再作为分隔符，保持完整单元格内容
+  - 普通文本的冒号分割逻辑保持不变（向后兼容）
+  - 新增 13 个测试覆盖所有不变量（BE-1 到 BE-6）
+
 ## [0.28.0] - 2026-10-14
 
 ### Added

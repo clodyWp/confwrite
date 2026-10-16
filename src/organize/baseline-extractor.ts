@@ -231,12 +231,67 @@ export class BaselineExtractor {
   }
 
   /**
+   * 判断是否是表格行（BE-1, BE-5）
+   * 排除分隔行（如 |---|---|）
+   */
+  private isTableRow(line: string): boolean {
+    // 基本检查：以 | 开头和结尾
+    if (!/^\s*\|.*\|\s*$/.test(line)) return false;
+    // 排除分隔行: |---|---| 或 | :--- | :---: |
+    if (/^\s*\|[\s:|-]+\|\s*$/.test(line)) return false;
+    return true;
+  }
+
+  /**
+   * 提取表格单元格内容（BE-3）
+   * 使用 pipe 位置直接定位，避免 trim+indexOf 的坐标空间问题
+   */
+  private extractTableCellContent(line: string, offset: number): string | null {
+    // 找到所有 | 的位置
+    const pipePositions: number[] = [];
+    for (let i = 0; i < line.length; i++) {
+      if (line[i] === '|') pipePositions.push(i);
+    }
+    if (pipePositions.length < 2) return null;
+
+    // 按 | 位置提取每个单元格的原始范围和内容
+    for (let i = 0; i < pipePositions.length - 1; i++) {
+      const cellRawStart = pipePositions[i] + 1;
+      const cellRawEnd = pipePositions[i + 1];
+
+      if (offset >= cellRawStart && offset < cellRawEnd) {
+        const cellContent = line.slice(cellRawStart, cellRawEnd).trim();
+        return cellContent.length > 0 ? cellContent : null;
+      }
+    }
+    return null;
+  }
+
+  /**
    * 提取上下文（用于生成键名）
-   * 策略：行首标签优先（冒号前的内容），其次取当前行前缀
+   * 策略：表格行特殊处理（BE-1），普通文本行首标签优先（冒号前的内容）
    */
   private extractContext(content: string, index: number, _maxLength: number): string {
-    // 找到当前行的行首
+    // 找到当前行
     const lineStart = content.lastIndexOf('\n', index);
+    const lineEnd = content.indexOf('\n', index);
+    const currentLine = content.slice(lineStart + 1, lineEnd === -1 ? undefined : lineEnd);
+
+    // BE-1: 如果是表格行，使用表格处理逻辑
+    if (this.isTableRow(currentLine)) {
+      const offsetInLine = index - lineStart - 1;
+      const cellContent = this.extractTableCellContent(currentLine, offsetInLine);
+      if (cellContent) {
+        // 在单元格内也尝试冒号分割，保持语义一致（P1-2 修复）
+        const cellColonMatch = cellContent.match(/^([^\uff1a:]+)[\uff1a:]/);
+        if (cellColonMatch) {
+          return cellColonMatch[1].trim().slice(0, 15);
+        }
+        return cellContent.slice(0, 15);
+      }
+    }
+
+    // 普通文本：原有逻辑
     const linePrefix = content.slice(lineStart + 1, index);
 
     // 策略 1：如果行首到 match 之间有冒号，取冒号前的部分作为 key
