@@ -25,9 +25,11 @@ import { fileURLToPath } from 'node:url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-function getConfWriteVersion(): string {
+// 导出供测试使用
+export function getConfWriteVersion(): string {
   try {
-    const packagePath = join(__dirname, '..', '..', 'package.json');
+    // __dirname = dist/, package.json 在包根（向上一级）
+    const packagePath = join(__dirname, '..', 'package.json');
     const pkg = JSON.parse(readFileSync(packagePath, 'utf-8'));
     return pkg.version || 'unknown';
   } catch {
