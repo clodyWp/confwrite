@@ -239,6 +239,43 @@ while true; do
 done
 ```
 
+**Direct Project State Check (SSH)**:
+
+**重要**：监控项目状态时，**优先使用 SSH 直接检查项目文件**，而不是通过 `herdr pane run` 让远端 pi 执行命令。这样可以：
+1. 不干扰远端 pi 的正常执行
+2. 获取准确的状态信息
+3. 避免命令堆积在远端 pi 的队列中
+
+```bash
+# 检查项目状态
+ssh <remote-host> 'cat <project-dir>/project-state.json | jq "{currentPhase, status, waitPoint}"'
+
+# 检查章节状态
+ssh <remote-host> 'cat <project-dir>/project-state.json | jq ".chapters | to_entries | map({key: .key, status: .value.status, round: .value.round})"'
+
+# 检查生成的文件
+ssh <remote-host> 'ls -la <project-dir>/drafts/chapters/'
+
+# 检查审阅结果
+ssh <remote-host> 'ls -la <project-dir>/drafts/reviews/ 2>/dev/null || echo "No reviews yet"'
+
+# 检查字数统计
+ssh <remote-host> 'wc -c <project-dir>/drafts/chapters/ch00*.md'
+
+# 检查事件日志（最近 20 条）
+ssh <remote-host> 'tail -20 <project-dir>/confwrite-events.jsonl 2>/dev/null | jq -c "{type, taskId, phase}"'
+```
+
+**监控方式选择指南**：
+
+| 场景 | 推荐方式 | 原因 |
+|------|---------|------|
+| 检查项目/章节状态 | SSH 直接读文件 | 不干扰执行，信息准确 |
+| 检查生成文件 | SSH 直接 ls | 不干扰执行 |
+| 检查远端 pi 行为 | `herdr pane read` | 需要看 pi 的输出和反应 |
+| 发送纠正命令 | `herdr pane run` | 必须通过 pi 交互 |
+| 等待阶段完成 | `herdr wait agent-status` | 高效等待 |
+
 ### 1.4 Wait Points
 
 Some phases require user confirmation (waitPoints). When remote pi stops and shows a prompt:
