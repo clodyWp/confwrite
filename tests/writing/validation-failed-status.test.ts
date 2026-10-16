@@ -177,9 +177,10 @@ describe('Bug 1: Writer validation_failed 状态设置 (SM-19)', () => {
       expect(state.chapters.ch001.status).toBe('failed');
     });
 
-    it('SM-19: validation_failed 达到 maxRounds 时应该为 completed（有输出）', () => {
+    it('SM-19/SM-21: validation_failed 达到 maxRounds 时应该为 completed（有输出）', () => {
       const state = createTestState();
-      state.chapters.ch001.round = 4; // 即将达到 maxRounds=5
+      state.chapters.ch001.round = 4;
+      state.chapters.ch001.consecutiveFailures = 4; // SM-21: 用 consecutiveFailures 守护，入口递增后变为 5
 
       const task: Task = {
         id: 'write-ch001-r4',
@@ -194,7 +195,7 @@ describe('Bug 1: Writer validation_failed 状态设置 (SM-19)', () => {
         result: '写作完成但字数超标',
       };
 
-      // 创建输出文件
+      // 创建输出文件（round=4，SM-21: round 不递增，所以检查 v4）
       writeFileSync(
         join(tempDir, 'drafts', 'chapters', 'ch001-v4.md'),
         '# 测试内容'
@@ -204,6 +205,7 @@ describe('Bug 1: Writer validation_failed 状态设置 (SM-19)', () => {
 
       // 达到 maxRounds 且有输出，应该为 completed
       expect(state.chapters.ch001.status).toBe('completed');
+      expect(state.chapters.ch001.round).toBe(4); // SM-21: round 不递增
     });
   });
 });
