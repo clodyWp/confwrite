@@ -287,6 +287,26 @@ export interface DiagReviewEvent {
 }
 
 /**
+ * DIAG Verdict 事件 (VC-2)
+ * 
+ * 当 Reviewer verdict 被自动修正时发射，
+ * 用于追溯 verdict 修正记录。
+ * 
+ * @see specs/verdict-consistency.md VC-2
+ */
+export interface DiagVerdictEvent {
+  type: 'diag.verdict';
+  chapterId: string;
+  round: number;
+  originalVerdict: 'accept' | 'revise' | 'reject';
+  correctedVerdict: 'accept' | 'revise' | 'reject';
+  reason: string;
+  issuesCount?: number;  // 审阅报告中的 issues 数量
+  wordCountIssues?: number;  // 字数相关问题数量
+  timestamp: string;
+}
+
+/**
  * 所有事件的联合类型
  */
 export type LogEvent =
@@ -309,7 +329,8 @@ export type LogEvent =
   | DiagTaskExecutorEvent
   | DiagDispatcherEvent
   | DiagPromptEvent
-  | DiagReviewEvent;
+  | DiagReviewEvent
+  | DiagVerdictEvent;
 
 /**
  * 事件类型字符串
