@@ -57,6 +57,10 @@ export interface ValidationResult {
   chapterId: string;
   checks: ValidationCheck[];
   errors: string[];
+  // VC-1: Verdict 一致性自动修正
+  verdictCorrected?: boolean;
+  correctedVerdict?: 'accept' | 'revise' | 'reject';
+  correctionReason?: string;
 }
 
 export interface ValidationCheck {
@@ -422,6 +426,11 @@ export class OutputValidator {
           detail: `verdict 为 accept，但${reasons.join('，')}`
         });
         result.errors.push(`verdict 矛盾: verdict 为 accept，但${reasons.join('，')}`);
+        
+        // VC-1: 自动修正 verdict 为 revise
+        result.verdictCorrected = true;
+        result.correctedVerdict = 'revise';
+        result.correctionReason = reasons.join('; ');
       }
     }
   }
