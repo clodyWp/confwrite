@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- **自动化版本管理** — Conventional Commits + release-it
+  - 安装 `@commitlint/cli`、`@commitlint/config-conventional`、`release-it`、`@release-it/conventional-changelog`
+  - 新增 `.husky/commit-msg` — 强制 commit message 格式（`feat:`/`fix:`/`docs:` 等）
+  - 新增 `commitlint.config.js` — commitlint 配置（11 种 type）
+  - 新增 `.release-it.json` — release-it 配置（自动算版本号 + 生成 changelog + GitHub Release）
+  - 新增 `npm run release` 脚本 — 一条命令完成发布
+  - 更新 `AGENTS.md` §3.1.1/§3.1.2 — 记录 commit 格式规范和发布流程
+  - 版本号不再手动维护，由 commit 历史自动决定：`feat:` → MINOR，`fix:` → PATCH，`feat!:` → MAJOR
+
 ### Fixed
 
 - **基线提取器表格处理** (#125): 修复表格单元格内冒号被误解析为分隔符的问题
@@ -12,6 +23,18 @@ All notable changes to this project will be documented in this file.
   - 表格行内的冒号不再作为分隔符，保持完整单元格内容
   - 普通文本的冒号分割逻辑保持不变（向后兼容）
   - 新增 13 个测试覆盖所有不变量（BE-1 到 BE-6）
+
+## [0.29.1] - 2026-10-16
+
+### Fixed
+
+- **TUI 状态行区分任务类型** (#144): writer/reviewer/fixer 显示不同动作词
+  - 新增 `getTaskTypeAction()` 方法区分写作/审阅/修复动作
+  - 新增 INV-TUI-9 不变量 + 4 个测试用例
+
+- **E2E Skill 缺陷修复** (#142): Phase 0.4 指令顺序 + subagent 日志分析
+  - Phase 0.4 改为 `cd <workspace-dir>`（项目目录在 init 前不存在）
+  - 新增 Phase 3.10 Subagent 日志分析（卡死检测、工具调用分布、失败检测、Turn 计数）
 
 ## [0.28.0] - 2026-10-14
 
