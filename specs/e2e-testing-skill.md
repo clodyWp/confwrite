@@ -101,11 +101,15 @@ E2E Testing Skill 定义了如何在远端机器上执行 ConfWrite 端到端测
 - `ANALYZE-3`: task.complete（任务完成）
 - `ANALYZE-4`: task.fail（任务失败）
 - `ANALYZE-5`: diag.wordbudget（字数诊断）
+- `ANALYZE-9`: diag.verdict（verdict 修正记录）
 
 **不变量**：
 - `ANALYZE-6`: 必须检测所有 Phase 转换是否正确
 - `ANALYZE-7`: 必须检测所有章节是否完成
 - `ANALYZE-8`: 必须检测所有任务失败并分析原因
+- `ANALYZE-10`: 必须检查文件版本与 round 一致性（SM-21 遵守）
+- `ANALYZE-11`: 必须统计 reviewer verdict 分布
+- `ANALYZE-12`: 必须审查 diag.verdict 事件（追溯 verdict 修正）
 
 ## 4. 偏离检测规格
 
@@ -183,7 +187,7 @@ E2E Testing Skill 定义了如何在远端机器上执行 ConfWrite 端到端测
 | CMD-1~3 | 命令执行 | 命令格式和处理 |
 | SM-1~5 | 状态机 | 状态机触发和转换 |
 | LOG-1~5 | 日志收集 | 日志文件收集 |
-| ANALYZE-1~8 | 分析 | 事件分析 |
+| ANALYZE-1~12 | 分析 | 事件分析 |
 | DETECT-1~4 | 偏离检测 | 偏离检测和处理 |
 | COV-1~12 | 覆盖率 | 功能覆盖 |
 | REPORT-1~4 | 报告 | 报告内容 |

@@ -465,7 +465,52 @@ cat ./e2e-logs/confwrite-log.jsonl | jq -r '
 ' | sort
 ```
 
-### 3.7 Analysis Checklist
+### 3.7 Task Execution Timeline
+
+```bash
+# 本地执行：重建任务执行时间线
+cat ./e2e-logs/confwrite-log.jsonl | jq -r '
+  select(.event.type == "task.start" or .event.type == "task.complete" or .event.type == "task.fail") |
+  "\(.timestamp) | \(.event.type) | \(.event.taskId) | \(.event.taskType // "-") | \(.event.duration // 0)ms"
+' | sort
+# 用于分析任务执行顺序和耗时
+```
+
+### 3.8 File Version vs Round Consistency
+
+```bash
+# 本地执行：检查文件版本与 round 是否一致
+# 对比 writer 输出的文件版本和 reviewer 使用的 round
+cat ./e2e-logs/confwrite-log.jsonl | jq -r '
+  select(.event.type == "task.complete" and .event.taskType == "writer") |
+  "writer | \(.event.chapterId) | \(.event.outputPath // "-")"
+'
+
+cat ./e2e-logs/confwrite-log.jsonl | jq -r '
+  select(.event.type == "task.complete" and .event.taskType == "reviewer") |
+  "reviewer | \(.event.chapterId) | round=\(.event.round // "?")"
+'
+# 如果 writer 输出 v1 但 reviewer 使用 round=2，说明存在 SM-21 违反
+```
+
+### 3.9 Verdict Distribution
+
+```bash
+# 本地执行：统计 reviewer verdict 分布
+cat ./e2e-logs/confwrite-log.jsonl | jq -r '
+  select(.event.type == "task.complete" and .event.taskType == "reviewer") |
+  .event.chapterId
+' | sort | uniq -c | sort -rn
+
+# 检查 verdict 修正记录（diag.verdict 事件）
+cat ./e2e-logs/confwrite-log.jsonl | jq -r '
+  select(.event.type == "diag.verdict") |
+  "\(.event.chapterId) | round=\(.event.round) | \(.event.originalVerdict) → \(.event.correctedVerdict) | \(.event.reason)"
+'
+# 如果 diag.verdict 事件频繁出现，说明 LLM reviewer 的 verdict 一致性有问题
+```
+
+### 3.10 Analysis Checklist
 
 - [ ] Project state parsed
 - [ ] Phase transitions verified (no stuck phases)
@@ -473,6 +518,10 @@ cat ./e2e-logs/confwrite-log.jsonl | jq -r '
 - [ ] Word count checked (no severe overages)
 - [ ] Task failures analyzed (if any)
 - [ ] PR coverage verified (all pending PRs tested)
+- [ ] Task execution timeline reviewed (no anomalies)
+- [ ] File version vs round consistency verified (no SM-21 violations)
+- [ ] Verdict distribution analyzed (no excessive corrections)
+- [ ] diag.verdict events reviewed (trace verdict corrections)
 
 ---
 
