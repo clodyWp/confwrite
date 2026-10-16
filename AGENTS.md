@@ -271,3 +271,5 @@ src/index.ts (Extension 入口)
 当技术栈、核心模块或开发约束改变时更新本文件；普通 bug 和功能细节分别记入 `BUGS.md`、`CHANGELOG.md`。保持规则短、可执行，并避免和其他文档重复。
 
 仓库 Issue/PR 流程以 `.github/ISSUE_TEMPLATE/`、`.github/pull_request_template.md` 和 `.github/workflows/ci.yml` 为准。按仓库流程协作时使用现有模板；不要把开 Issue、开 PR 或自动合并当作本地调查和用户明确要求之外的通用技术步骤。
+
+**PR 创建规则**：创建 PR 时必须复制 `.github/pull_request_template.md` 的完整格式，特别是 `## 缺陷修复证据` 部分的 4 个字段（`症状与复现`、`根因证据`、`回归测试`、`验证命令与结果`）。CI 的 `check-pr-evidence.js` 会检查这些字段非空。格式错误会导致 CI 失败并浪费时间。
