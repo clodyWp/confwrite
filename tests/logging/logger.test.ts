@@ -32,6 +32,67 @@ describe('Logger', () => {
       expect(result.level).toBe('info');
     });
 
+    // Issue #144: 任务开始消息必须区分任务类型 (INV-TUI-9)
+    it('should show "开始写作" for writer task', () => {
+      const event: TaskStartEvent = {
+        type: 'task.start',
+        taskId: 'write-ch001-r1',
+        taskType: 'writer',
+        chapterId: 'ch001',
+        round: 1,
+        concurrency: { current: 1, max: 1 },
+      };
+
+      const result = Logger.format(event);
+
+      expect(result.message).toContain('开始写作');
+    });
+
+    it('should show "开始审阅" for reviewer task', () => {
+      const event: TaskStartEvent = {
+        type: 'task.start',
+        taskId: 'review-ch001-r1',
+        taskType: 'reviewer',
+        chapterId: 'ch001',
+        round: 1,
+        concurrency: { current: 1, max: 1 },
+      };
+
+      const result = Logger.format(event);
+
+      expect(result.message).toContain('开始审阅');
+    });
+
+    it('should show "开始修复" for fixer task', () => {
+      const event: TaskStartEvent = {
+        type: 'task.start',
+        taskId: 'fix-ch001-r1',
+        taskType: 'fixer',
+        chapterId: 'ch001',
+        round: 1,
+        concurrency: { current: 1, max: 1 },
+      };
+
+      const result = Logger.format(event);
+
+      expect(result.message).toContain('开始修复');
+    });
+
+    it('should show "开始处理" for unknown task type', () => {
+      const event: TaskStartEvent = {
+        type: 'task.start',
+        taskId: 'unknown-ch001-r1',
+        taskType: 'unknown',
+        chapterId: 'ch001',
+        round: 1,
+        concurrency: { current: 1, max: 1 },
+      };
+
+      const result = Logger.format(event);
+
+      expect(result.message).toContain('开始处理');
+    });
+
     it('should format task.complete event', () => {
       const event: TaskCompleteEvent = {
         type: 'task.complete',
