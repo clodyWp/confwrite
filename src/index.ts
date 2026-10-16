@@ -278,6 +278,20 @@ export async function runWriteLoop(
               // Bug 42 修复：从 state 读取 wordBudget 并传递给 validator
               const wordBudget = state.chapters?.[originalTask.chapterId!]?.wordBudget;
               const validation = outputValidator.validate(originalTask, taskRound, wordBudget);
+              
+              // VC-2: verdict 被修正时发射 diag.verdict 事件
+              if (validation.verdictCorrected && originalTask.chapterId) {
+                loggingSystem.eventBus.emit({
+                  type: 'diag.verdict',
+                  chapterId: originalTask.chapterId,
+                  round: taskRound,
+                  originalVerdict: 'accept',
+                  correctedVerdict: validation.correctedVerdict || 'revise',
+                  reason: validation.correctionReason || 'verdict 与报告内容矛盾',
+                  timestamp: new Date().toISOString(),
+                });
+              }
+              
               if (!validation.valid) {
                 notify(`⚠️ ${OutputValidator.formatErrors(validation)}`, 'warning');
                 // Bug 36.1 修复：验证失败时传递 failureType，防止被绕过
