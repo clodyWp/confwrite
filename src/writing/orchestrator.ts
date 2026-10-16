@@ -144,12 +144,12 @@ export class WritingOrchestrator {
       // - validation_failed（如字数超标）：即使有产物也要进入修复循环
       // - execution_failed（如 turn 耗尽）：有产物可降级接受
       if (failureType === 'validation_failed') {
-        // Bug 41 修复：递增轮次，确保 maxRounds 守护生效
-        chapter.round += 1;
+        // SM-21: validation_failed 不递增 round
+        // consecutiveFailures 已在方法入口递增（line ~141）
         
-        // Bug 41 修复：先检查 maxRounds（兜底机制）
-        if (chapter.round >= chapter.maxRounds) {
-          const hasOutput = this.checkOutputExists(task.chapterId, chapter.round - 1, projectDir);
+        // maxRounds 守护：用 consecutiveFailures 而非 round
+        if (chapter.consecutiveFailures >= chapter.maxRounds) {
+          const hasOutput = this.checkOutputExists(task.chapterId, chapter.round, projectDir);
           chapter.status = hasOutput ? 'completed' : 'failed';
           chapter.failureReason = 'exceeded_max_rounds_validation';
           this.emitChapterEvents(task.chapterId, oldStatus, chapter, projectDir);

@@ -297,6 +297,25 @@ return !needsReview && (hasReviewed || allTerminal);
 
 **测试要求**：必须覆盖「所有章节都 failed 时 Phase 4b 能正常退出」的场景。
 
+### 3.13 validation_failed 不得递增 round
+
+| ID | 不变量 | 违反后果（历史事故） |
+|----|--------|-------------------|
+| SM-21 | **validation_failed 路径不得递增 chapter.round** | round 和文件版本脱节，下游 reviewer/fixer 查找文件失败，级联验证失败直到 maxRounds (Issue #134) |
+
+validation_failed 表示 Writer 输出存在但验证失败（如字数超标）。
+此时 chapter.round 不应递增，因为：
+1. 文件版本与 round 必须同步（round=N 对应 vN 文件）
+2. Spec CS-2 规定 "round 在 fixer 完成后递增"
+3. validation_failed 不是 fixer 完成
+
+正确行为：
+- chapter.status = 'written'（让 reviewer 评估）
+- chapter.consecutiveFailures 已在方法入口递增（line ~141），用于 maxRounds 守护
+- 不递增 chapter.round
+
+maxRounds 守护：当 consecutiveFailures >= maxRounds 时，标记为终态。
+
 ---
 
 ## 4. Tick 循环协议

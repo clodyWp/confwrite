@@ -236,20 +236,21 @@ describe('SM-17: 关键状态变化必须 emit 事件', () => {
       expect(failedEvents[0].finalAction).toBe('failed');
     });
 
-    it('validation_failed 且超过 maxRounds 时 emit chapter.failed', () => {
+    it('validation_failed 且超过 maxRounds 时 emit chapter.failed (SM-21)', () => {
       const eventBus = new EventBus();
       const failedEvents: ChapterFailedEvent[] = [];
       eventBus.subscribe('chapter.failed', (e) => failedEvents.push(e));
 
       const orchestrator = new WritingOrchestrator(eventBus);
       const state = createMinimalState();
-      state.chapters.ch001.round = 4; // round 4, maxRounds 5 → 递增后 round=5 >= maxRounds
+      state.chapters.ch001.round = 4; // SM-21: round 不递增，保持为 4
+      state.chapters.ch001.consecutiveFailures = 4; // 入口递增后变为 5 >= maxRounds
       state.chapters.ch001.maxRounds = 5;
       const task = createTask();
 
       orchestrator.updateChapterStatus(state, task, 'failed', projectDir, 'validation_failed');
 
-      // round 递增到 5 >= maxRounds(5)，且无产物 → failed
+      // SM-21: consecutiveFailures 达到 maxRounds(5)，且无产物 → failed
       expect(failedEvents.length).toBe(1);
       expect(failedEvents[0].failureReason).toBe('exceeded_max_rounds_validation');
     });

@@ -81,9 +81,10 @@ describe('Bug 41: maxRounds guard', () => {
   });
 
   describe('WritingOrchestrator.updateChapterStatus', () => {
-    it('should force complete when validation_failed and round >= maxRounds', () => {
+    it('should force complete when validation_failed and consecutiveFailures >= maxRounds (SM-21)', () => {
       const state = createTestState();
-      state.chapters['ch001'] = createChapter('ch001', 5, 5); // round >= maxRounds
+      state.chapters['ch001'] = createChapter('ch001', 5, 5);
+      state.chapters['ch001'].consecutiveFailures = 4; // will become 5 after entry increment
       
       // 创建草稿文件（有产物）
       writeFileSync(join(tempDir, 'drafts', 'chapters', 'ch001-v5.md'), 'test content');
@@ -97,7 +98,7 @@ describe('Bug 41: maxRounds guard', () => {
       expect(state.chapters['ch001'].failureReason).toBe('exceeded_max_rounds_validation');
     });
 
-    it('should increment round in validation_failed path', () => {
+    it('should NOT increment round in validation_failed path (SM-21)', () => {
       const state = createTestState();
       state.chapters['ch001'] = createChapter('ch001', 2, 5);
       
@@ -106,8 +107,9 @@ describe('Bug 41: maxRounds guard', () => {
       
       orchestrator.updateChapterStatus(state, task, 'failed', tempDir, 'validation_failed');
       
-      // round 应该递增
-      expect(state.chapters['ch001'].round).toBe(initialRound + 1);
+      // SM-21: round 不应递增（consecutiveFailures 用于 maxRounds 守护）
+      expect(state.chapters['ch001'].round).toBe(initialRound);
+      expect(state.chapters['ch001'].consecutiveFailures).toBe(1);
     });
 
     it('should force complete when fixer succeeds and round >= maxRounds', () => {
