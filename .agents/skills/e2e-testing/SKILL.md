@@ -126,7 +126,7 @@ herdr pane split --current --direction right --no-focus
 herdr pane rename <returned-pane-id> "remote-pi"
 herdr pane run <returned-pane-id> "pi"
 # 等待 pi 启动
-herdr wait agent-status <returned-pane-id> --status idle --timeout 30000
+herdr agent wait <returned-pane-id> --until idle --timeout 30000
 ```
 
 ### 0.3 Verify Remote Environment
@@ -134,7 +134,7 @@ herdr wait agent-status <returned-pane-id> --status idle --timeout 30000
 ```bash
 # 本地执行：通过 herdr 在远端运行命令
 herdr pane run <remote-pane-id> "node --version && npm --version"
-herdr wait output <remote-pane-id> --match "v[0-9]" --timeout 10000
+herdr pane wait-output <remote-pane-id> --match "v[0-9]" --timeout 10000
 herdr pane read <remote-pane-id> --source recent-unwrapped --lines 20
 ```
 
@@ -143,7 +143,7 @@ herdr pane read <remote-pane-id> --source recent-unwrapped --lines 20
 ```bash
 # 本地执行：检查远端 ConfWrite 版本（在 workspace 目录，而非 project 目录）
 herdr pane run <remote-pane-id> "cd <workspace-dir> && npm list confwrite"
-herdr wait output <remote-pane-id> --match "confwrite@" --timeout 10000
+herdr pane wait-output <remote-pane-id> --match "confwrite@" --timeout 10000
 herdr pane read <remote-pane-id> --source recent-unwrapped --lines 10
 ```
 
@@ -171,7 +171,7 @@ herdr pane read <remote-pane-id> --source recent-unwrapped --lines 10
 herdr pane run <remote-pane-id> "/confwrite:init <slug>"
 
 # 等待命令执行完成（检测 TUI 回到 idle 状态）
-herdr wait agent-status <remote-pane-id> --status idle --timeout 120000
+herdr agent wait <remote-pane-id> --until idle --timeout 120000
 
 # 读取执行结果
 herdr pane read <remote-pane-id> --source recent-unwrapped --lines 50
@@ -183,7 +183,7 @@ herdr pane read <remote-pane-id> --source recent-unwrapped --lines 50
 ```bash
 # 本地执行（<slug> 是必需参数，如项目名 smoke-test）
 herdr pane run <remote-pane-id> "/confwrite:init <slug>"
-herdr wait agent-status <remote-pane-id> --status idle --timeout 120000
+herdr agent wait <remote-pane-id> --until idle --timeout 120000
 herdr pane read <remote-pane-id> --source recent-unwrapped --lines 50
 ```
 
@@ -191,7 +191,7 @@ herdr pane read <remote-pane-id> --source recent-unwrapped --lines 50
 ```bash
 # 本地执行（slug 可选，不传则使用当前目录）
 herdr pane run <remote-pane-id> "/confwrite:organize [slug]"
-herdr wait agent-status <remote-pane-id> --status idle --timeout 300000
+herdr agent wait <remote-pane-id> --until idle --timeout 300000
 herdr pane read <remote-pane-id> --source recent-unwrapped --lines 50
 ```
 
@@ -199,7 +199,7 @@ herdr pane read <remote-pane-id> --source recent-unwrapped --lines 50
 ```bash
 # 本地执行（需要 slug + template，targetWords 可选；outline 是 waitPoint，需要用户确认）
 herdr pane run <remote-pane-id> "/confwrite:outline <slug> <template> [targetWords]"
-herdr wait agent-status <remote-pane-id> --status idle --timeout 300000
+herdr agent wait <remote-pane-id> --until idle --timeout 300000
 herdr pane read <remote-pane-id> --source recent-unwrapped --lines 50
 ```
 
@@ -214,11 +214,11 @@ herdr pane run <remote-pane-id> "/confwrite:write [slug]"
 
 ### 1.3 Monitor Progress (Local)
 
-**Recommended Pattern**: Use `herdr wait agent-status` instead of polling.
+**Recommended Pattern**: Use `herdr agent wait` instead of polling.
 
 ```bash
 # 本地执行：等待远端完成（最长等待 1 小时）
-herdr wait agent-status <remote-pane-id> --status idle --timeout 3600000
+herdr agent wait <remote-pane-id> --until idle --timeout 3600000
 
 # 读取执行结果
 herdr pane read <remote-pane-id> --source recent-unwrapped --lines 50
@@ -276,7 +276,7 @@ ssh <remote-host> 'tail -20 <project-dir>/logs/confwrite-log.jsonl 2>/dev/null |
 | 检查生成文件 | SSH 直接 ls | 不干扰执行 |
 | 检查远端 pi 行为 | `herdr pane read` | 需要看 pi 的输出和反应 |
 | 发送纠正命令 | `herdr pane run` | 必须通过 pi 交互 |
-| 等待阶段完成 | `herdr wait agent-status` | 高效等待 |
+| 等待阶段完成 | `herdr agent wait` | 高效等待 |
 
 ### 1.4 Wait Points
 
@@ -346,7 +346,7 @@ scp <remote-host>:<project-dir>/project-state.json ./e2e-logs/
 ```bash
 # 本地执行：通过 herdr 读取远端文件
 herdr pane run <remote-pane-id> "cat <project-dir>/project-state.json"
-herdr wait output <remote-pane-id> --match '"currentPhase"' --timeout 10000
+herdr pane wait-output <remote-pane-id> --match '"currentPhase"' --timeout 10000
 herdr pane read <remote-pane-id> --source recent-unwrapped --lines 200 > ./e2e-logs/project-state.json
 ```
 
@@ -361,7 +361,7 @@ scp <remote-host>:<project-dir>/logs/confwrite-log.jsonl ./e2e-logs/
 ```bash
 # 本地执行
 herdr pane run <remote-pane-id> "cat <project-dir>/logs/confwrite-log.jsonl"
-herdr wait output <remote-pane-id> --match '"event"' --timeout 30000
+herdr pane wait-output <remote-pane-id> --match '"event"' --timeout 30000
 herdr pane read <remote-pane-id> --source recent-unwrapped --lines 1000 > ./e2e-logs/confwrite-log.jsonl
 ```
 
@@ -723,10 +723,10 @@ herdr pane rename <pane-id> "label"
 
 ```bash
 # 等待 agent 状态变化
-herdr wait agent-status <pane-id> --status idle --timeout 30000
+herdr agent wait <pane-id> --until idle --timeout 30000
 
 # 等待特定输出
-herdr wait output <pane-id> --match "pattern" --timeout 10000
+herdr pane wait-output <pane-id> --match "pattern" --timeout 10000
 ```
 
 ### Read Sources
