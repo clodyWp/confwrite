@@ -170,6 +170,17 @@ export class FormatConverter {
     // 移除剩余标签
     md = md.replace(/<[^>]+>/g, '');
 
+    // HE-1: HTML 实体解码（&amp; 必须最先替换，避免双重解码）
+    md = md
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#039;/g, "'")
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&#(\d+);/g, (_, n: string) => String.fromCharCode(parseInt(n, 10)))
+      .replace(/&#x([0-9a-f]+);/gi, (_, n: string) => String.fromCharCode(parseInt(n, 16)));
+
     // 清理空行
     md = md.replace(/\n{3,}/g, '\n\n');
 
