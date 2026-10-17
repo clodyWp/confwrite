@@ -14,6 +14,7 @@
  */
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { createHash } from 'node:crypto';
 import type { ProjectStore } from '../state/store.js';
 import type { SubagentScheduler } from '../scheduler/index.js';
 import type { Task } from '../scheduler/types.js';
@@ -38,6 +39,8 @@ export class Dispatcher {
   private taskExecutor: TaskExecutor;
   private writingOrchestrator: WritingOrchestrator;
   private eventBus?: EventBus;
+  /** DG-1~DG-4: 指纹失败计数 Map<`${chapterId}:${type}:${fingerprint}`, count> */
+  private failedFingerprints: Map<string, number> = new Map();
 
   constructor(
     projectDir: string,
@@ -88,9 +91,49 @@ export class Dispatcher {
     
     const tasks: Task[] = [];
     let sequence = 1;
+    let guardrailTriggered = false;
 
     for (const chapterId of chapters) {
       const kitContent = this.readChapterKit(chapterId);
+
+      // DG-1: 计算指纹
+      const draftContent = this.readChapterDraft(chapterId, round);
+      const fingerprint = this.computeFingerprint(draftContent, round, 'writer');
+      const fingerprintKey = `${chapterId}:writer:${fingerprint}`;
+      const failCount = this.failedFingerprints.get(fingerprintKey) || 0;
+
+      // DG-2: 连续 2 次相同指纹失败 → 派发 fixer
+      if (failCount >= 2) {
+        guardrailTriggered = true;
+        this.eventBus?.emit({
+          type: 'diag.guardrail',
+          chapterId,
+          fingerprint,
+          failCount,
+          action: 'redirect_to_fixer',
+          timestamp: new Date().toISOString(),
+        });
+        // 派发 fixer 代替 writer
+        const reviewContent = this.readReviewReport(chapterId, round);
+        const wordBudget = state?.chapters?.[chapterId]?.wordBudget;
+        const task: Task = {
+          id: `fix-${chapterId}-r${round}-guardrail`,
+          type: 'fixer',
+          chapterId,
+          priority: sequence,
+          sequence,
+          status: 'queued',
+          attempt: 0,
+          prompt: '',
+          dependencies: [],
+        };
+        task.prompt = this.taskExecutor.generateFixPrompt(task, draftContent, reviewContent, round, wordBudget);
+        sequence++;
+        tasks.push(task);
+        this.scheduler.submit(task);
+        continue;
+      }
+
       const task: Task = {
         id: `write-${chapterId}-r${round}`,
         type: 'writer',
@@ -128,11 +171,15 @@ export class Dispatcher {
       this.scheduler.submit(task);
     }
 
+    const message = guardrailTriggered
+      ? `已创建 ${tasks.length} 个任务 (round ${round})，部分章节因护栏触发改为 fixer`
+      : `已创建 ${tasks.length} 个写作任务 (round ${round})`;
+
     return {
       action: 'spawn_writers',
       tasksCreated: tasks.length,
       tasks,
-      message: `已创建 ${tasks.length} 个写作任务 (round ${round})`,
+      message,
     };
   }
 
@@ -252,6 +299,14 @@ export class Dispatcher {
   }
 
   /**
+   * DG-1: 计算任务指纹 = hash(draftContent) + ':' + round + ':' + type
+   */
+  private computeFingerprint(draftContent: string, round: number, type: string): string {
+    const hash = createHash('sha256').update(draftContent).digest('hex').slice(0, 16);
+    return `${hash}:${round}:${type}`;
+  }
+
+  /**
    * 处理任务结果：更新调度器状态 + 回写章节状态
    */
   async processTask(
@@ -270,6 +325,24 @@ export class Dispatcher {
         this.scheduler.markCompleted(taskId, result);
       } else {
         this.scheduler.markFailed(taskId, result);
+      }
+    }
+
+    // DG-2/DG-4: 更新指纹失败计数
+    if (task.chapterId) {
+      const state = this.store.load();
+      const round = state?.chapters?.[task.chapterId]?.round || 1;
+      // 读取当前草稿内容计算指纹
+      const draftContent = this.readChapterDraft(task.chapterId, round);
+      const fingerprint = this.computeFingerprint(draftContent, round, task.type);
+      const fingerprintKey = `${task.chapterId}:${task.type}:${fingerprint}`;
+
+      if (outcome === 'failed') {
+        const count = (this.failedFingerprints.get(fingerprintKey) || 0) + 1;
+        this.failedFingerprints.set(fingerprintKey, count);
+      } else if (outcome === 'success') {
+        // DG-4: 成功时重置计数
+        this.failedFingerprints.delete(fingerprintKey);
       }
     }
 

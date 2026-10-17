@@ -316,6 +316,39 @@ validation_failed 表示 Writer 输出存在但验证失败（如字数超标）
 
 maxRounds 守护：当 consecutiveFailures >= maxRounds 时，标记为终态。
 
+### 3.14 WriteLoopResult.degraded 降级可见
+
+| ID | 不变量 | 违反后果 |
+|----|--------|----------|
+| SM-22 | **WriteLoopResult 必须包含 degraded 字段，记录降级完成的章节** | 降级完成的章节对用户不可见，用户误以为所有章节都是实际审阅通过 |
+| SM-23 | **TUI 结尾必须打印降级警告（当 degraded.length > 0 时）** | 用户无法区分「真正通过」和「降级接受」的章节 |
+
+**WriteLoopResult.degraded 字段定义**：
+
+```typescript
+interface WriteLoopResult {
+  // ... 现有字段
+  degraded: Array<{ chapterId: string; reason: string }>;
+}
+```
+
+**降级场景**：
+- 章节超过 maxRounds 后被强制标记为 completed（有产物时）
+- 章节连续失败后被降级接受
+- 任何非正常审阅通过但被接受的章节
+
+**TUI 降级警告格式**：
+
+当 `degraded.length > 0` 时，在写作循环结束后打印：
+
+```
+⚠️ N 章为降级完成，非实际通过: ch001 (exceeded_max_rounds), ch002 (consecutive_failures)
+```
+
+**测试要求**：
+- 必须覆盖 `degraded.length > 0` 时 TUI 打印警告
+- 必须覆盖 `degraded.length === 0` 时不打印警告
+
 ---
 
 ## 4. Tick 循环协议
@@ -466,3 +499,4 @@ Phase 4c `execute()` 返回的 `params` 字段定义如下：
 | 2026-10-14 | 新增 SM-17：关键状态变化必须 emit 事件 | Issue #53：11 个事件类型从未 emit |
 | 2026-10-14 | 新增 SM-18：Phase transition 时必须保存状态快照 | Issue #57：无执行历史，断网恢复困难 |
 | 2026-10-14 | 新增 SM-19：`reviewed` 状态只应该在 Phase 4b 之后出现 | E2E v9: writer validation_failed 错误设置 reviewed 导致审阅被跳过 |
+| 2026-10-14 | 新增 §3.14 WriteLoopResult.degraded 降级可见 | Issue #154: 降级完成的章节对用户不可见，误以为全部通过 |

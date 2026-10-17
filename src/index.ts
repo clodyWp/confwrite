@@ -40,6 +40,7 @@ import { WritingOrchestrator } from './writing/orchestrator.js';
 import { OutputValidator } from './writing/output-validator.js';
 import { ProjectStore } from './state/store.js';
 import { LoggingSystem } from './logging/index.js';
+import { Logger } from './logging/logger.js';
 import { loadConfig } from './config/loader.js';
 import { resolve } from 'node:path';
 
@@ -53,6 +54,8 @@ export interface WriteLoopResult {
   messages: Array<{ msg: string; level: NotifyLevel }>;
   stoppedReason: string;
   completed: boolean;
+  /** SM-22: 降级完成的章节列表（非实际审阅通过） */
+  degraded: Array<{ chapterId: string; reason: string }>;
 }
 
 export interface WriteLoopOptions {
@@ -80,6 +83,7 @@ export async function runWriteLoop(
     messages: [],
     stoppedReason: '',
     completed: true,
+    degraded: [],
   };
 
   const config = { ...DEFAULT_SCHEDULER_CONFIG, ...configOverride };
@@ -351,6 +355,14 @@ export async function runWriteLoop(
 
   if (!result.stoppedReason) {
     result.stoppedReason = 'completed';
+  }
+
+  // SM-23: TUI 降级警告
+  if (result.degraded.length > 0) {
+    const warning = Logger.formatDegradedWarning(result.degraded);
+    if (warning) {
+      notify(warning.message, warning.level);
+    }
   }
 
   // 释放日志系统资源

@@ -266,6 +266,33 @@ interface DirtyOutputGenerators {
 }
 ```
 
+### 4.4 MockSubagentExecutor wordCountMode
+
+`MockSubagentExecutor` 构造函数接受可选的 `wordCountMode` 参数，控制 writer 草稿的字数规模：
+
+```typescript
+export type WordCountMode = 'under' | 'mild' | 'severe';
+
+export class MockSubagentExecutor implements SubagentExecutor {
+  constructor(projectDir: string, options?: { wordCountMode?: WordCountMode });
+}
+```
+
+| 模式 | 行为 | 目标字数（中文字符） |
+|------|------|--------------------|
+| `'under'` | 默认模式，生成 ~4000 字草稿（在典型 wordBudget 范围内） | ~4000 |
+| `'mild'` | 轻度超预算，生成 ~6000 字草稿 | ~6000 |
+| `'severe'` | 严重超预算（超预算 50%），生成 ~12000 字草稿 | ~12000 |
+
+#### 不变量
+
+| ID | 不变量 |
+|----|--------|
+| INV-WCM-1 | `wordCountMode='severe'` 时，writer 生成的草稿中文字符数 ≥ 10000（目标 12000，允许 ±20% 容差） |
+| INV-WCM-2 | `wordCountMode='under'` 或未指定时，行为与原始 MockSubagentExecutor 一致（~4000 字） |
+| INV-WCM-3 | `wordCountMode` 仅影响 writer 任务的草稿字数，reviewer 和 fixer 行为不变 |
+| INV-WCM-4 | 草稿文件写入磁盘后，文件字数与 `task.result` 内容一致 |
+
 ---
 
 ## 5. 重试策略

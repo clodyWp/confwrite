@@ -13,11 +13,25 @@ import { join, dirname } from 'node:path';
 import type { SubagentExecutor, ExecutorResult } from './executor.js';
 import type { Task } from './types.js';
 
+/**
+ * Word count mode for MockSubagentExecutor writer output.
+ * - 'under': default ~4000 Chinese chars (within typical budget)
+ * - 'mild': ~6000 Chinese chars (slightly over budget)
+ * - 'severe': ~12000 Chinese chars (50% over budget)
+ */
+export type WordCountMode = 'under' | 'mild' | 'severe';
+
+export interface MockExecutorOptions {
+  wordCountMode?: WordCountMode;
+}
+
 export class MockSubagentExecutor implements SubagentExecutor {
   private projectDir: string;
+  private wordCountMode: WordCountMode;
 
-  constructor(projectDir: string) {
+  constructor(projectDir: string, options?: MockExecutorOptions) {
     this.projectDir = projectDir;
+    this.wordCountMode = options?.wordCountMode ?? 'under';
   }
 
   async execute(task: Task): Promise<ExecutorResult> {
@@ -189,8 +203,122 @@ ${longPara('后续章节将深入讨论各个组件的详细设计，包括数�
 ${longPara('总的来说，本章节为整个系统设计奠定了坚实的基础。通过清晰的架构设计和合理的技术选型，系统具备了应对复杂业务场景的能力。后续的开发工作将基于这个架构框架，逐步实现各个功能模块。架构设计还为未来的扩展和演进预留了空间，确保系统能够持续满足业务需求。')}
 `;
 
-    writeFileSync(draftPath, content, 'utf-8');
-    task.result = content;
+    // Extend content based on wordCountMode
+    const finalContent = this.extendContentForMode(content, longPara);
+
+    writeFileSync(draftPath, finalContent, 'utf-8');
+    task.result = finalContent;
+  }
+
+  /**
+   * Extend base content based on wordCountMode.
+   * - 'under': return base content as-is (~4000 Chinese chars)
+   * - 'mild': append ~2000 additional chars (~6000 total)
+   * - 'severe': append ~8000 additional chars (~12000 total)
+   */
+  private extendContentForMode(baseContent: string, longPara: (t: string) => string): string {
+    if (this.wordCountMode === 'under') {
+      return baseContent;
+    }
+
+    const mildExtension = `
+
+## 部署架构
+
+${longPara('系统的部署架构采用容器化方案，基于 Kubernetes 进行编排和管理。每个微服务都打包为独立的 Docker 镜像，通过 Helm Chart 进行统一部署。容器化部署确保了环境一致性，消除了开发、测试和生产环境之间的差异问题。')}
+
+${longPara('在持续集成和持续部署方面，系统使用 GitLab CI/CD 流水线自动化构建、测试和部署流程。每次代码提交都会触发自动化测试套件，包括单元测试、集成测试和端到端测试。通过严格的测试门禁，确保只有质量达标的代码才能进入生产环境。')}
+
+${longPara('部署架构还支持蓝绿部署和金丝雀发布策略。蓝绿部署通过维护两套完整的生产环境，实现零停机时间的版本切换。金丝雀发布则先将新版本推送给少量用户，通过监控指标确认无异常后逐步扩大流量比例，降低发布风险。')}
+
+${longPara('基础设施即代码（IaC）是部署架构的核心原则。所有基础设施配置都通过 Terraform 或 Pulumi 进行声明式管理，确保环境可复现、可审计。配置变更通过 Git 版本控制，每次修改都有完整的审计跟踪。')}
+
+${longPara('监控和告警体系覆盖基础设施层、应用层和业务层。Prometheus 负责指标采集，Grafana 提供可视化面板，Alertmanager 处理告警路由和升级。日志系统采用 ELK 栈（Elasticsearch、Logstash、Kibana），支持全文检索和结构化分析。')}
+
+${longPara('容灾方面，系统支持跨区域部署和多活架构。关键数据实时同步到灾备中心，RPO（恢复点目标）控制在秒级。通过定期容灾演练，验证故障切换流程的有效性，确保在真实故障发生时能够快速恢复业务。')}
+`;
+
+    if (this.wordCountMode === 'mild') {
+      return baseContent + mildExtension;
+    }
+
+    // severe: base + mild + additional heavy extension
+    const severeExtension = `
+
+## 安全架构
+
+${longPara('系统的安全架构遵循纵深防御原则，从网络层、应用层到数据层实施多层安全防护。网络层通过防火墙、入侵检测系统和 Web 应用防火墙（WAF）抵御外部攻击。应用层实施严格的输入验证、输出编码和会话管理，防止常见 Web 安全漏洞。')}
+
+${longPara('身份认证和授权系统采用零信任架构，不依赖网络位置作为信任依据。每次访问请求都需要经过身份验证和权限检查，无论请求来自内部网络还是外部网络。微服务间的通信通过 mTLS（双向 TLS）加密，确保服务间通信的机密性和完整性。')}
+
+${longPara('数据安全方面，系统对敏感数据实施分类分级管理。个人身份信息（PII）在存储和传输过程中都进行加密处理。数据库采用透明数据加密（TDE）技术，防止物理介质泄露导致的数据泄露。密钥管理使用专用的密钥管理服务（KMS），支持密钥轮换和审计。')}
+
+${longPara('安全审计系统记录所有关键操作的完整日志，包括用户登录、权限变更、数据访问和配置修改。审计日志不可篡改，存储在独立的日志系统中，满足合规审计要求。定期的安全扫描和渗透测试确保系统持续符合安全标准。')}
+
+${longPara('安全事件响应流程定义了从检测到响应的完整链路。安全信息和事件管理（SIEM）系统实时分析安全事件，自动触发响应动作。严重安全事件会立即通知安全团队，并启动应急响应预案，确保在最短时间内控制安全事件的影响范围。')}
+
+## 性能优化策略
+
+${longPara('系统性能优化从多个维度展开，包括前端性能、网络传输、应用处理和数据库访问。前端采用代码分割、懒加载和缓存策略，减少首屏加载时间。CDN 加速静态资源分发，降低用户访问延迟。')}
+
+${longPara('网络层面，系统使用 HTTP/2 多路复用减少连接开销，通过 gzip 和 brotli 压缩减少传输数据量。对于实时性要求高的场景，采用 WebSocket 长连接替代短轮询，减少握手开销和服务器负载。')}
+
+${longPara('应用层面的性能优化包括热点代码路径优化、异步处理和非阻塞 I/O。计算密集型任务通过 Worker Thread 并行处理，避免阻塞主事件循环。内存使用通过对象池和流式处理优化，减少垃圾回收压力。')}
+
+${longPara('数据库性能优化采用多级缓存策略。本地缓存（如 LRU Cache）处理热点数据访问，分布式缓存（Redis）处理跨实例共享数据。数据库查询通过索引优化、查询计划分析和慢查询监控持续改进。读写分离和分库分表策略支撑大规模数据访问需求。')}
+
+${longPara('性能测试覆盖负载测试、压力测试和稳定性测试。通过模拟真实用户行为模式，验证系统在高并发场景下的表现。性能基准测试结果作为发布门禁，确保每次发布不会引入性能退化。性能监控看板实时展示关键性能指标，帮助快速定位性能瓶颈。')}
+
+${longPara('容量规划基于业务增长预测和历史数据分析。通过趋势分析和容量模型，提前规划基础设施扩容时间点。自动伸缩策略根据实时负载动态调整计算资源，在保证性能的同时优化资源成本。定期的容量评审确保基础设施规划与业务发展保持同步。')}
+
+## 可观测性体系
+
+${longPara('可观测性体系由日志、指标和链路追踪三大支柱构成。结构化日志统一了日志格式和字段规范，支持快速检索和关联分析。分布式追踪通过 OpenTelemetry 标准实现，完整记录请求在各服务间的调用链路和耗时分布。')}
+
+${longPara('指标体系分为基础设施指标、应用指标和业务指标三个层次。基础设施指标包括 CPU、内存、磁盘和网络使用率。应用指标包括请求延迟、错误率和吞吐量。业务指标包括订单量、转化率和用户活跃度。各层次指标通过 Grafana 看板统一展示。')}
+
+${longPara('告警策略基于症状而非原因，关注用户可感知的影响而非内部组件状态。告警分级处理：紧急告警立即通知值班人员，警告告警在工作时间内处理，信息告警仅记录不通知。告警疲劳通过合理的阈值调整和告警聚合来避免。')}
+
+${longPara('故障复盘（Postmortem）流程确保每次故障都能产生改进措施。无责复盘文化鼓励团队坦诚分析故障原因，关注系统性改进而非个人责任。复盘报告包含时间线、影响范围、根因分析和行动项，所有行动项都有明确的负责人和截止日期。')}
+
+## 灾备与业务连续性
+
+${longPara('灾备架构设计遵循分级保护原则，根据业务系统的重要程度制定不同的灾备策略。核心交易系统采用双活架构，RPO 接近零，RTO 控制在分钟级别。辅助系统采用温备模式，RPO 控制在小时级别，RTO 控制在小时级别。')}
+
+${longPara('数据备份策略采用全量备份与增量备份相结合的方式。每日执行全量备份，每小时执行增量备份。备份数据加密存储异地数据中心，防止单点故障导致的数据丢失。定期的备份恢复演练验证备份数据的完整性和可恢复性。')}
+
+${longPara('业务连续性计划（BCP）定义了各类故障场景下的应急响应流程。包括自然灾害、网络攻击、硬件故障、软件缺陷等多种场景。每个场景都有明确的应急响应团队、通讯联络方式和恢复步骤。')}
+
+${longPara('混沌工程实践通过主动注入故障来验证系统的容错能力。常见的故障注入场景包括服务宕机、网络延迟、数据库连接池耗尽等。通过在生产环境中进行小规模的混沌实验，持续验证系统的自愈能力和监控告警的有效性。')}
+
+${longPara('灾备切换流程经过定期演练和验证，确保在真实灾难发生时能够快速、可靠地完成切换。切换流程包括故障检测、决策确认、流量切换、数据验证和业务恢复等步骤。每个步骤都有自动化工具支持，减少人工操作带来的风险。')}
+
+## API 设计原则
+
+${longPara('系统的 API 设计遵循 RESTful 架构风格，采用统一的资源命名规范和 HTTP 方法语义。所有 API 端点都使用名词复数形式表示资源集合，通过 HTTP 方法表达操作语义。GET 用于查询、POST 用于创建、PUT 用于全量更新、PATCH 用于部分更新、DELETE 用于删除。')}
+
+${longPara('API 版本管理通过 URL 路径前缀实现，如 /api/v1/resources。向后兼容的变更（如新增可选字段）不触发版本升级，破坏性变更（如删除字段、修改字段类型）必须通过新版本发布。旧版本 API 至少维护两个大版本的兼容期。')}
+
+${longPara('API 响应格式统一采用 JSON 结构，包含数据体、分页信息和错误详情。成功响应使用标准 HTTP 状态码 200/201/204，错误响应包含错误码、错误消息和请求 ID。分页接口支持基于偏移量和基于游标两种模式，大数据集推荐使用游标分页。')}
+
+${longPara('API 安全通过 OAuth 2.0 和 API Key 双重机制保障。外部 API 使用 OAuth 2.0 授权码流程，支持令牌刷新和撤销。内部服务间 API 使用 API Key 认证，Key 通过安全通道分发并定期轮换。所有 API 通信强制使用 TLS 1.3 加密。')}
+
+${longPara('API 网关统一管理流量控制、认证鉴权和请求路由。限流策略采用滑动窗口算法，支持按用户、按 IP 和按 API 端点的多维度限流。熔断机制在下游服务异常时快速失败，避免级联故障。请求日志和审计跟踪覆盖所有 API 调用。')}
+
+${longPara('API 文档通过 OpenAPI 3.0 规范自动生成，包含端点描述、请求参数、响应格式和示例代码。文档与代码同步更新，通过 CI 流水线验证文档的准确性。开发者门户提供交互式 API 调试环境，支持在线测试和代码生成。')}
+
+## 数据治理框架
+
+${longPara('数据治理框架覆盖数据全生命周期，从数据采集、存储、处理到归档和销毁。每个阶段都有明确的质量标准、安全要求和合规规范。数据所有者、数据管理者和数据使用者角色分离，确保数据使用的合规性和透明性。')}
+
+${longPara('数据质量管理通过自动化规则和人工审核相结合的方式实现。自动化规则检查数据的完整性、一致性、准确性和时效性。异常数据自动标记并进入人工审核队列。数据质量指标定期报告，作为系统改进和数据治理优化的依据。')}
+
+${longPara('元数据管理系统维护数据的血缘关系、变更记录和使用情况。数据血缘追踪从数据源到最终消费的全链路，帮助理解数据的来源和转换过程。变更管理记录数据结构和内容的每次修改，支持回溯和影响分析。')}
+
+${longPara('数据归档策略根据数据的访问频率和合规要求制定分级存储方案。热数据存储在高性能 SSD 上，温数据迁移到普通磁盘，冷数据归档到对象存储。归档数据仍可通过标准接口访问，但响应时间较长。超过保留期限的数据自动销毁，销毁过程记录审计日志。')}
+`;
+
+    return baseContent + mildExtension + severeExtension;
   }
 
   /**

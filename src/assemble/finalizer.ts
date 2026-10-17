@@ -36,6 +36,12 @@ export interface FinalizationReport {
   finalizedAt: string;
   /** 是否就绪可导出 */
   readyForExport: boolean;
+  /** DV-1~DV-2: 降级章节列表（failureReason 以 exceeded_max_rounds 开头） */
+  degradedChapters: Array<{
+    chapterId: string;
+    title: string;
+    failureReason: string;
+  }>;
 }
 
 /**
@@ -76,16 +82,20 @@ export function finalize(projectDir: string): FinalizationReport {
     console.warn('[Finalizer] 标题层级检查发现问题:', headingCheck.issues.join('; '));
   }
 
-  // 3. 生成报告
+  // DV-1: 读取 state.chapters，过滤降级章节
+  const degradedChapters = findDegradedChapters(projectDir);
+
+  // 4. 生成报告
   const report: FinalizationReport = {
     documentPath: outputPath,
     stats,
     consistency,
     finalizedAt: new Date().toISOString(),
     readyForExport: true,
+    degradedChapters,
   };
 
-  // 4. 写入报告
+  // 5. 写入报告
   writeFileSync(
     join(outputDir, 'finalization.json'),
     JSON.stringify(report, null, 2),
@@ -93,6 +103,37 @@ export function finalize(projectDir: string): FinalizationReport {
   );
 
   return report;
+}
+
+/**
+ * DV-1: 读取 project-state.json，过滤 failureReason 以 exceeded_max_rounds 开头的章节
+ */
+function findDegradedChapters(projectDir: string): FinalizationReport['degradedChapters'] {
+  const statePath = join(projectDir, 'project-state.json');
+  if (!existsSync(statePath)) {
+    return [];
+  }
+
+  try {
+    const state = JSON.parse(readFileSync(statePath, 'utf-8'));
+    const chapters = state.chapters || {};
+    const degraded: FinalizationReport['degradedChapters'] = [];
+
+    for (const [id, chapter] of Object.entries(chapters) as [string, any][]) {
+      if (chapter.failureReason && typeof chapter.failureReason === 'string' &&
+          chapter.failureReason.startsWith('exceeded_max_rounds')) {
+        degraded.push({
+          chapterId: id,
+          title: chapter.title || id,
+          failureReason: chapter.failureReason,
+        });
+      }
+    }
+
+    return degraded;
+  } catch {
+    return [];
+  }
 }
 
 /**

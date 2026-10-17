@@ -52,6 +52,20 @@ ConfWrite 80% 的 bug 出在**模块间交互**——不是单个模块内部逻
 
 ---
 
+### 2.5 验收归属
+
+| 任务类型 | 验收对象 | 不得验收 |
+|---|---|---|
+| writer | drafts/chapters/{ch}-v{round}.md 字数/结构 | 审阅报告 |
+| reviewer | review/{ch}-r{round}.json 存在 + 可解析 + verdict 合法 | 草稿字数 |
+| fixer | drafts/chapters/{ch}-v{round+1}.md 字数/结构 | 审阅报告 |
+
+| ID | 规则 | 违反后果 |
+|----|------|----------|
+| SM-22 | **任何任务的验收条件不得引用该任务无权修改的产物** | reviewer 因草稿字数判 validation_failed → 死锁 (Issue #154) |
+
+---
+
 ## 3. Phase 实现层契约
 
 ### 3.1 Phase1 (需求分析)
@@ -316,3 +330,4 @@ renameSync(tempPath, logPath);
 | 2026-10-12 | 新增 §7 日志写入契约 (LOG-1~3) | Issue #56: 防止崩溃时日志丢失 |
 | 2026-10-12 | 新增 LOG-4 | Issue #55: DIAG 日志必须通过 EventBus emit |
 | 2026-10-13 | 新增 §3.9 日志系统契约 (LOG-1~LOG-3) | Issue #54：日志从全量重写改为 JSONL 增量追加 |
+| 2026-10-14 | 新增 §2.5 验收归属表 + SM-22 | Issue #154：reviewer 验收不再绑草稿字数 |

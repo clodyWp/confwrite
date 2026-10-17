@@ -418,7 +418,7 @@ describe('Dirty Output Resilience (Issue #87)', () => {
       expect(result.errors.some(e => e.includes('矛盾') || e.includes('verdict'))).toBe(true);
     });
 
-    it('contradictory: independent word count check catches it (INV-DM-6b)', async () => {
+    it('contradictory: independent word count check triggers verdict correction (SM-22)', async () => {
       // 写一个超标草稿 + 矛盾审阅报告
       const draftPath = join(tmpDir, 'drafts', 'chapters', 'ch001-v1.md');
       writeFileSync(draftPath, '正常内容'.repeat(5000), 'utf-8'); // 20000 字
@@ -437,9 +437,11 @@ describe('Dirty Output Resilience (Issue #87)', () => {
       const task = createTask('reviewer');
       const result = validator.validate(task, 1, { min: 5000, max: 8000 });
       
-      // 独立字数验证应该发现超标
-      expect(result.valid).toBe(false);
-      expect(result.errors.some(e => e.includes('字数超标') || e.includes('矛盾'))).toBe(true);
+      // SM-22: reviewer 验收不绑草稿字数，验证通过但 verdict 被修正
+      expect(result.valid).toBe(true);
+      expect(result.verdictCorrected).toBe(true);
+      expect(result.correctedVerdict).toBe('revise');
+      expect(result.correctionReason).toContain('草稿超预算');
     });
 
     it('contradictory: chapter enters fix cycle (INV-DM-6d)', () => {

@@ -1,0 +1,43 @@
+{
+  "git": {
+    "commitMessage": "chore: release v${version}",
+    "tagName": "v${version}",
+    "push": true,
+    "requireCleanWorkingDir": false
+  },
+  "github": {
+    "release": true,
+    "releaseName": "v${version}",
+    "draft": false,
+    "autoGenerate": true
+  },
+  "npm": {
+    "publish": false
+  },
+  "plugins": {
+    "@release-it/conventional-changelog": {
+      "preset": {
+        "name": "conventionalcommits",
+        "types": [
+          { "type": "feat", "section": "Features", "hidden": false },
+          { "type": "fix", "section": "Bug Fixes", "hidden": false },
+          { "type": "perf", "section": "Performance", "hidden": false },
+          { "type": "refactor", "section": "Refactoring", "hidden": false },
+          { "type": "docs", "section": "Documentation", "hidden": false },
+          { "type": "test", "section": "Tests", "hidden": false },
+          { "type": "chore", "section": "Chores", "hidden": false },
+          { "type": "ci", "section": "CI", "hidden": false },
+          { "type": "build", "section": "Build", "hidden": false },
+          { "type": "style", "section": "Style", "hidden": false }
+        ]
+      },
+      "infile": "CHANGELOG.md",
+      "header": "# Changelog\n\nAll notable changes to this project will be documented in this file.\n"
+    }
+  },
+  "hooks": {
+    "before:bump": "npm test",
+    "after:bump": "npm run build",
+    "after:release": "echo '✅ Released v${version} to GitHub'"
+  }
+}
