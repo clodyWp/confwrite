@@ -61,6 +61,8 @@ export interface ValidationResult {
   verdictCorrected?: boolean;
   correctedVerdict?: 'accept' | 'revise' | 'reject';
   correctionReason?: string;
+  // SM-22: 草稿字数超标标记（reviewer 不因此判 validation_failed）
+  wordBudgetViolated?: boolean;
 }
 
 export interface ValidationCheck {
@@ -350,12 +352,12 @@ export class OutputValidator {
           
           // 检查字数上限
           if (charCount > wordBudget.max) {
+            result.wordBudgetViolated = true;
             result.checks.push({
               name: '字数上限（独立验证）',
               passed: false,
               detail: `${charCount} 字 > 上限 ${wordBudget.max} 字`
             });
-            result.errors.push(`章节字数超标: ${charCount} 字 > 上限 ${wordBudget.max} 字`);
           } else {
             result.checks.push({
               name: '字数上限（独立验证）',
@@ -366,12 +368,12 @@ export class OutputValidator {
           
           // 检查字数下限
           if (charCount < wordBudget.min) {
+            result.wordBudgetViolated = true;
             result.checks.push({
               name: '字数下限（独立验证）',
               passed: false,
               detail: `${charCount} 字 < 下限 ${wordBudget.min} 字`
             });
-            result.errors.push(`章节字数不足: ${charCount} 字 < 下限 ${wordBudget.min} 字`);
           } else {
             result.checks.push({
               name: '字数下限（独立验证）',
@@ -386,11 +388,11 @@ export class OutputValidator {
       }
     }
 
-    // 6. Bug 42 修复 + E2E v26 增强：verdict 一致性检查
-    // 如果 issues 中提到字数问题但 verdict 是 accept，标记为验证失败
-    // 或者如果独立字数验证发现超标但 verdict 是 accept，也标记为验证失败
+    // 6. Bug 42 修复 + E2E v26 增强：verdict 一致性检查（报告内部）
+    // 仅检查审阅报告 issues 与 verdict 的内部矛盾
+    // SM-22: 草稿字数问题由 wordBudgetViolated 标记处理，不在此处重复检查
     if (parsed.verdict === 'accept') {
-      // 检查 issues 中是否有字数相关问题
+      // 检查 issues 中是否有字数相关问题（报告内部矛盾）
       let hasWordCountIssueInReport = false;
       if (Array.isArray(parsed.issues)) {
         const wordCountIssues = parsed.issues.filter((i: any) => 
@@ -399,39 +401,33 @@ export class OutputValidator {
         hasWordCountIssueInReport = wordCountIssues.length > 0;
       }
       
-      // 检查独立字数验证是否发现超标
-      let hasWordCountOverLimit = false;
-      if (wordBudget) {
-        const draftPath = join(this.projectDir, 'drafts', 'chapters', `${chapterId}-v${round}.md`);
-        if (existsSync(draftPath)) {
-          try {
-            const content = readFileSync(draftPath, 'utf-8');
-            const charCount = content.length;
-            hasWordCountOverLimit = charCount > wordBudget.max || charCount < wordBudget.min;
-          } catch {
-            // 读取失败不影响检查
-          }
-        }
-      }
-      
-      // 如果任一检查发现问题，标记为验证失败
-      if (hasWordCountIssueInReport || hasWordCountOverLimit) {
-        const reasons = [];
-        if (hasWordCountIssueInReport) reasons.push('审阅报告中发现字数问题');
-        if (hasWordCountOverLimit) reasons.push('独立验证发现字数超标');
-        
+      // 如果报告内部发现矛盾，标记为验证失败
+      if (hasWordCountIssueInReport) {
         result.checks.push({
           name: 'verdict 一致性',
           passed: false,
-          detail: `verdict 为 accept，但${reasons.join('，')}`
+          detail: 'verdict 为 accept，但审阅报告中发现字数问题'
         });
-        result.errors.push(`verdict 矛盾: verdict 为 accept，但${reasons.join('，')}`);
+        result.errors.push('verdict 矛盾: verdict 为 accept，但审阅报告中发现字数问题');
         
         // VC-1: 自动修正 verdict 为 revise
         result.verdictCorrected = true;
         result.correctedVerdict = 'revise';
-        result.correctionReason = reasons.join('; ');
+        result.correctionReason = '审阅报告中发现字数问题';
       }
+    }
+
+    // SM-22: 草稿超预算 + verdict=accept → 修正 verdict 为 revise
+    // reviewer 验收不绑草稿字数，但通过 verdict 修正路由给 fixer
+    if (result.wordBudgetViolated && parsed.verdict === 'accept' && !result.verdictCorrected) {
+      result.verdictCorrected = true;
+      result.correctedVerdict = 'revise';
+      result.correctionReason = '草稿超预算';
+      result.checks.push({
+        name: 'verdict 一致性（字数预算）',
+        passed: false,
+        detail: 'verdict 为 accept，但草稿超预算'
+      });
     }
   }
 

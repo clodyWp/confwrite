@@ -37,7 +37,7 @@ describe('Issue #80: verdict 一致性检查增强', () => {
     dependencies: [],
   });
   
-  it('verdict=accept 但字数超标时应验证失败', () => {
+  it('verdict=accept 但字数超标时应修正 verdict（SM-22）', () => {
     // 创建超标的草稿
     const chapterId = 'ch001';
     const round = 1;
@@ -59,11 +59,14 @@ describe('Issue #80: verdict 一致性检查增强', () => {
     
     const result = validator.validate(task, round, wordBudget);
     
-    expect(result.valid).toBe(false);
-    expect(result.errors).toContain('verdict 矛盾: verdict 为 accept，但独立验证发现字数超标');
+    // SM-22: reviewer 验收不绑草稿字数，验证通过但 verdict 被修正
+    expect(result.valid).toBe(true);
+    expect(result.verdictCorrected).toBe(true);
+    expect(result.correctedVerdict).toBe('revise');
+    expect(result.correctionReason).toContain('草稿超预算');
   });
   
-  it('verdict=accept 但字数不足时应验证失败', () => {
+  it('verdict=accept 但字数不足时应修正 verdict（SM-22）', () => {
     // 创建字数不足的草稿
     const chapterId = 'ch002';
     const round = 1;
@@ -85,8 +88,11 @@ describe('Issue #80: verdict 一致性检查增强', () => {
     
     const result = validator.validate(task, round, wordBudget);
     
-    expect(result.valid).toBe(false);
-    expect(result.errors).toContain('verdict 矛盾: verdict 为 accept，但独立验证发现字数超标');
+    // SM-22: reviewer 验收不绑草稿字数，验证通过但 verdict 被修正
+    expect(result.valid).toBe(true);
+    expect(result.verdictCorrected).toBe(true);
+    expect(result.correctedVerdict).toBe('revise');
+    expect(result.correctionReason).toContain('草稿超预算');
   });
   
   it('verdict=accept 且字数在范围内时应验证通过', () => {

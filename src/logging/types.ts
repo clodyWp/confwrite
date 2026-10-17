@@ -287,6 +287,21 @@ export interface DiagReviewEvent {
 }
 
 /**
+ * DIAG Guardrail 事件 (DG-1~DG-4)
+ * 
+ * 当 Dispatcher 检测到相同指纹连续失败时触发，
+ * 用于追溯 guardrail 触发记录。
+ */
+export interface DiagGuardrailEvent {
+  type: 'diag.guardrail';
+  chapterId: string;
+  fingerprint: string;
+  failCount: number;
+  action: 'redirect_to_fixer';
+  timestamp: string;
+}
+
+/**
  * DIAG Verdict 事件 (VC-2)
  * 
  * 当 Reviewer verdict 被自动修正时发射，
@@ -330,7 +345,8 @@ export type LogEvent =
   | DiagDispatcherEvent
   | DiagPromptEvent
   | DiagReviewEvent
-  | DiagVerdictEvent;
+  | DiagVerdictEvent
+  | DiagGuardrailEvent;
 
 /**
  * 事件类型字符串

@@ -120,7 +120,7 @@ describe('Verdict Consistency (VC-*)', () => {
       // Then
       expect(result.verdictCorrected).toBe(true);
       expect(result.correctedVerdict).toBe('revise');
-      expect(result.correctionReason).toContain('独立验证');
+      expect(result.correctionReason).toContain('草稿超预算');
     });
 
     it('无矛盾，verdict=accept → 不修正', () => {
