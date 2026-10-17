@@ -265,6 +265,22 @@ export class Logger {
   }
 
   /**
+   * SM-22/SM-23: 格式化降级完成警告
+   * 
+   * 当 WriteLoopResult.degraded.length > 0 时调用，
+   * 打印哪些章节是降级完成（非实际审阅通过）。
+   * 
+   * @returns null 如果 degraded 为空，否则返回警告消息
+   */
+  static formatDegradedWarning(degraded: Array<{ chapterId: string; reason: string }>): FormatResult | null {
+    if (degraded.length === 0) return null;
+
+    const details = degraded.map(d => `${d.chapterId} (${d.reason})`).join(', ');
+    const message = `⚠️ ${degraded.length} 章为降级完成，非实际通过: ${details}`;
+    return { message, level: 'warning' };
+  }
+
+  /**
    * 格式化时长
    */
   static formatDuration(ms: number): string {
