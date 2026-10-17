@@ -4,25 +4,25 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-### Added
-
-- **自动化版本管理** — Conventional Commits + release-it
-  - 安装 `@commitlint/cli`、`@commitlint/config-conventional`、`release-it`、`@release-it/conventional-changelog`
-  - 新增 `.husky/commit-msg` — 强制 commit message 格式（`feat:`/`fix:`/`docs:` 等）
-  - 新增 `commitlint.config.js` — commitlint 配置（11 种 type）
-  - 新增 `.release-it.json` — release-it 配置（自动算版本号 + 生成 changelog + GitHub Release）
-  - 新增 `npm run release` 脚本 — 一条命令完成发布
-  - 更新 `AGENTS.md` §3.1.1/§3.1.2 — 记录 commit 格式规范和发布流程
-  - 版本号不再手动维护，由 commit 历史自动决定：`feat:` → MINOR，`fix:` → PATCH，`feat!:` → MAJOR
+## [0.29.2] - 2026-10-17
 
 ### Fixed
 
-- **基线提取器表格处理** (#125): 修复表格单元格内冒号被误解析为分隔符的问题
-  - 新增 `isTableRow()` 方法检测表格行（排除分隔行）
-  - 新增 `extractTableCellContent()` 方法使用 pipe 位置直接定位单元格
-  - 表格行内的冒号不再作为分隔符，保持完整单元格内容
-  - 普通文本的冒号分割逻辑保持不变（向后兼容）
-  - 新增 13 个测试覆盖所有不变量（BE-1 到 BE-6）
+- **审阅循环死锁** (#154): 修复 reviewer 验收绑草稿字数导致流程无法推进到 fixer 的问题
+  - SM-22: reviewer 验收不再检查草稿字数，改为 verdict 强制纠正（accept→revise）
+  - DG-1~4: dispatcher 加"无进展不重试"护栏，连续 2 次相同指纹失败后派发 fixer
+  - DV-1~2: finalization.json 增加 degradedChapters，TUI 打印降级警告
+  - 根因：SM-21 (#137) 修复了 validation_failed 路径的 round 自增，但激活了原本被"空转"的 reviewer 字数门禁
+
+### Added
+
+- **MockSubagentExecutor 超预算模式**: 支持 `wordCountMode: 'under' | 'mild' | 'severe'`，用于测试超预算场景
+- **SM-22 集成测试**: 组合层测试覆盖「草稿超预算 + verdict=accept → 流程推进到 fixer」
+- **maxrounds-guard 反转**: 测试叙述从「应该强制完成」改为「只在无可用修复路径时才允许强制完成」
+
+### Changed
+
+- **仓库治理**: 删除 5 个 0 字节文件，配置入 git（.husky/commit-msg, commitlint.config.js, .release-it.json）
 
 ## [0.29.1] - 2026-10-16
 
